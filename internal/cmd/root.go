@@ -75,8 +75,12 @@ func (c *RootCmd) Execute(args []string) int {
 		return c.executeBook(subArgs)
 	case "chapter":
 		return c.executeChapter(subArgs)
+	case "codex":
+		return c.executeCodex(subArgs)
 	case "generate":
 		return c.executeGenerate(subArgs)
+	case "series":
+		return c.executeSeries(subArgs)
 	default:
 		// Check for global flags like --json without command
 		if cmdName == "--json" {
@@ -99,7 +103,9 @@ Available Commands:
   auth        Manage authentication (login, status, logout)
   book        Manage books (list, show, create, update, delete, duplicate, export, import)
   chapter     Manage chapters (list, show, create, update, delete, reorder, export)
+  codex       Manage narrative facts and lore notes (list, show, create, update, delete)
   generate    Generate AI prose (continue, reject, rewrite, summarize)
+  series      Manage book collections and shared lore (list, show, create, update, delete, attach, detach)
   version     Display the CLI version
 
 Flags:
