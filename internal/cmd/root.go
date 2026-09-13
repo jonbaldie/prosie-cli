@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/jonbaldie/prosie-cli/internal/auth"
+	"github.com/jonbaldie/prosie-cli/internal/client"
+	"github.com/jonbaldie/prosie-cli/internal/config"
 )
 
 // RootCmd orchestrates CLI execution and dependency injection.
@@ -33,6 +35,22 @@ func NewRootCmd() *RootCmd {
 	}
 }
 
+// Client returns an authenticated client using configured credentials or environment variables.
+func (c *RootCmd) Client() (*client.Client, error) {
+	cfg, err := config.Load(c.ConfigPath)
+	if err != nil {
+		cfg = &config.Config{}
+	}
+
+	apiURL := config.ResolveApiURL(cfg)
+	token, _ := config.ResolveToken(cfg)
+	if token == "" {
+		return nil, fmt.Errorf("you are not logged in. Run 'prosie auth login' or set PROSIE_API_TOKEN")
+	}
+
+	return client.New(apiURL, token, c.HTTPClient), nil
+}
+
 // Execute routes command-line arguments and returns the process exit code.
 func (c *RootCmd) Execute(args []string) int {
 	if len(args) == 0 {
@@ -51,6 +69,8 @@ func (c *RootCmd) Execute(args []string) int {
 		return c.executeVersion(subArgs)
 	case "auth":
 		return c.executeAuth(subArgs)
+	case "book":
+		return c.executeBook(subArgs)
 	default:
 		// Check for global flags like --json without command
 		if cmdName == "--json" {
@@ -71,6 +91,7 @@ Usage:
 
 Available Commands:
   auth        Manage authentication (login, status, logout)
+  book        Manage books (list, show, create, update, delete, duplicate, export, import)
   version     Display the CLI version
 
 Flags:

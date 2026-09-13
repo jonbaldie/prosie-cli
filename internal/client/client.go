@@ -22,13 +22,21 @@ type User struct {
 
 // ApiError represents an error response from the Prosie API.
 type ApiError struct {
-	StatusCode int    `json:"status_code"`
-	ErrorCode  string `json:"error,omitempty"`
-	Message    string `json:"message,omitempty"`
+	StatusCode int                 `json:"status_code"`
+	ErrorCode  string              `json:"error,omitempty"`
+	Message    string              `json:"message,omitempty"`
+	Errors     map[string][]string `json:"errors,omitempty"`
 }
 
 func (e *ApiError) Error() string {
 	if e.Message != "" {
+		if len(e.Errors) > 0 {
+			var details []string
+			for field, msgs := range e.Errors {
+				details = append(details, fmt.Sprintf("%s: %s", field, strings.Join(msgs, ", ")))
+			}
+			return fmt.Sprintf("API error (%d): %s (%s)", e.StatusCode, e.Message, strings.Join(details, "; "))
+		}
 		return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
 	}
 	if e.ErrorCode != "" {
@@ -123,6 +131,18 @@ func CheckResponse(resp *http.Response) error {
 			if errDesc, ok := raw["error_description"].(string); ok {
 				if apiErr.Message == "" {
 					apiErr.Message = errDesc
+				}
+			}
+			if errsMap, ok := raw["errors"].(map[string]any); ok {
+				apiErr.Errors = make(map[string][]string)
+				for k, v := range errsMap {
+					if slice, ok := v.([]any); ok {
+						for _, item := range slice {
+							if str, ok := item.(string); ok {
+								apiErr.Errors[k] = append(apiErr.Errors[k], str)
+							}
+						}
+					}
 				}
 			}
 		} else {
