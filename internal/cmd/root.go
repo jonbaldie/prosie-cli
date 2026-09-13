@@ -71,6 +71,10 @@ func (c *RootCmd) Execute(args []string) int {
 		return c.executeAuth(subArgs)
 	case "book":
 		return c.executeBook(subArgs)
+	case "codex":
+		return c.executeCodex(subArgs)
+	case "series":
+		return c.executeSeries(subArgs)
 	default:
 		// Check for global flags like --json without command
 		if cmdName == "--json" {
@@ -92,6 +96,8 @@ Usage:
 Available Commands:
   auth        Manage authentication (login, status, logout)
   book        Manage books (list, show, create, update, delete, duplicate, export, import)
+  codex       Manage narrative facts and lore notes (list, show, create, update, delete)
+  series      Manage book collections and shared lore (list, show, create, update, delete, attach, detach)
   version     Display the CLI version
 
 Flags:
