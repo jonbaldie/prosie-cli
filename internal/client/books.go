@@ -36,26 +36,6 @@ type Book struct {
 	Chapters              []Chapter `json:"chapters"`
 }
 
-// Chapter represents a chapter or scene in a book.
-type Chapter struct {
-	ID        int    `json:"id"`
-	StoryID   int    `json:"story_id,omitempty"`
-	Order     int    `json:"order"`
-	Name      string `json:"name,omitempty"`
-	Title     string `json:"title,omitempty"`
-	WordCount int    `json:"word_count,omitempty"`
-}
-
-// DisplayTitle returns the chapter name, title, or fallback chapter number.
-func (c Chapter) DisplayTitle() string {
-	if c.Title != "" {
-		return c.Title
-	}
-	if c.Name != "" {
-		return c.Name
-	}
-	return fmt.Sprintf("Chapter %d", c.Order+1)
-}
 
 // DisplayPremise returns the best available premise or summary string.
 func (b *Book) DisplayPremise() string {

@@ -71,6 +71,8 @@ func (c *RootCmd) Execute(args []string) int {
 		return c.executeAuth(subArgs)
 	case "book":
 		return c.executeBook(subArgs)
+	case "chapter":
+		return c.executeChapter(subArgs)
 	default:
 		// Check for global flags like --json without command
 		if cmdName == "--json" {
@@ -92,6 +94,7 @@ Usage:
 Available Commands:
   auth        Manage authentication (login, status, logout)
   book        Manage books (list, show, create, update, delete, duplicate, export, import)
+  chapter     Manage chapters (list, show, create, update, delete, reorder, export)
   version     Display the CLI version
 
 Flags:
