@@ -380,3 +380,18 @@ func TestAuthLogout(t *testing.T) {
 		}
 	})
 }
+
+func TestAuthSubcommandHelp(t *testing.T) {
+	for _, subcommand := range []string{"login", "status", "logout"} {
+		t.Run(subcommand, func(t *testing.T) {
+			cmd, out, errOut := newTestRootCmd(filepath.Join(t.TempDir(), "config.json"), nil)
+			code := cmd.Execute([]string{"auth", subcommand, "--help"})
+			if code != 0 || errOut.Len() != 0 {
+				t.Fatalf("help must exit 0 without stderr; exit=%d stderr=%s", code, errOut.String())
+			}
+			if !strings.Contains(out.String(), "prosie auth "+subcommand) || !strings.Contains(out.String(), "--json") {
+				t.Fatalf("missing command usage and flags: %s", out.String())
+			}
+		})
+	}
+}

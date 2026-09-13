@@ -16,6 +16,10 @@ func (c *RootCmd) executeAuthLogout(args []string) int {
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			c.PrintAuthLogoutHelp()
+			return 0
+		}
 		fmt.Fprintf(c.Err, "error parsing flags: %v\n", err)
 		return 1
 	}
@@ -43,4 +47,16 @@ func (c *RootCmd) executeAuthLogout(args []string) int {
 		fmt.Fprintln(c.Out, "Note: PROSIE_API_TOKEN is set in your environment and will continue to authenticate requests.")
 	}
 	return 0
+}
+
+func (c *RootCmd) PrintAuthLogoutHelp() {
+	fmt.Fprint(c.Out, `Clear saved credentials. PROSIE_API_TOKEN remains active if set.
+
+Usage:
+  prosie auth logout [flags]
+
+Flags:
+  -h, --help            Show help for command
+      --json            Format output as JSON
+`)
 }

@@ -50,3 +50,13 @@ prosie generate continue <chapter-id>
 prosie generate rewrite <chapter-id>
 prosie generate summarize <chapter-id>
 ```
+
+## Saved books and exports
+
+`book create --json` includes the saved book defaults and initial chapters. A new book starts with Chapter 1. `book show <id> --json` reports the same saved state.
+
+`chapter reorder <book-id> <id1,id2,...>` puts the selected chapters first. Omitted chapters follow in their existing order. Repeated IDs and IDs from other books are ignored.
+
+`chapter create --content` and `chapter update --file` accept prose. Book and chapter Markdown exports keep paragraph boundaries from plain text and HTML.
+
+Use `prosie auth login --help`, `prosie auth status --help`, or `prosie auth logout --help` to see authentication options without starting an authentication action.

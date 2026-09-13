@@ -272,12 +272,14 @@ func TestBookCreate(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"data": map[string]any{
-				"id":                42,
-				"title":             title,
-				"story_so_far":      body["story_so_far"],
-				"lore":              body["lore"],
-				"characters":        body["characters"],
-				"target_word_count": body["target_word_count"],
+				"filter_using_story_so_far": true,
+				"chapters":                  []map[string]any{{"id": 101, "order": 0, "name": "Chapter 1"}},
+				"id":                        42,
+				"title":                     title,
+				"story_so_far":              body["story_so_far"],
+				"lore":                      body["lore"],
+				"characters":                body["characters"],
+				"target_word_count":         body["target_word_count"],
 			},
 		})
 	}
@@ -325,6 +327,13 @@ func TestBookCreate(t *testing.T) {
 		var b map[string]any
 		if err := json.Unmarshal(out.Bytes(), &b); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		chapters, ok := b["chapters"].([]any)
+		if b["filter_using_story_so_far"] != true || !ok || len(chapters) != 1 {
+			t.Fatalf("create must retain saved defaults and chapters: %+v", b)
+		}
+		if chapter, ok := chapters[0].(map[string]any); !ok || chapter["name"] != "Chapter 1" {
+			t.Fatalf("missing initial chapter: %+v", chapters)
 		}
 		if b["id"] != float64(42) || b["title"] != "The Iron Core" {
 			t.Fatalf("unexpected created book: %+v", b)

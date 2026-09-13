@@ -22,6 +22,10 @@ func (c *RootCmd) executeAuthLogin(args []string) int {
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			c.PrintAuthLoginHelp()
+			return 0
+		}
 		fmt.Fprintf(c.Err, "error parsing flags: %v\n", err)
 		return 1
 	}
@@ -124,4 +128,19 @@ func (c *RootCmd) executeAuthLogin(args []string) int {
 		fmt.Fprintf(c.Out, "Logged in as %s (%s)\n", user.Name, user.Email)
 	}
 	return 0
+}
+
+func (c *RootCmd) PrintAuthLoginHelp() {
+	fmt.Fprint(c.Out, `Log in through OAuth device flow or a personal access token.
+
+Usage:
+  prosie auth login [flags]
+
+Flags:
+  -h, --help            Show help for command
+      --json            Format output as JSON
+      --token string    Authenticate with a personal access token
+      --no-browser      Do not open the browser automatically
+      --scopes string   Requested scopes (default "read write generate")
+`)
 }

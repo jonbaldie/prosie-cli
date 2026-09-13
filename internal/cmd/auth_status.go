@@ -17,6 +17,10 @@ func (c *RootCmd) executeAuthStatus(args []string) int {
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	if err := fs.Parse(args); err != nil {
+		if err == flag.ErrHelp {
+			c.PrintAuthStatusHelp()
+			return 0
+		}
 		fmt.Fprintf(c.Err, "error parsing flags: %v\n", err)
 		return 1
 	}
@@ -51,4 +55,16 @@ func (c *RootCmd) executeAuthStatus(args []string) int {
 		fmt.Fprintf(c.Out, "Token scopes: %s\n", strings.Join(status.Scopes, ", "))
 	}
 	return 0
+}
+
+func (c *RootCmd) PrintAuthStatusHelp() {
+	fmt.Fprint(c.Out, `Show the current authentication status.
+
+Usage:
+  prosie auth status [flags]
+
+Flags:
+  -h, --help            Show help for command
+      --json            Format output as JSON
+`)
 }
