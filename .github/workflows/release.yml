@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target.os }}/${{ matrix.target.arch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - { os: darwin, arch: arm64 }
+          - { os: darwin, arch: amd64 }
+          - { os: linux, arch: amd64 }
+          - { os: linux, arch: arm64 }
+          - { os: windows, arch: amd64 }
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Build and package
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BINARY_NAME="prosie"
+          if [ "${{ matrix.target.os }}" = "windows" ]; then
+            BINARY_NAME="prosie.exe"
+          fi
+
+          BUILD_DIR="build_${{ matrix.target.os }}_${{ matrix.target.arch }}"
+          mkdir -p "$BUILD_DIR"
+
+          CGO_ENABLED=0 GOOS=${{ matrix.target.os }} GOARCH=${{ matrix.target.arch }} go build \
+            -trimpath \
+            -ldflags="-s -w -X github.com/jonbaldie/prosie-cli/internal/version.Version=${VERSION}" \
+            -o "$BUILD_DIR/$BINARY_NAME" .
+
+          cp LICENSE "$BUILD_DIR/"
+          if [ -f README.md ]; then
+            cp README.md "$BUILD_DIR/"
+          fi
+
+          FILES=("$BINARY_NAME" "LICENSE")
+          if [ -f "$BUILD_DIR/README.md" ]; then
+            FILES+=("README.md")
+          fi
+
+          mkdir -p dist
+          ARCHIVE_BASE="prosie_${VERSION}_${{ matrix.target.os }}_${{ matrix.target.arch }}"
+
+          if [ "${{ matrix.target.os }}" = "windows" ]; then
+            ARCHIVE_NAME="${ARCHIVE_BASE}.zip"
+            (cd "$BUILD_DIR" && zip -q -r "../dist/${ARCHIVE_NAME}" "${FILES[@]}")
+          else
+            ARCHIVE_NAME="${ARCHIVE_BASE}.tar.gz"
+            tar -czf "dist/${ARCHIVE_NAME}" -C "$BUILD_DIR" "${FILES[@]}"
+          fi
+
+      - name: Upload built archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: prosie-${{ matrix.target.os }}-${{ matrix.target.arch }}
+          path: dist/*
+          retention-days: 1
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate Checksums
+        working-directory: dist
+        run: |
+          sha256sum prosie_* > checksums.txt
+          cat checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          generate_release_notes: true
