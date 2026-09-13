@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ type RootCmd struct {
 	ConfigPath    string
 	HTTPClient    *http.Client
 	BrowserOpener auth.BrowserOpener
+	Context       context.Context
 }
 
 // NewRootCmd initializes a RootCmd with standard operating system streams and defaults.
@@ -73,6 +75,8 @@ func (c *RootCmd) Execute(args []string) int {
 		return c.executeBook(subArgs)
 	case "chapter":
 		return c.executeChapter(subArgs)
+	case "generate":
+		return c.executeGenerate(subArgs)
 	default:
 		// Check for global flags like --json without command
 		if cmdName == "--json" {
@@ -95,6 +99,7 @@ Available Commands:
   auth        Manage authentication (login, status, logout)
   book        Manage books (list, show, create, update, delete, duplicate, export, import)
   chapter     Manage chapters (list, show, create, update, delete, reorder, export)
+  generate    Generate AI prose (continue, reject, rewrite, summarize)
   version     Display the CLI version
 
 Flags:
