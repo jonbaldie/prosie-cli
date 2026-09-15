@@ -47,6 +47,7 @@ prosie chapter show <id>
 
 # AI Generation
 prosie generate continue <chapter-id>
+prosie generate continue <chapter-id> --instruction "Write the closing scene; resolve every open thread." --words 900
 prosie generate rewrite <chapter-id>
 prosie generate summarize <chapter-id>
 
@@ -71,6 +72,16 @@ command:
 
 The CLI does not accept keys as command arguments and never returns stored
 key values. `prosie llm show` reports only whether each key is configured.
+
+## Steering a continuation
+
+`generate continue` uses the book's prior chapters as context and, by default,
+asks the model for the next scene. To direct the continuation, pass
+`--instruction` with the prompt you want honoured (for example, an ending). Use
+`--words <n>` as a soft length target and `--lines <n>` as a hard cap on the
+generated lines. Note that the book premise and the current chapter's summary
+are not currently part of the continuation prompt, so put final-scene
+constraints in `--instruction` rather than in chapter metadata.
 
 ## Saved books and exports
 

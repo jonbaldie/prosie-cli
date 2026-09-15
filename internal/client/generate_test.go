@@ -43,7 +43,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		res, err := cli.Generation().Continue(context.Background(), "101", true)
+		res, err := cli.Generation().Continue(context.Background(), "101", ContinueParams{Persist: true})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -77,7 +77,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		res, err := cli.Generation().Continue(context.Background(), "101", false)
+		res, err := cli.Generation().Continue(context.Background(), "101", ContinueParams{Persist: false})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -89,6 +89,35 @@ func TestContinue(t *testing.T) {
 		}
 	})
 
+	t.Run("guidance fields are forwarded and zero values omitted", func(t *testing.T) {
+		var got map[string]any
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewDecoder(r.Body).Decode(&got)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"prose": "Fin.", "persisted": true}})
+		}))
+		defer server.Close()
+
+		cli := New(server.URL, "test-token", server.Client())
+		_, err := cli.Generation().Continue(context.Background(), "101", ContinueParams{
+			Persist:     true,
+			Instruction: "Close the story.",
+			WordTarget:  750,
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got["instruction"] != "Close the story." {
+			t.Errorf("expected instruction forwarded, got %v", got)
+		}
+		if got["word_target"] != float64(750) {
+			t.Errorf("expected word_target 750, got %v", got)
+		}
+		if _, present := got["line_limit"]; present {
+			t.Errorf("expected line_limit omitted when zero, got %v", got)
+		}
+	})
+
 	t.Run("server error", func(t *testing.T) {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
@@ -97,7 +126,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		_, err := cli.Generation().Continue(context.Background(), "999", true)
+		_, err := cli.Generation().Continue(context.Background(), "999", ContinueParams{Persist: true})
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -137,7 +166,7 @@ func TestStreamContinue(t *testing.T) {
 
 		cli := New(server.URL, "test-token", server.Client())
 		var tokens []string
-		res, err := cli.Generation().StreamContinue(context.Background(), "101", true, func(tok string) {
+		res, err := cli.Generation().StreamContinue(context.Background(), "101", ContinueParams{Persist: true}, func(tok string) {
 			tokens = append(tokens, tok)
 		})
 		if err != nil {
@@ -160,7 +189,7 @@ func TestStreamContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		_, err := cli.Generation().StreamContinue(context.Background(), "101", true, nil)
+		_, err := cli.Generation().StreamContinue(context.Background(), "101", ContinueParams{Persist: true}, nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -194,7 +223,7 @@ func TestStreamContinue(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, streamErr = cli.Generation().StreamContinue(ctx, "101", true, func(tok string) {
+			_, streamErr = cli.Generation().StreamContinue(ctx, "101", ContinueParams{Persist: true}, func(tok string) {
 				cancel() // Cancel when first token arrives
 			})
 		}()

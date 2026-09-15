@@ -276,6 +276,130 @@ func TestGenerateContinue(t *testing.T) {
 	})
 }
 
+func TestGenerateContinueGuidanceFlags(t *testing.T) {
+	var mu sync.Mutex
+	var bodies []map[string]any
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		mu.Lock()
+		bodies = append(bodies, body)
+		mu.Unlock()
+
+		switch r.URL.Path {
+		case "/api/scenes/101/continue/stream":
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("event: delta\ndata: {\"delta\":\"The end.\"}\n\nevent: done\ndata: {\"prose\":\"The end.\",\"persisted\":true}\n\n"))
+		case "/api/scenes/101/continue":
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"prose": "The end.", "persisted": true}})
+		default:
+			http.NotFound(w, r)
+		}
+	}
+	_, cfgPath, httpClient := setupTestGenerateEnv(t, handler)
+
+	lastBody := func(t *testing.T) map[string]any {
+		mu.Lock()
+		defer mu.Unlock()
+		if len(bodies) == 0 {
+			t.Fatal("expected a request body to be captured")
+		}
+		return bodies[len(bodies)-1]
+	}
+
+	t.Run("default sends no guidance fields", func(t *testing.T) {
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		if code := cmd.Execute([]string{"generate", "continue", "101", "--no-stream"}); code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		body := lastBody(t)
+		for _, key := range []string{"instruction", "word_target", "line_limit"} {
+			if _, present := body[key]; present {
+				t.Fatalf("expected %q to be absent by default, body: %v", key, body)
+			}
+		}
+	})
+
+	t.Run("non-streaming forwards instruction, words and lines", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{
+			"generate", "continue", "101", "--no-stream",
+			"--instruction", "Write the final scene. Resolve every open thread.",
+			"--words", "900",
+			"--lines", "40",
+		})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "The end.") {
+			t.Fatalf("unexpected output: %s", out.String())
+		}
+		body := lastBody(t)
+		if body["instruction"] != "Write the final scene. Resolve every open thread." {
+			t.Fatalf("instruction not forwarded, body: %v", body)
+		}
+		if body["word_target"] != float64(900) {
+			t.Fatalf("word_target not forwarded, body: %v", body)
+		}
+		if body["line_limit"] != float64(40) {
+			t.Fatalf("line_limit not forwarded, body: %v", body)
+		}
+		if body["persist"] != true {
+			t.Fatalf("persist default lost, body: %v", body)
+		}
+	})
+
+	t.Run("streaming forwards instruction and words", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{
+			"generate", "continue", "101",
+			"--instruction", "Bring the story to a close.",
+			"--words", "1000",
+		})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "The end.") {
+			t.Fatalf("unexpected stream output: %s", out.String())
+		}
+		body := lastBody(t)
+		if body["instruction"] != "Bring the story to a close." {
+			t.Fatalf("instruction not forwarded on stream, body: %v", body)
+		}
+		if body["word_target"] != float64(1000) {
+			t.Fatalf("word_target not forwarded on stream, body: %v", body)
+		}
+		if _, present := body["line_limit"]; present {
+			t.Fatalf("line_limit should be absent when not set, body: %v", body)
+		}
+	})
+
+	t.Run("help documents the guidance flags", func(t *testing.T) {
+		cmd, out, _ := newTestRootCmd(cfgPath, httpClient)
+		if code := cmd.Execute([]string{"generate", "continue", "--help"}); code != 0 {
+			t.Fatalf("expected code 0, got %d", code)
+		}
+		for _, flag := range []string{"--instruction", "--words", "--lines"} {
+			if !strings.Contains(out.String(), flag) {
+				t.Fatalf("help missing %s: %s", flag, out.String())
+			}
+		}
+	})
+
+	t.Run("rejects non-positive words", func(t *testing.T) {
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		if code := cmd.Execute([]string{"generate", "continue", "101", "--words", "0"}); code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if !strings.Contains(errOut.String(), "--words must be a positive integer") {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
+		}
+	})
+}
+
 func TestGenerateReject(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch {

@@ -14,7 +14,18 @@ import (
 	"time"
 )
 
-func executeGenerateContinue(c *command.Environment, args []string) int {
+// continueRequest is the parsed and validated input to `generate continue`.
+type continueRequest struct {
+	chapterID string
+	params    client.ContinueParams
+	stream    bool
+	json      bool
+}
+
+// parseContinueArgs parses flags for `generate continue`. A non-nil error
+// is a flag-level error to be handled via command.FlagError; a non-empty
+// message is a user-facing validation failure with a fixed exit code of 1.
+func parseContinueArgs(args []string) (continueRequest, string, error) {
 	fs := flag.NewFlagSet("continue", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
@@ -23,20 +34,53 @@ func executeGenerateContinue(c *command.Environment, args []string) int {
 	streamFlag := fs.Bool("stream", true, "Stream tokens in real time")
 	noStreamFlag := fs.Bool("no-stream", false, "Disable token streaming")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format (disables streaming)")
+	instructionFlag := fs.String("instruction", "", "Steer the continuation with a final prompt")
+	wordsFlag := fs.Int("words", 0, "Target length in words (soft hint)")
+	linesFlag := fs.Int("lines", 0, "Hard cap on generated lines")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args)
 	if err != nil {
+		return continueRequest{}, "", err
+	}
+	if len(posArgs) == 0 {
+		return continueRequest{}, "error: chapter ID is required. Usage: prosie generate continue <chapter-id> [flags]", nil
+	}
+	if msg := validateLengthFlags(command.VisitedFlags(fs), *wordsFlag, *linesFlag); msg != "" {
+		return continueRequest{}, msg, nil
+	}
+
+	return continueRequest{
+		chapterID: posArgs[0],
+		params: client.ContinueParams{
+			Persist:     *persistFlag && !*noPersistFlag,
+			Instruction: *instructionFlag,
+			WordTarget:  *wordsFlag,
+			LineLimit:   *linesFlag,
+		},
+		stream: useStreaming(*streamFlag, *noStreamFlag, *jsonFlag),
+		json:   *jsonFlag,
+	}, "", nil
+}
+
+func validateLengthFlags(visited map[string]bool, words, lines int) string {
+	if visited["words"] && words <= 0 {
+		return "error: --words must be a positive integer"
+	}
+	if visited["lines"] && lines <= 0 {
+		return "error: --lines must be a positive integer"
+	}
+	return ""
+}
+
+func executeGenerateContinue(c *command.Environment, args []string) int {
+	req, msg, err := parseContinueArgs(args)
+	if err != nil {
 		return command.FlagError(c, err, printGenerateContinueHelp)
 	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: chapter ID is required. Usage: prosie generate continue <chapter-id> [flags]")
+	if msg != "" {
+		fmt.Fprintln(c.Err, msg)
 		return 1
 	}
-
-	id := posArgs[0]
-	persist := *persistFlag && !*noPersistFlag
-	stream := useStreaming(*streamFlag, *noStreamFlag, *jsonFlag)
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -48,16 +92,16 @@ func executeGenerateContinue(c *command.Environment, args []string) int {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if stream {
-		return streamContinue(c, cli.Generation(), ctx, id, persist)
+	if req.stream {
+		return streamContinue(c, cli.Generation(), ctx, req.chapterID, req.params)
 	}
 
-	res, err := cli.Generation().Continue(ctx, id, persist)
+	res, err := cli.Generation().Continue(ctx, req.chapterID, req.params)
 	if err != nil {
-		return continuationError(c, cli.Generation(), ctx, id, err)
+		return continuationError(c, cli.Generation(), ctx, req.chapterID, err)
 	}
 
-	if *jsonFlag {
+	if req.json {
 		_ = command.WriteJSON(c, res)
 		return 0
 	}
@@ -74,19 +118,23 @@ Usage:
   prosie generate continue <chapter-id> [flags]
 
 Flags:
-  -h, --help         Show help for command
-      --no-persist   Do not save generated prose to chapter
-      --persist      Save generated prose to chapter (default true)
-      --stream       Stream tokens in real time (default true)
-      --no-stream    Disable token streaming
-      --json         Output result as JSON (disables streaming)
+  -h, --help                 Show help for command
+      --instruction string   Steer the continuation with a final prompt
+                             (e.g. "Write the closing scene; resolve every thread")
+      --words int            Target length in words (soft hint to the model)
+      --lines int            Hard cap on generated lines
+      --no-persist           Do not save generated prose to chapter
+      --persist              Save generated prose to chapter (default true)
+      --stream               Stream tokens in real time (default true)
+      --no-stream            Disable token streaming
+      --json                 Output result as JSON (disables streaming)
 `
 	fmt.Fprint(c.Out, help)
 }
 
-func streamContinue(c *command.Environment, generation *client.Generation, ctx context.Context, id string, persist bool) int {
+func streamContinue(c *command.Environment, generation *client.Generation, ctx context.Context, id string, params client.ContinueParams) int {
 	output := newTokenOutput(c.Out)
-	res, err := generation.StreamContinue(ctx, id, persist, output.write)
+	res, err := generation.StreamContinue(ctx, id, params, output.write)
 	if err != nil {
 		return continuationError(c, generation, ctx, id, err)
 	}
