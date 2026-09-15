@@ -49,7 +49,7 @@ func TestListChapters(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	chapters, err := cli.ListChapters(context.Background(), "1")
+	chapters, err := cli.Chapters().ListChapters(context.Background(), "1")
 	if err != nil {
 		t.Fatalf("ListChapters returned error: %v", err)
 	}
@@ -58,14 +58,14 @@ func TestListChapters(t *testing.T) {
 		t.Fatalf("expected 2 chapters, got %d", len(chapters))
 	}
 
-	if chapters[0].ID != 101 || chapters[0].DisplayTitle() != "Chapter 1: The Departure" {
+	if chapters[0].ID != 101 || chapters[0].Display().Title != "Chapter 1: The Departure" {
 		t.Fatalf("unexpected chapter 0: %+v", chapters[0])
 	}
-	if chapters[0].DisplaySummary() != "The crew leaves Earth orbit." {
-		t.Fatalf("expected summary, got %q", chapters[0].DisplaySummary())
+	if chapters[0].Display().Summary != "The crew leaves Earth orbit." {
+		t.Fatalf("expected summary, got %q", chapters[0].Display().Summary)
 	}
-	if chapters[1].DisplaySummary() != "-" {
-		t.Fatalf("expected dash for nil summary, got %q", chapters[1].DisplaySummary())
+	if chapters[1].Display().Summary != "-" {
+		t.Fatalf("expected dash for nil summary, got %q", chapters[1].Display().Summary)
 	}
 }
 
@@ -98,11 +98,11 @@ func TestGetChapter(t *testing.T) {
 	cli := New(server.URL, "test-token", server.Client())
 
 	t.Run("success", func(t *testing.T) {
-		ch, err := cli.GetChapter(context.Background(), "101")
+		ch, err := cli.Chapters().GetChapter(context.Background(), "101")
 		if err != nil {
 			t.Fatalf("GetChapter returned error: %v", err)
 		}
-		if ch.ID != 101 || ch.DisplayTitle() != "Chapter 1: The Departure" {
+		if ch.ID != 101 || ch.Display().Title != "Chapter 1: The Departure" {
 			t.Fatalf("unexpected chapter: %+v", ch)
 		}
 		if ch.Content != "<p>The engines roared as the starship broke free.</p>" {
@@ -111,7 +111,7 @@ func TestGetChapter(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := cli.GetChapter(context.Background(), "999")
+		_, err := cli.Chapters().GetChapter(context.Background(), "999")
 		if err == nil {
 			t.Fatal("expected 404 error, got nil")
 		}
@@ -154,7 +154,7 @@ func TestCreateChapter(t *testing.T) {
 	content := "A strange signal was detected."
 	summary := "Signal received."
 
-	ch, err := cli.CreateChapter(context.Background(), "1", CreateChapterParams{
+	ch, err := cli.Chapters().CreateChapter(context.Background(), "1", CreateChapterParams{
 		Title:   &title,
 		Content: &content,
 		Summary: &summary,
@@ -163,7 +163,7 @@ func TestCreateChapter(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if ch.ID != 105 || ch.DisplayTitle() != "Chapter 3: First Contact" {
+	if ch.ID != 105 || ch.Display().Title != "Chapter 3: First Contact" {
 		t.Fatalf("unexpected chapter: %+v", ch)
 	}
 	if ch.Content != "A strange signal was detected." {
@@ -200,7 +200,7 @@ func TestUpdateChapter(t *testing.T) {
 	newTitle := "Revised Title"
 	newContent := "Updated prose content."
 
-	ch, err := cli.UpdateChapter(context.Background(), "101", UpdateChapterParams{
+	ch, err := cli.Chapters().UpdateChapter(context.Background(), "101", UpdateChapterParams{
 		Title:   &newTitle,
 		Content: &newContent,
 	})
@@ -208,8 +208,8 @@ func TestUpdateChapter(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if ch.DisplayTitle() != "Revised Title" {
-		t.Fatalf("expected Revised Title, got %s", ch.DisplayTitle())
+	if ch.Display().Title != "Revised Title" {
+		t.Fatalf("expected Revised Title, got %s", ch.Display().Title)
 	}
 	if ch.Content != "Updated prose content." {
 		t.Fatalf("expected updated prose, got %s", ch.Content)
@@ -244,7 +244,7 @@ func TestReorderChapters(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	chapters, err := cli.ReorderChapters(context.Background(), "1", []string{"102", "101"})
+	chapters, err := cli.Chapters().ReorderChapters(context.Background(), "1", []string{"102", "101"})
 	if err != nil {
 		t.Fatalf("unexpected error reordering chapters: %v", err)
 	}
@@ -280,13 +280,13 @@ func TestDeleteChapter(t *testing.T) {
 	cli := New(server.URL, "token", server.Client())
 
 	t.Run("successful delete", func(t *testing.T) {
-		if err := cli.DeleteChapter(context.Background(), "101"); err != nil {
+		if err := cli.Chapters().DeleteChapter(context.Background(), "101"); err != nil {
 			t.Fatalf("unexpected error deleting chapter: %v", err)
 		}
 	})
 
 	t.Run("last scene error", func(t *testing.T) {
-		err := cli.DeleteChapter(context.Background(), "999")
+		err := cli.Chapters().DeleteChapter(context.Background(), "999")
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -313,7 +313,7 @@ func TestExportChapter(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	data, err := cli.ExportChapter(context.Background(), "101", "markdown")
+	data, err := cli.Chapters().ExportChapter(context.Background(), "101", "markdown")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<ruleset name="prosie-cli policy"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0">
+  <description>
+    Prosie CLI messgo policy. ExitExpression is intentionally excluded:
+    main() must call os.Exit to propagate the CLI exit code to the shell.
+  </description>
+  <rule ref="unusedcode" />
+  <rule ref="codesize" />
+  <rule ref="design">
+    <exclude name="ExitExpression" />
+  </rule>
+</ruleset>

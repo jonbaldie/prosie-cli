@@ -61,7 +61,7 @@ func TestListSeries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	seriesList, err := cli.ListSeries(context.Background())
+	seriesList, err := cli.Series().ListSeries(context.Background())
 	if err != nil {
 		t.Fatalf("ListSeries returned error: %v", err)
 	}
@@ -129,7 +129,7 @@ func TestGetSeries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	s, err := cli.GetSeries(context.Background(), 1)
+	s, err := cli.Series().GetSeries(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("GetSeries returned error: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestGetSeriesNotFound(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	_, err := cli.GetSeries(context.Background(), 999)
+	_, err := cli.Series().GetSeries(context.Background(), 999)
 	if err == nil {
 		t.Fatalf("expected error for non-existent series, got nil")
 	}
@@ -191,7 +191,7 @@ func TestCreateSeries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	s, err := cli.CreateSeries(context.Background(), CreateSeriesParams{
+	s, err := cli.Series().CreateSeries(context.Background(), CreateSeriesParams{
 		Title:       "New Series",
 		Description: &desc,
 	})
@@ -223,7 +223,7 @@ func TestUpdateSeries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	s, err := cli.UpdateSeries(context.Background(), 5, UpdateSeriesParams{
+	s, err := cli.Series().UpdateSeries(context.Background(), 5, UpdateSeriesParams{
 		Title:       &newTitle,
 		Description: &newDesc,
 	})
@@ -246,7 +246,7 @@ func TestDeleteSeries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	err := cli.DeleteSeries(context.Background(), 5)
+	err := cli.Series().DeleteSeries(context.Background(), 5)
 	if err != nil {
 		t.Fatalf("DeleteSeries returned error: %v", err)
 	}
@@ -270,7 +270,7 @@ func TestAttachSeriesBook(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	book, err := cli.AttachSeriesBook(context.Background(), 1, 10)
+	book, err := cli.Series().AttachSeriesBook(context.Background(), 1, 10)
 	if err != nil {
 		t.Fatalf("AttachSeriesBook returned error: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestDetachSeriesBook(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	err := cli.DetachSeriesBook(context.Background(), 1, 10)
+	err := cli.Series().DetachSeriesBook(context.Background(), 1, 10)
 	if err != nil {
 		t.Fatalf("DetachSeriesBook returned error: %v", err)
 	}

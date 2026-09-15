@@ -27,8 +27,7 @@ type Chapter struct {
 	UpdatedAt       string  `json:"updated_at,omitempty"`
 }
 
-// DisplayTitle returns the chapter title, name, or a fallback chapter number.
-func (c Chapter) DisplayTitle() string {
+func displayChapterTitle(c *Chapter) string {
 	if c.Title != "" {
 		return c.Title
 	}
@@ -38,8 +37,7 @@ func (c Chapter) DisplayTitle() string {
 	return fmt.Sprintf("Chapter %d", c.Order+1)
 }
 
-// DisplaySummary returns the chapter summary or a dash when empty.
-func (c Chapter) DisplaySummary() string {
+func displayChapterSummary(c *Chapter) string {
 	if c.Summary != nil && *c.Summary != "" {
 		return *c.Summary
 	}
@@ -47,10 +45,10 @@ func (c Chapter) DisplaySummary() string {
 }
 
 func (c *Chapter) normalize() {
-	if c.Title == "" && c.Name != "" {
+	if c.Title == "" {
 		c.Title = c.Name
 	}
-	if c.Name == "" && c.Title != "" {
+	if c.Name == "" {
 		c.Name = c.Title
 	}
 }
@@ -74,26 +72,11 @@ type UpdateChapterParams struct {
 }
 
 // ListChapters fetches all chapters in a book.
-func (c *Client) ListChapters(ctx context.Context, bookID string) ([]Chapter, error) {
+func (c *ChapterCollection) ListChapters(ctx context.Context, bookID string) ([]Chapter, error) {
 	path := fmt.Sprintf("/api/stories/%s/scenes", url.PathEscape(bookID))
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -114,35 +97,15 @@ func (c *Client) ListChapters(ctx context.Context, bookID string) ([]Chapter, er
 }
 
 // GetChapter fetches a single chapter by ID.
-func (c *Client) GetChapter(ctx context.Context, id string) (*Chapter, error) {
+func (c *ChapterCollection) GetChapter(ctx context.Context, id string) (*Chapter, error) {
 	path := fmt.Sprintf("/api/scenes/%s", url.PathEscape(id))
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	chapter, err := decodeChapter(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Chapter `json:"data"`
-	}
-	var chapter Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		chapter = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapter); err != nil {
 		return nil, fmt.Errorf("failed to decode chapter response: %w", err)
 	}
 
@@ -151,7 +114,7 @@ func (c *Client) GetChapter(ctx context.Context, id string) (*Chapter, error) {
 }
 
 // CreateChapter creates a new chapter within a book.
-func (c *Client) CreateChapter(ctx context.Context, bookID string, params CreateChapterParams) (*Chapter, error) {
+func (c *ChapterCollection) CreateChapter(ctx context.Context, bookID string, params CreateChapterParams) (*Chapter, error) {
 	body := make(map[string]any)
 	if params.Title != nil {
 		body["name"] = *params.Title
@@ -171,33 +134,13 @@ func (c *Client) CreateChapter(ctx context.Context, bookID string, params Create
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/scenes", url.PathEscape(bookID))
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	chapter, err := decodeChapter(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Chapter `json:"data"`
-	}
-	var chapter Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		chapter = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapter); err != nil {
 		return nil, fmt.Errorf("failed to decode create chapter response: %w", err)
 	}
 
@@ -206,7 +149,7 @@ func (c *Client) CreateChapter(ctx context.Context, bookID string, params Create
 }
 
 // UpdateChapter updates an existing chapter by ID.
-func (c *Client) UpdateChapter(ctx context.Context, id string, params UpdateChapterParams) (*Chapter, error) {
+func (c *ChapterCollection) UpdateChapter(ctx context.Context, id string, params UpdateChapterParams) (*Chapter, error) {
 	body := make(map[string]any)
 	if params.Title != nil {
 		body["name"] = *params.Title
@@ -226,33 +169,13 @@ func (c *Client) UpdateChapter(ctx context.Context, id string, params UpdateChap
 	}
 
 	path := fmt.Sprintf("/api/scenes/%s", url.PathEscape(id))
-	req, err := c.NewRequest(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	chapter, err := decodeChapter(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Chapter `json:"data"`
-	}
-	var chapter Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		chapter = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapter); err != nil {
 		return nil, fmt.Errorf("failed to decode update chapter response: %w", err)
 	}
 
@@ -261,7 +184,7 @@ func (c *Client) UpdateChapter(ctx context.Context, id string, params UpdateChap
 }
 
 // ReorderChapters updates chapter sequence order for a book.
-func (c *Client) ReorderChapters(ctx context.Context, bookID string, order []string) ([]Chapter, error) {
+func (c *ChapterCollection) ReorderChapters(ctx context.Context, bookID string, order []string) ([]Chapter, error) {
 	sceneIDs := make([]any, 0, len(order))
 	for _, idStr := range order {
 		trimmed := strings.TrimSpace(idStr)
@@ -277,24 +200,9 @@ func (c *Client) ReorderChapters(ctx context.Context, bookID string, order []str
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/scenes/reorder", url.PathEscape(bookID))
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -315,14 +223,14 @@ func (c *Client) ReorderChapters(ctx context.Context, bookID string, order []str
 }
 
 // DeleteChapter removes a chapter by ID.
-func (c *Client) DeleteChapter(ctx context.Context, id string) error {
+func (c *ChapterCollection) DeleteChapter(ctx context.Context, id string) error {
 	path := fmt.Sprintf("/api/scenes/%s", url.PathEscape(id))
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -332,17 +240,17 @@ func (c *Client) DeleteChapter(ctx context.Context, id string) error {
 }
 
 // ExportChapter downloads the chapter prose in markdown or specified format.
-func (c *Client) ExportChapter(ctx context.Context, id string, format string) ([]byte, error) {
+func (c *ChapterCollection) ExportChapter(ctx context.Context, id string, format string) ([]byte, error) {
 	if format == "" {
 		format = "markdown"
 	}
 	path := fmt.Sprintf("/api/scenes/%s/export?format=%s", url.PathEscape(id), url.QueryEscape(format))
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -353,4 +261,30 @@ func (c *Client) ExportChapter(ctx context.Context, id string, format string) ([
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func decodeChapter(data []byte) (Chapter, error) {
+	var envelope struct {
+		Data Chapter `json:"data"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
+		return envelope.Data, nil
+	}
+	var resource Chapter
+	err := json.Unmarshal(data, &resource)
+	return resource, err
+}
+
+// ChapterCollection owns chapters operations over the shared authenticated transport.
+type ChapterCollection struct{ transport *Client }
+
+// Chapters returns the chapters module for this client.
+func (c *Client) Chapters() *ChapterCollection { return &ChapterCollection{transport: c} }
+
+// ChapterDisplay contains the text used to display a chapter.
+type ChapterDisplay struct{ Title, Summary string }
+
+// Display returns the text fields with their user-facing fallbacks.
+func (c *Chapter) Display() ChapterDisplay {
+	return ChapterDisplay{Title: displayChapterTitle(c), Summary: displayChapterSummary(c)}
 }

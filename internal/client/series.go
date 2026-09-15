@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -23,8 +22,7 @@ type Series struct {
 	UpdatedAt    string       `json:"updated_at,omitempty"`
 }
 
-// DisplayTitle returns the series title, name, or fallback.
-func (s *Series) DisplayTitle() string {
+func displaySeriesTitle(s *Series) string {
 	if s.Title != "" {
 		return s.Title
 	}
@@ -34,8 +32,7 @@ func (s *Series) DisplayTitle() string {
 	return fmt.Sprintf("Series %d", s.ID)
 }
 
-// DisplayDescription returns the series description or a dash.
-func (s *Series) DisplayDescription() string {
+func displaySeriesDescription(s *Series) string {
 	if s.Description != nil && strings.TrimSpace(*s.Description) != "" {
 		return *s.Description
 	}
@@ -43,10 +40,10 @@ func (s *Series) DisplayDescription() string {
 }
 
 func (s *Series) normalize() {
-	if s.Title == "" && s.Name != "" {
+	if s.Title == "" {
 		s.Title = s.Name
 	}
-	if s.Name == "" && s.Title != "" {
+	if s.Name == "" {
 		s.Name = s.Title
 	}
 	if len(s.Books) == 0 && len(s.Stories) > 0 {
@@ -78,25 +75,10 @@ type UpdateSeriesParams struct {
 }
 
 // ListSeries fetches all series owned by the authenticated user and populates member books.
-func (c *Client) ListSeries(ctx context.Context) ([]Series, error) {
-	req, err := c.NewRequest(ctx, http.MethodGet, "/api/series", nil)
+func (c *SeriesCollection) ListSeries(ctx context.Context) ([]Series, error) {
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, "/api/series", nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to /api/series failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -113,108 +95,37 @@ func (c *Client) ListSeries(ctx context.Context) ([]Series, error) {
 		seriesList[i].normalize()
 	}
 
-	// Resolve member books if missing
-	needBooks := false
-	for _, s := range seriesList {
-		if len(s.Books) == 0 && (len(s.StoryIDs) > 0 || len(seriesList) > 0) {
-			needBooks = true
-			break
-		}
-	}
-
-	if needBooks {
-		books, err := c.ListBooks(ctx)
-		if err == nil && len(books) > 0 {
-			bookMap := make(map[int]Book)
-			for _, b := range books {
-				bookMap[b.ID] = b
-			}
-			for i := range seriesList {
-				if len(seriesList[i].Books) == 0 {
-					if len(seriesList[i].StoryIDs) > 0 {
-						for _, bid := range seriesList[i].StoryIDs {
-							if b, ok := bookMap[bid]; ok {
-								seriesList[i].Books = append(seriesList[i].Books, b)
-							}
-						}
-					} else {
-						for _, b := range books {
-							if b.SeriesID != nil && *b.SeriesID == seriesList[i].ID {
-								seriesList[i].Books = append(seriesList[i].Books, b)
-							}
-						}
-					}
-				}
-				seriesList[i].normalize()
-			}
-		}
-	}
+	c.populateSeriesBooks(ctx, seriesList)
 
 	return seriesList, nil
 }
 
 // GetSeries fetches a single series by ID with member books and shared codex entries.
-func (c *Client) GetSeries(ctx context.Context, id int) (*Series, error) {
+func (c *SeriesCollection) GetSeries(ctx context.Context, id int) (*Series, error) {
 	path := fmt.Sprintf("/api/series/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Series `json:"data"`
-	}
 	var s Series
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		s = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &s); err != nil {
+	s, err = decodeSeries(bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode series response: %w", err)
 	}
 
 	s.normalize()
 
-	// Resolve member books if not populated
 	if len(s.Books) == 0 {
-		books, err := c.ListBooks(ctx)
+		books, err := c.transport.Books().ListBooks(ctx)
 		if err == nil {
-			if len(s.StoryIDs) > 0 {
-				bookMap := make(map[int]Book)
-				for _, b := range books {
-					bookMap[b.ID] = b
-				}
-				for _, bid := range s.StoryIDs {
-					if b, ok := bookMap[bid]; ok {
-						s.Books = append(s.Books, b)
-					}
-				}
-			} else {
-				for _, b := range books {
-					if b.SeriesID != nil && *b.SeriesID == s.ID {
-						s.Books = append(s.Books, b)
-					}
-				}
-			}
+			s.Books = seriesBooks(s, books)
 		}
 	}
 
 	// Resolve shared codex entries if not populated
 	if len(s.CodexEntries) == 0 {
-		codexEntries, err := c.ListSeriesCodexEntries(ctx, id)
+		codexEntries, err := c.transport.Codex().ListSeriesCodexEntries(ctx, id)
 		if err == nil {
 			s.CodexEntries = codexEntries
 		}
@@ -225,7 +136,7 @@ func (c *Client) GetSeries(ctx context.Context, id int) (*Series, error) {
 }
 
 // CreateSeries creates a new book series.
-func (c *Client) CreateSeries(ctx context.Context, params CreateSeriesParams) (*Series, error) {
+func (c *SeriesCollection) CreateSeries(ctx context.Context, params CreateSeriesParams) (*Series, error) {
 	name := params.Name
 	if name == "" {
 		name = params.Title
@@ -239,33 +150,14 @@ func (c *Client) CreateSeries(ctx context.Context, params CreateSeriesParams) (*
 		body["description"] = *params.Description
 	}
 
-	req, err := c.NewRequest(ctx, http.MethodPost, "/api/series", body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, "/api/series", body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to /api/series failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Series `json:"data"`
-	}
 	var s Series
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		s = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &s); err != nil {
+	s, err = decodeSeries(bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode create series response: %w", err)
 	}
 
@@ -274,7 +166,7 @@ func (c *Client) CreateSeries(ctx context.Context, params CreateSeriesParams) (*
 }
 
 // UpdateSeries updates an existing series.
-func (c *Client) UpdateSeries(ctx context.Context, id int, params UpdateSeriesParams) (*Series, error) {
+func (c *SeriesCollection) UpdateSeries(ctx context.Context, id int, params UpdateSeriesParams) (*Series, error) {
 	body := map[string]any{}
 	if params.Name != nil {
 		body["name"] = *params.Name
@@ -288,33 +180,14 @@ func (c *Client) UpdateSeries(ctx context.Context, id int, params UpdateSeriesPa
 	}
 
 	path := fmt.Sprintf("/api/series/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Series `json:"data"`
-	}
 	var s Series
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		s = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &s); err != nil {
+	s, err = decodeSeries(bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode update series response: %w", err)
 	}
 
@@ -323,14 +196,14 @@ func (c *Client) UpdateSeries(ctx context.Context, id int, params UpdateSeriesPa
 }
 
 // DeleteSeries deletes a series by ID.
-func (c *Client) DeleteSeries(ctx context.Context, id int) error {
+func (c *SeriesCollection) DeleteSeries(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/series/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -340,26 +213,11 @@ func (c *Client) DeleteSeries(ctx context.Context, id int) error {
 }
 
 // AttachSeriesBook attaches a book to a series.
-func (c *Client) AttachSeriesBook(ctx context.Context, seriesID, bookID int) (*Book, error) {
+func (c *SeriesCollection) AttachSeriesBook(ctx context.Context, seriesID, bookID int) (*Book, error) {
 	path := fmt.Sprintf("/api/series/%d/stories/%d", seriesID, bookID)
-	req, err := c.NewRequest(ctx, http.MethodPut, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPut, path, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -377,18 +235,92 @@ func (c *Client) AttachSeriesBook(ctx context.Context, seriesID, bookID int) (*B
 }
 
 // DetachSeriesBook removes a book from a series.
-func (c *Client) DetachSeriesBook(ctx context.Context, seriesID, bookID int) error {
+func (c *SeriesCollection) DetachSeriesBook(ctx context.Context, seriesID, bookID int) error {
 	path := fmt.Sprintf("/api/series/%d/stories/%d", seriesID, bookID)
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return fmt.Errorf("request to %s failed: %w", path, err)
 	}
 	defer resp.Body.Close()
 
 	return CheckResponse(resp)
+}
+
+func decodeSeries(data []byte) (Series, error) {
+	var envelope struct {
+		Data Series `json:"data"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
+		return envelope.Data, nil
+	}
+	var resource Series
+	err := json.Unmarshal(data, &resource)
+	return resource, err
+}
+
+func (c *SeriesCollection) populateSeriesBooks(ctx context.Context, series []Series) {
+	if !needsSeriesBooks(series) {
+		return
+	}
+	books, err := c.transport.Books().ListBooks(ctx)
+	if err != nil || len(books) == 0 {
+		return
+	}
+	for i := range series {
+		if len(series[i].Books) == 0 {
+			series[i].Books = seriesBooks(series[i], books)
+		}
+		series[i].normalize()
+	}
+}
+
+func needsSeriesBooks(series []Series) bool {
+	for _, s := range series {
+		if len(s.Books) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Explicit story IDs determine order; otherwise membership comes from each book.
+func seriesBooks(series Series, books []Book) []Book {
+	members := series.Books
+	if len(series.StoryIDs) == 0 {
+		for _, book := range books {
+			if book.SeriesID != nil && *book.SeriesID == series.ID {
+				members = append(members, book)
+			}
+		}
+		return members
+	}
+	byID := make(map[int]Book)
+	for _, book := range books {
+		byID[book.ID] = book
+	}
+	for _, id := range series.StoryIDs {
+		if book, ok := byID[id]; ok {
+			members = append(members, book)
+		}
+	}
+	return members
+}
+
+// SeriesCollection owns series operations over the shared authenticated transport.
+type SeriesCollection struct{ transport *Client }
+
+// Series returns the series module for this client.
+func (c *Client) Series() *SeriesCollection { return &SeriesCollection{transport: c} }
+
+// SeriesDisplay contains the text used to display a series.
+type SeriesDisplay struct{ Title, Description string }
+
+// Display returns the text fields with their user-facing fallbacks.
+func (s *Series) Display() SeriesDisplay {
+	return SeriesDisplay{Title: displaySeriesTitle(s), Description: displaySeriesDescription(s)}
 }

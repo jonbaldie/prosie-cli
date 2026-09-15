@@ -43,7 +43,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		res, err := cli.Continue(context.Background(), "101", true)
+		res, err := cli.Generation().Continue(context.Background(), "101", true)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -77,7 +77,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		res, err := cli.Continue(context.Background(), "101", false)
+		res, err := cli.Generation().Continue(context.Background(), "101", false)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -97,7 +97,7 @@ func TestContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		_, err := cli.Continue(context.Background(), "999", true)
+		_, err := cli.Generation().Continue(context.Background(), "999", true)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -137,7 +137,7 @@ func TestStreamContinue(t *testing.T) {
 
 		cli := New(server.URL, "test-token", server.Client())
 		var tokens []string
-		res, err := cli.StreamContinue(context.Background(), "101", true, func(tok string) {
+		res, err := cli.Generation().StreamContinue(context.Background(), "101", true, func(tok string) {
 			tokens = append(tokens, tok)
 		})
 		if err != nil {
@@ -160,7 +160,7 @@ func TestStreamContinue(t *testing.T) {
 		defer server.Close()
 
 		cli := New(server.URL, "test-token", server.Client())
-		_, err := cli.StreamContinue(context.Background(), "101", true, nil)
+		_, err := cli.Generation().StreamContinue(context.Background(), "101", true, nil)
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
@@ -194,7 +194,7 @@ func TestStreamContinue(t *testing.T) {
 
 		go func() {
 			defer wg.Done()
-			_, streamErr = cli.StreamContinue(ctx, "101", true, func(tok string) {
+			_, streamErr = cli.Generation().StreamContinue(ctx, "101", true, func(tok string) {
 				cancel() // Cancel when first token arrives
 			})
 		}()
@@ -222,7 +222,7 @@ func TestCancelContinue(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	err := cli.CancelContinue(context.Background(), "101")
+	err := cli.Generation().CancelContinue(context.Background(), "101")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -253,7 +253,7 @@ func TestRejectContinuation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	chapter, err := cli.RejectContinuation(context.Background(), "101")
+	chapter, err := cli.Generation().RejectContinuation(context.Background(), "101")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -298,7 +298,7 @@ func TestRewrite(t *testing.T) {
 		Action:    "tighten",
 		Persist:   true,
 	}
-	res, err := cli.Rewrite(context.Background(), "101", params)
+	res, err := cli.Generation().Rewrite(context.Background(), "101", params)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestStreamRewrite(t *testing.T) {
 		Instruction: "Make it more active",
 		Persist:     false,
 	}
-	res, err := cli.StreamRewrite(context.Background(), "101", params, func(tok string) {
+	res, err := cli.Generation().StreamRewrite(context.Background(), "101", params, func(tok string) {
 		tokens = append(tokens, tok)
 	})
 	if err != nil {
@@ -368,7 +368,7 @@ func TestSummarize(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	res, err := cli.Summarize(context.Background(), "101")
+	res, err := cli.Generation().Summarize(context.Background(), "101")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

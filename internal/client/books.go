@@ -1,34 +1,27 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 )
 
 // Book represents a novel or book manuscript in Prosie.
 type Book struct {
+	BookWritingSettings
 	ID                    int       `json:"id"`
 	Title                 string    `json:"title"`
 	Subtitle              *string   `json:"subtitle,omitempty"`
 	SeriesID              *int      `json:"series_id,omitempty"`
-	POV                   string    `json:"pov,omitempty"`
-	Tense                 string    `json:"tense,omitempty"`
 	Lore                  *string   `json:"lore,omitempty"`
 	Characters            *string   `json:"characters,omitempty"`
-	StorySoFar           *string   `json:"story_so_far,omitempty"`
+	StorySoFar            *string   `json:"story_so_far,omitempty"`
 	Premise               *string   `json:"premise,omitempty"`
-	ProseStyle            *string   `json:"prose_style,omitempty"`
-	TargetWordCount       *int      `json:"target_word_count,omitempty"`
-	FilterUsingStorySoFar bool      `json:"filter_using_story_so_far"`
 	WordCount             int       `json:"word_count"`
 	TargetProgressPercent *int      `json:"target_progress_percent,omitempty"`
 	CreatedAt             string    `json:"created_at,omitempty"`
@@ -36,9 +29,7 @@ type Book struct {
 	Chapters              []Chapter `json:"chapters"`
 }
 
-
-// DisplayPremise returns the best available premise or summary string.
-func (b *Book) DisplayPremise() string {
+func displayBookPremise(b *Book) string {
 	if b.Premise != nil && *b.Premise != "" {
 		return *b.Premise
 	}
@@ -51,16 +42,14 @@ func (b *Book) DisplayPremise() string {
 	return "-"
 }
 
-// DisplayLore returns the lore content or a dash.
-func (b *Book) DisplayLore() string {
+func displayBookLore(b *Book) string {
 	if b.Lore != nil && *b.Lore != "" {
 		return *b.Lore
 	}
 	return "-"
 }
 
-// DisplayCharacters returns the character list or a dash.
-func (b *Book) DisplayCharacters() string {
+func displayBookCharacters(b *Book) string {
 	if b.Characters != nil && *b.Characters != "" {
 		return *b.Characters
 	}
@@ -100,25 +89,10 @@ type UpdateBookParams struct {
 }
 
 // ListBooks fetches all books owned by the authenticated user.
-func (c *Client) ListBooks(ctx context.Context) ([]Book, error) {
-	req, err := c.NewRequest(ctx, http.MethodGet, "/api/stories", nil)
+func (c *BookCollection) ListBooks(ctx context.Context) ([]Book, error) {
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, "/api/stories", nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to /api/stories failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -139,61 +113,20 @@ func (c *Client) ListBooks(ctx context.Context) ([]Book, error) {
 }
 
 // GetBook fetches a single book by ID and populates its chapters.
-func (c *Client) GetBook(ctx context.Context, id int) (*Book, error) {
+func (c *BookCollection) GetBook(ctx context.Context, id int) (*Book, error) {
 	path := fmt.Sprintf("/api/stories/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	book, err := decodeBook(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		book = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &book); err != nil {
 		return nil, fmt.Errorf("failed to decode book response: %w", err)
 	}
 
 	if len(book.Chapters) == 0 {
-		scenesPath := fmt.Sprintf("/api/stories/%d/scenes", id)
-		scenesReq, err := c.NewRequest(ctx, http.MethodGet, scenesPath, nil)
-		if err == nil {
-			scenesResp, err := c.Do(scenesReq)
-			if err == nil {
-				defer scenesResp.Body.Close()
-				if scenesResp.StatusCode == http.StatusOK {
-					scenesBytes, _ := io.ReadAll(scenesResp.Body)
-					var scenesEnv struct {
-						Data []Chapter `json:"data"`
-					}
-					if err := json.Unmarshal(scenesBytes, &scenesEnv); err == nil && len(scenesEnv.Data) > 0 {
-						book.Chapters = scenesEnv.Data
-					} else {
-						var chapters []Chapter
-						if err := json.Unmarshal(scenesBytes, &chapters); err == nil {
-							book.Chapters = chapters
-						}
-					}
-				}
-			}
-		}
+		book.Chapters = c.bookChapters(ctx, id)
 	}
 
 	book.normalize()
@@ -201,7 +134,7 @@ func (c *Client) GetBook(ctx context.Context, id int) (*Book, error) {
 }
 
 // CreateBook creates a new book manuscript.
-func (c *Client) CreateBook(ctx context.Context, params CreateBookParams) (*Book, error) {
+func (c *BookCollection) CreateBook(ctx context.Context, params CreateBookParams) (*Book, error) {
 	body := map[string]any{
 		"title": params.Title,
 	}
@@ -222,33 +155,13 @@ func (c *Client) CreateBook(ctx context.Context, params CreateBookParams) (*Book
 		body["target_word_count"] = *params.TargetWordCount
 	}
 
-	req, err := c.NewRequest(ctx, http.MethodPost, "/api/stories", body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, "/api/stories", body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	book, err := decodeBook(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to /api/stories failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		book = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &book); err != nil {
 		return nil, fmt.Errorf("failed to decode create book response: %w", err)
 	}
 
@@ -257,56 +170,17 @@ func (c *Client) CreateBook(ctx context.Context, params CreateBookParams) (*Book
 }
 
 // UpdateBook updates an existing book manuscript.
-func (c *Client) UpdateBook(ctx context.Context, id int, params UpdateBookParams) (*Book, error) {
-	body := map[string]any{}
-	if params.Title != nil {
-		body["title"] = *params.Title
-	}
-	if params.Premise != nil {
-		body["premise"] = *params.Premise
-		body["story_so_far"] = *params.Premise
-	}
-	if params.StorySoFar != nil {
-		body["story_so_far"] = *params.StorySoFar
-	}
-	if params.Lore != nil {
-		body["lore"] = *params.Lore
-	}
-	if params.Characters != nil {
-		body["characters"] = *params.Characters
-	}
-	if params.TargetWordCount != nil {
-		body["target_word_count"] = *params.TargetWordCount
-	}
+func (c *BookCollection) UpdateBook(ctx context.Context, id int, params UpdateBookParams) (*Book, error) {
+	body := bookUpdateBody(params)
 
 	path := fmt.Sprintf("/api/stories/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	book, err := decodeBook(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		book = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &book); err != nil {
 		return nil, fmt.Errorf("failed to decode update book response: %w", err)
 	}
 
@@ -315,14 +189,14 @@ func (c *Client) UpdateBook(ctx context.Context, id int, params UpdateBookParams
 }
 
 // DeleteBook removes a book manuscript by ID.
-func (c *Client) DeleteBook(ctx context.Context, id int) error {
+func (c *BookCollection) DeleteBook(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/stories/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -332,35 +206,15 @@ func (c *Client) DeleteBook(ctx context.Context, id int) error {
 }
 
 // DuplicateBook clones a book with all its chapters and codex entries.
-func (c *Client) DuplicateBook(ctx context.Context, id int) (*Book, error) {
+func (c *BookCollection) DuplicateBook(ctx context.Context, id int) (*Book, error) {
 	path := fmt.Sprintf("/api/stories/%d/duplicate", id)
-	req, err := c.NewRequest(ctx, http.MethodPost, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	book, err := decodeBook(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		book = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &book); err != nil {
 		return nil, fmt.Errorf("failed to decode duplicate book response: %w", err)
 	}
 
@@ -369,17 +223,17 @@ func (c *Client) DuplicateBook(ctx context.Context, id int) (*Book, error) {
 }
 
 // ExportStory downloads the complete book prose in markdown or docx format.
-func (c *Client) ExportStory(ctx context.Context, id int, format string) ([]byte, error) {
+func (c *BookCollection) ExportStory(ctx context.Context, id int, format string) ([]byte, error) {
 	if format == "" {
 		format = "markdown"
 	}
 	path := fmt.Sprintf("/api/stories/%d/export?format=%s", id, url.QueryEscape(format))
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -393,68 +247,15 @@ func (c *Client) ExportStory(ctx context.Context, id int, format string) ([]byte
 }
 
 // ImportDocx uploads a DOCX file to create a new book with chapters.
-func (c *Client) ImportDocx(ctx context.Context, filePath string, title string) (*Book, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
-	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	if title == "" {
-		base := filepath.Base(filePath)
-		ext := filepath.Ext(base)
-		title = strings.TrimSuffix(base, ext)
-		if title == "" {
-			title = "Imported Book"
-		}
-	}
-
-	if err := writer.WriteField("title", title); err != nil {
-		return nil, fmt.Errorf("failed to write title field: %w", err)
-	}
-
-	part, err := writer.CreateFormFile("document", filepath.Base(filePath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create document form field: %w", err)
-	}
-
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, fmt.Errorf("failed to copy file data: %w", err)
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
-	}
-
-	url := c.BaseURL + "/api/stories/import-docx"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+func (c *BookCollection) ImportDocx(ctx context.Context, filePath string, title string) (*Book, error) {
+	title = importedBookTitle(filePath, title)
+	req, err := c.transport.uploadRequest(ctx, "/api/stories/import-docx", filePath, "document", map[string]string{"title": title})
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("User-Agent", c.UserAgent)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-
-	resp, err := c.Do(req)
+	bodyBytes, err := c.transport.readResponse(req, "/api/stories/import-docx")
 	if err != nil {
-		return nil, fmt.Errorf("request to /api/stories/import-docx failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
 		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var result struct {
@@ -477,4 +278,105 @@ func (c *Client) ImportDocx(ctx context.Context, filePath string, title string) 
 	}
 	book.normalize()
 	return &book, nil
+}
+
+func decodeBook(data []byte) (Book, error) {
+	var envelope struct {
+		Data Book `json:"data"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
+		return envelope.Data, nil
+	}
+	var resource Book
+	err := json.Unmarshal(data, &resource)
+	return resource, err
+}
+
+// bookChapters supplies chapters for servers that omit them from a book response.
+// A failed secondary request must not prevent access to the book itself.
+func (c *BookCollection) bookChapters(ctx context.Context, id int) []Chapter {
+	path := fmt.Sprintf("/api/stories/%d/scenes", id)
+	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil
+	}
+	resp, err := c.transport.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
+	data, _ := io.ReadAll(resp.Body)
+	var envelope struct {
+		Data []Chapter `json:"data"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && len(envelope.Data) > 0 {
+		return envelope.Data
+	}
+	var chapters []Chapter
+	if json.Unmarshal(data, &chapters) != nil {
+		return nil
+	}
+	return chapters
+}
+
+func bookUpdateBody(params UpdateBookParams) map[string]any {
+	body := map[string]any{}
+	if params.Title != nil {
+		body["title"] = *params.Title
+	}
+	if params.Premise != nil {
+		body["premise"] = *params.Premise
+		body["story_so_far"] = *params.Premise
+	}
+	if params.StorySoFar != nil {
+		body["story_so_far"] = *params.StorySoFar
+	}
+	if params.Lore != nil {
+		body["lore"] = *params.Lore
+	}
+	if params.Characters != nil {
+		body["characters"] = *params.Characters
+	}
+	if params.TargetWordCount != nil {
+		body["target_word_count"] = *params.TargetWordCount
+	}
+
+	return body
+}
+
+// BookWritingSettings holds the writing choices used for prose generation.
+type BookWritingSettings struct {
+	POV                   string  `json:"pov,omitempty"`
+	Tense                 string  `json:"tense,omitempty"`
+	ProseStyle            *string `json:"prose_style,omitempty"`
+	TargetWordCount       *int    `json:"target_word_count,omitempty"`
+	FilterUsingStorySoFar bool    `json:"filter_using_story_so_far"`
+}
+
+// BookCollection owns books operations over the shared authenticated transport.
+type BookCollection struct{ transport *Client }
+
+// Books returns the books module for this client.
+func (c *Client) Books() *BookCollection { return &BookCollection{transport: c} }
+
+// BookDisplay contains the text used to display a book.
+type BookDisplay struct{ Premise, Lore, Characters string }
+
+// Display returns the text fields with their user-facing fallbacks.
+func (b *Book) Display() BookDisplay {
+	return BookDisplay{Premise: displayBookPremise(b), Lore: displayBookLore(b), Characters: displayBookCharacters(b)}
+}
+
+func importedBookTitle(filePath, title string) string {
+	if title == "" {
+		base := filepath.Base(filePath)
+		title = strings.TrimSuffix(base, filepath.Ext(base))
+		if title == "" {
+			title = "Imported Book"
+		}
+	}
+	return title
 }

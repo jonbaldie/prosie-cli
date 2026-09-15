@@ -49,7 +49,7 @@ func TestListConversations(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	convs, err := cli.ListConversations(context.Background(), "1")
+	convs, err := cli.Conversations().ListConversations(context.Background(), "1")
 	if err != nil {
 		t.Fatalf("ListConversations returned error: %v", err)
 	}
@@ -71,7 +71,7 @@ func TestListConversations(t *testing.T) {
 
 func TestListConversations_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.ListConversations(context.Background(), "")
+	_, err := cli.Conversations().ListConversations(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "book ID is required") {
 		t.Fatalf("expected book ID is required, got %v", err)
 	}
@@ -83,7 +83,7 @@ func TestListConversations_Errors(t *testing.T) {
 	defer server.Close()
 
 	cli = New(server.URL, "token", server.Client())
-	_, err = cli.ListConversations(context.Background(), "999")
+	_, err = cli.Conversations().ListConversations(context.Background(), "999")
 	if err == nil || !strings.Contains(err.Error(), "Story not found") {
 		t.Fatalf("expected not found error, got %v", err)
 	}
@@ -126,7 +126,7 @@ func TestGetConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	conv, err := cli.GetConversation(context.Background(), "42")
+	conv, err := cli.Conversations().GetConversation(context.Background(), "42")
 	if err != nil {
 		t.Fatalf("GetConversation returned error: %v", err)
 	}
@@ -147,7 +147,7 @@ func TestGetConversation(t *testing.T) {
 
 func TestGetConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.GetConversation(context.Background(), "")
+	_, err := cli.Conversations().GetConversation(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "conversation ID is required") {
 		t.Fatalf("expected conversation ID is required, got %v", err)
 	}
@@ -180,7 +180,7 @@ func TestCreateConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	conv, err := cli.CreateConversation(context.Background(), "5", "Worldbuilding lore")
+	conv, err := cli.Conversations().CreateConversation(context.Background(), "5", "Worldbuilding lore")
 	if err != nil {
 		t.Fatalf("CreateConversation returned error: %v", err)
 	}
@@ -192,7 +192,7 @@ func TestCreateConversation(t *testing.T) {
 
 func TestCreateConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.CreateConversation(context.Background(), "", "Title")
+	_, err := cli.Conversations().CreateConversation(context.Background(), "", "Title")
 	if err == nil || !strings.Contains(err.Error(), "book ID is required") {
 		t.Fatalf("expected book ID is required, got %v", err)
 	}
@@ -211,7 +211,7 @@ func TestDeleteConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	err := cli.DeleteConversation(context.Background(), "55")
+	err := cli.Conversations().DeleteConversation(context.Background(), "55")
 	if err != nil {
 		t.Fatalf("DeleteConversation returned error: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestDeleteConversation(t *testing.T) {
 
 func TestDeleteConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	err := cli.DeleteConversation(context.Background(), "")
+	err := cli.Conversations().DeleteConversation(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "conversation ID is required") {
 		t.Fatalf("expected conversation ID is required, got %v", err)
 	}
@@ -241,7 +241,7 @@ func TestExportConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	data, err := cli.ExportConversation(context.Background(), "12")
+	data, err := cli.Conversations().ExportConversation(context.Background(), "12")
 	if err != nil {
 		t.Fatalf("ExportConversation returned error: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestExportConversation(t *testing.T) {
 
 func TestExportConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.ExportConversation(context.Background(), "")
+	_, err := cli.Conversations().ExportConversation(context.Background(), "")
 	if err == nil || !strings.Contains(err.Error(), "conversation ID is required") {
 		t.Fatalf("expected conversation ID is required, got %v", err)
 	}
@@ -294,7 +294,7 @@ func TestImportConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	conv, err := cli.ImportConversation(context.Background(), "9", filePath)
+	conv, err := cli.Conversations().ImportConversation(context.Background(), "9", filePath)
 	if err != nil {
 		t.Fatalf("ImportConversation returned error: %v", err)
 	}
@@ -306,12 +306,12 @@ func TestImportConversation(t *testing.T) {
 
 func TestImportConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.ImportConversation(context.Background(), "", "path/to/file")
+	_, err := cli.Conversations().ImportConversation(context.Background(), "", "path/to/file")
 	if err == nil || !strings.Contains(err.Error(), "book ID is required") {
 		t.Fatalf("expected book ID is required, got %v", err)
 	}
 
-	_, err = cli.ImportConversation(context.Background(), "1", "nonexistent/file.json")
+	_, err = cli.Conversations().ImportConversation(context.Background(), "1", "nonexistent/file.json")
 	if err == nil || !strings.Contains(err.Error(), "failed to open file") {
 		t.Fatalf("expected failed to open file error, got %v", err)
 	}
@@ -353,7 +353,7 @@ func TestSendChatMessage(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	resp, err := cli.SendChatMessage(context.Background(), "33", "How does the engine work?")
+	resp, err := cli.Conversations().SendChatMessage(context.Background(), "33", "How does the engine work?")
 	if err != nil {
 		t.Fatalf("SendChatMessage returned error: %v", err)
 	}
@@ -371,7 +371,7 @@ func TestSendChatMessage(t *testing.T) {
 
 func TestSendChatMessage_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.SendChatMessage(context.Background(), "", "Hello")
+	_, err := cli.Conversations().SendChatMessage(context.Background(), "", "Hello")
 	if err == nil || !strings.Contains(err.Error(), "conversation ID is required") {
 		t.Fatalf("expected conversation ID is required, got %v", err)
 	}
@@ -383,7 +383,7 @@ func TestSendChatMessage_Errors(t *testing.T) {
 	defer server.Close()
 
 	cli = New(server.URL, "token", server.Client())
-	_, err = cli.SendChatMessage(context.Background(), "33", "Hello")
+	_, err = cli.Conversations().SendChatMessage(context.Background(), "33", "Hello")
 	if err == nil || !strings.Contains(err.Error(), "LLM provider error") {
 		t.Fatalf("expected LLM provider error, got %v", err)
 	}
@@ -415,7 +415,7 @@ func TestStreamChatMessage(t *testing.T) {
 
 	cli := New(server.URL, "token", server.Client())
 	var receivedTokens []string
-	resp, err := cli.StreamChatMessage(context.Background(), "44", "Look up", func(token string) {
+	resp, err := cli.Conversations().StreamChatMessage(context.Background(), "44", "Look up", func(token string) {
 		receivedTokens = append(receivedTokens, token)
 	})
 	if err != nil {
@@ -436,7 +436,7 @@ func TestStreamChatMessage(t *testing.T) {
 
 func TestStreamChatMessage_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.StreamChatMessage(context.Background(), "", "Hello", nil)
+	_, err := cli.Conversations().StreamChatMessage(context.Background(), "", "Hello", nil)
 	if err == nil || !strings.Contains(err.Error(), "conversation ID is required") {
 		t.Fatalf("expected conversation ID is required, got %v", err)
 	}
@@ -448,7 +448,7 @@ func TestStreamChatMessage_Errors(t *testing.T) {
 	defer server.Close()
 
 	cli = New(server.URL, "token", server.Client())
-	_, err = cli.StreamChatMessage(context.Background(), "44", "Hello", nil)
+	_, err = cli.Conversations().StreamChatMessage(context.Background(), "44", "Hello", nil)
 	if err == nil || !strings.Contains(err.Error(), "Rate limit exceeded") {
 		t.Fatalf("expected rate limit error, got %v", err)
 	}

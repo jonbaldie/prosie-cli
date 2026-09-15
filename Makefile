@@ -1,4 +1,4 @@
-.PHONY: all build test release-local clean
+.PHONY: all build test messgo mutago release-local clean
 
 all: build
 
@@ -7,6 +7,12 @@ build:
 
 test:
 	go test -v -count=1 ./...
+
+messgo:
+	messgo . text quality-gates/messgo-ruleset.xml --ignore-tests
+
+mutago:
+	mutago --coverage --test-flags='-coverpkg=./... ./...' --min-msi=80 --quiet --no-diffs ./...
 
 release-local:
 	./scripts/build-release.sh

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -26,8 +25,7 @@ type CodexEntry struct {
 	UpdatedAt string  `json:"updated_at,omitempty"`
 }
 
-// DisplayType returns the category/type of the codex entry (e.g. "lore" or "character").
-func (e *CodexEntry) DisplayType() string {
+func displayCodexEntryType(e *CodexEntry) string {
 	if e.Type != "" {
 		return e.Type
 	}
@@ -37,8 +35,7 @@ func (e *CodexEntry) DisplayType() string {
 	return "lore"
 }
 
-// DisplayDetails returns the content/details of the codex entry.
-func (e *CodexEntry) DisplayDetails() string {
+func displayCodexEntryDetails(e *CodexEntry) string {
 	if e.Details != "" {
 		return e.Details
 	}
@@ -48,8 +45,7 @@ func (e *CodexEntry) DisplayDetails() string {
 	return "-"
 }
 
-// DisplayAliases returns aliases formatted as a string or a dash.
-func (e *CodexEntry) DisplayAliases() string {
+func displayCodexEntryAliases(e *CodexEntry) string {
 	if e.Aliases != nil && strings.TrimSpace(*e.Aliases) != "" {
 		return *e.Aliases
 	}
@@ -57,16 +53,16 @@ func (e *CodexEntry) DisplayAliases() string {
 }
 
 func (e *CodexEntry) normalize() {
-	if e.Type == "" && e.Category != "" {
+	if e.Type == "" {
 		e.Type = e.Category
 	}
-	if e.Category == "" && e.Type != "" {
+	if e.Category == "" {
 		e.Category = e.Type
 	}
-	if e.Details == "" && e.Content != "" {
+	if e.Details == "" {
 		e.Details = e.Content
 	}
-	if e.Content == "" && e.Details != "" {
+	if e.Content == "" {
 		e.Content = e.Details
 	}
 	if e.Type == "" {
@@ -98,26 +94,11 @@ type UpdateCodexParams struct {
 }
 
 // ListCodexEntries fetches all standalone codex entries for a book.
-func (c *Client) ListCodexEntries(ctx context.Context, bookID int) ([]CodexEntry, error) {
+func (c *CodexCollection) ListCodexEntries(ctx context.Context, bookID int) ([]CodexEntry, error) {
 	path := fmt.Sprintf("/api/stories/%d/codex-entries", bookID)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -138,26 +119,11 @@ func (c *Client) ListCodexEntries(ctx context.Context, bookID int) ([]CodexEntry
 }
 
 // ListSeriesCodexEntries fetches shared base codex entries for a series.
-func (c *Client) ListSeriesCodexEntries(ctx context.Context, seriesID int) ([]CodexEntry, error) {
+func (c *CodexCollection) ListSeriesCodexEntries(ctx context.Context, seriesID int) ([]CodexEntry, error) {
 	path := fmt.Sprintf("/api/series/%d/codex-entries", seriesID)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -178,35 +144,16 @@ func (c *Client) ListSeriesCodexEntries(ctx context.Context, seriesID int) ([]Co
 }
 
 // GetCodexEntry fetches a single codex entry by ID.
-func (c *Client) GetCodexEntry(ctx context.Context, id int) (*CodexEntry, error) {
+func (c *CodexCollection) GetCodexEntry(ctx context.Context, id int) (*CodexEntry, error) {
 	path := fmt.Sprintf("/api/codex-entries/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data CodexEntry `json:"data"`
-	}
 	var entry CodexEntry
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		entry = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &entry); err != nil {
+	entry, err = decodeCodexEntry(bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode codex entry response: %w", err)
 	}
 
@@ -215,7 +162,7 @@ func (c *Client) GetCodexEntry(ctx context.Context, id int) (*CodexEntry, error)
 }
 
 // CreateCodexEntry creates a new codex entry for a book.
-func (c *Client) CreateCodexEntry(ctx context.Context, bookID int, params CreateCodexParams) (*CodexEntry, error) {
+func (c *CodexCollection) CreateCodexEntry(ctx context.Context, bookID int, params CreateCodexParams) (*CodexEntry, error) {
 	category := params.Category
 	if category == "" {
 		category = params.Type
@@ -244,33 +191,14 @@ func (c *Client) CreateCodexEntry(ctx context.Context, bookID int, params Create
 	}
 
 	path := fmt.Sprintf("/api/stories/%d/codex-entries", bookID)
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data CodexEntry `json:"data"`
-	}
 	var entry CodexEntry
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		entry = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &entry); err != nil {
+	entry, err = decodeCodexEntry(bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode create codex entry response: %w", err)
 	}
 
@@ -279,7 +207,55 @@ func (c *Client) CreateCodexEntry(ctx context.Context, bookID int, params Create
 }
 
 // UpdateCodexEntry updates an existing codex entry.
-func (c *Client) UpdateCodexEntry(ctx context.Context, id int, params UpdateCodexParams) (*CodexEntry, error) {
+func (c *CodexCollection) UpdateCodexEntry(ctx context.Context, id int, params UpdateCodexParams) (*CodexEntry, error) {
+	body := codexUpdateBody(params)
+
+	path := fmt.Sprintf("/api/codex-entries/%d", id)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
+	if err != nil {
+		return nil, err
+	}
+
+	var entry CodexEntry
+	entry, err = decodeCodexEntry(bodyBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode update codex entry response: %w", err)
+	}
+
+	entry.normalize()
+	return &entry, nil
+}
+
+// DeleteCodexEntry deletes a codex entry by ID.
+func (c *CodexCollection) DeleteCodexEntry(ctx context.Context, id int) error {
+	path := fmt.Sprintf("/api/codex-entries/%d", id)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.transport.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to %s failed: %w", path, err)
+	}
+	defer resp.Body.Close()
+
+	return CheckResponse(resp)
+}
+
+func decodeCodexEntry(data []byte) (CodexEntry, error) {
+	var envelope struct {
+		Data CodexEntry `json:"data"`
+	}
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
+		return envelope.Data, nil
+	}
+	var resource CodexEntry
+	err := json.Unmarshal(data, &resource)
+	return resource, err
+}
+
+func codexUpdateBody(params UpdateCodexParams) map[string]any {
 	body := map[string]any{}
 
 	if params.Name != nil {
@@ -306,54 +282,19 @@ func (c *Client) UpdateCodexEntry(ctx context.Context, id int, params UpdateCode
 		body["order"] = *params.Order
 	}
 
-	path := fmt.Sprintf("/api/codex-entries/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodPatch, path, body)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data CodexEntry `json:"data"`
-	}
-	var entry CodexEntry
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		entry = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &entry); err != nil {
-		return nil, fmt.Errorf("failed to decode update codex entry response: %w", err)
-	}
-
-	entry.normalize()
-	return &entry, nil
+	return body
 }
 
-// DeleteCodexEntry deletes a codex entry by ID.
-func (c *Client) DeleteCodexEntry(ctx context.Context, id int) error {
-	path := fmt.Sprintf("/api/codex-entries/%d", id)
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
+// CodexCollection owns codex operations over the shared authenticated transport.
+type CodexCollection struct{ transport *Client }
 
-	resp, err := c.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
+// Codex returns the codex module for this client.
+func (c *Client) Codex() *CodexCollection { return &CodexCollection{transport: c} }
 
-	return CheckResponse(resp)
+// CodexEntryDisplay contains the text used to display a codexentry.
+type CodexEntryDisplay struct{ Type, Details, Aliases string }
+
+// Display returns the text fields with their user-facing fallbacks.
+func (e *CodexEntry) Display() CodexEntryDisplay {
+	return CodexEntryDisplay{Type: displayCodexEntryType(e), Details: displayCodexEntryDetails(e), Aliases: displayCodexEntryAliases(e)}
 }

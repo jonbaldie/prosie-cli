@@ -365,7 +365,7 @@ func TestChapterCreate(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &ch); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if ch.ID != 105 || ch.DisplayTitle() != "JSON Chapter" {
+		if ch.ID != 105 || ch.Display().Title != "JSON Chapter" {
 			t.Fatalf("unexpected chapter: %+v", ch)
 		}
 	})
@@ -456,7 +456,7 @@ func TestChapterUpdate(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &ch); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if ch.ID != 101 || ch.DisplayTitle() != "JSON Title" {
+		if ch.ID != 101 || ch.Display().Title != "JSON Title" {
 			t.Fatalf("unexpected chapter: %+v", ch)
 		}
 	})

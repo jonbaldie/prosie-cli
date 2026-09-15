@@ -314,6 +314,24 @@ func TestBookCreate(t *testing.T) {
 		}
 	})
 
+	t.Run("all supplied notes survive creation", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "create", "--title", "The Iron Core", "--premise", "Underground miners awaken something.", "--lore", "The crust has layers of forgotten tech.", "--characters", "Dax, Cora", "--target-words", "90000", "--json"})
+		if code != 0 || errOut.Len() != 0 {
+			t.Fatalf("code=%d stderr=%q", code, errOut.String())
+		}
+		var book map[string]any
+		if err := json.Unmarshal(out.Bytes(), &book); err != nil {
+			t.Fatal(err)
+		}
+		expected := map[string]any{"title": "The Iron Core", "premise": "Underground miners awaken something.", "story_so_far": "Underground miners awaken something.", "lore": "The crust has layers of forgotten tech.", "characters": "Dax, Cora", "target_word_count": float64(90000)}
+		for field, want := range expected {
+			if book[field] != want {
+				t.Errorf("%s=%v; want=%v", field, book[field], want)
+			}
+		}
+	})
+
 	t.Run("successful create --json", func(t *testing.T) {
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{

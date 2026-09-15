@@ -212,7 +212,7 @@ func TestCodexShow(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if entry.ID != 10 || entry.Name != "Marcus Vance" || entry.DisplayType() != "character" {
+		if entry.ID != 10 || entry.Name != "Marcus Vance" || entry.Display().Type != "character" {
 			t.Fatalf("unexpected entry json: %+v", entry)
 		}
 	})
@@ -297,7 +297,7 @@ func TestCodexCreate(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if entry.ID != 100 || entry.Name != "Jump Gate Protocol" || entry.DisplayType() != "lore" {
+		if entry.ID != 100 || entry.Name != "Jump Gate Protocol" || entry.Display().Type != "lore" {
 			t.Fatalf("unexpected entry json: %+v", entry)
 		}
 	})

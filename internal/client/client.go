@@ -120,34 +120,7 @@ func CheckResponse(resp *http.Response) error {
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err == nil && len(bodyBytes) > 0 {
-		var raw map[string]any
-		if json.Unmarshal(bodyBytes, &raw) == nil {
-			if msg, ok := raw["message"].(string); ok {
-				apiErr.Message = msg
-			}
-			if errCode, ok := raw["error"].(string); ok {
-				apiErr.ErrorCode = errCode
-			}
-			if errDesc, ok := raw["error_description"].(string); ok {
-				if apiErr.Message == "" {
-					apiErr.Message = errDesc
-				}
-			}
-			if errsMap, ok := raw["errors"].(map[string]any); ok {
-				apiErr.Errors = make(map[string][]string)
-				for k, v := range errsMap {
-					if slice, ok := v.([]any); ok {
-						for _, item := range slice {
-							if str, ok := item.(string); ok {
-								apiErr.Errors[k] = append(apiErr.Errors[k], str)
-							}
-						}
-					}
-				}
-			}
-		} else {
-			apiErr.Message = strings.TrimSpace(string(bodyBytes))
-		}
+		apiErr.decode(bodyBytes)
 	}
 
 	if apiErr.StatusCode == http.StatusUnauthorized && apiErr.Message == "" {
@@ -155,6 +128,37 @@ func CheckResponse(resp *http.Response) error {
 	}
 
 	return apiErr
+}
+
+func (e *ApiError) decode(body []byte) {
+	var raw map[string]any
+	if json.Unmarshal(body, &raw) != nil {
+		e.Message = strings.TrimSpace(string(body))
+		return
+	}
+	e.Message, _ = raw["message"].(string)
+	e.ErrorCode, _ = raw["error"].(string)
+	if e.Message == "" {
+		e.Message, _ = raw["error_description"].(string)
+	}
+	e.Errors = validationErrors(raw["errors"])
+}
+
+func validationErrors(value any) map[string][]string {
+	fields, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+	errors := make(map[string][]string)
+	for field, value := range fields {
+		items, _ := value.([]any)
+		for _, item := range items {
+			if message, ok := item.(string); ok {
+				errors[field] = append(errors[field], message)
+			}
+		}
+	}
+	return errors
 }
 
 // GetUser fetches the authenticated user profile from GET /api/user.

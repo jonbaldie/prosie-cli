@@ -46,7 +46,7 @@ func TestListCodexEntries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	entries, err := cli.ListCodexEntries(context.Background(), 1)
+	entries, err := cli.Codex().ListCodexEntries(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("ListCodexEntries returned error: %v", err)
 	}
@@ -55,16 +55,16 @@ func TestListCodexEntries(t *testing.T) {
 		t.Fatalf("expected 2 entries, got %d", len(entries))
 	}
 
-	if entries[0].ID != 1 || entries[0].Name != "Marcus Kane" || entries[0].DisplayType() != "character" {
+	if entries[0].ID != 1 || entries[0].Name != "Marcus Kane" || entries[0].Display().Type != "character" {
 		t.Fatalf("unexpected entry[0]: %+v", entries[0])
 	}
-	if entries[0].DisplayDetails() != "Chief Navigator aboard the Astraea." {
-		t.Fatalf("unexpected details: %q", entries[0].DisplayDetails())
+	if entries[0].Display().Details != "Chief Navigator aboard the Astraea." {
+		t.Fatalf("unexpected details: %q", entries[0].Display().Details)
 	}
-	if entries[0].DisplayAliases() != "The Navigator" {
-		t.Fatalf("unexpected aliases: %q", entries[0].DisplayAliases())
+	if entries[0].Display().Aliases != "The Navigator" {
+		t.Fatalf("unexpected aliases: %q", entries[0].Display().Aliases)
 	}
-	if entries[1].ID != 2 || entries[1].Name != "Astraea Station" || entries[1].DisplayType() != "lore" {
+	if entries[1].ID != 2 || entries[1].Name != "Astraea Station" || entries[1].Display().Type != "lore" {
 		t.Fatalf("unexpected entry[1]: %+v", entries[1])
 	}
 }
@@ -91,7 +91,7 @@ func TestListSeriesCodexEntries(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	entries, err := cli.ListSeriesCodexEntries(context.Background(), 5)
+	entries, err := cli.Codex().ListSeriesCodexEntries(context.Background(), 5)
 	if err != nil {
 		t.Fatalf("ListSeriesCodexEntries returned error: %v", err)
 	}
@@ -123,12 +123,12 @@ func TestGetCodexEntry(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	entry, err := cli.GetCodexEntry(context.Background(), 1)
+	entry, err := cli.Codex().GetCodexEntry(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("GetCodexEntry returned error: %v", err)
 	}
 
-	if entry.ID != 1 || entry.Name != "Marcus Kane" || entry.DisplayType() != "character" {
+	if entry.ID != 1 || entry.Name != "Marcus Kane" || entry.Display().Type != "character" {
 		t.Fatalf("unexpected codex entry: %+v", entry)
 	}
 }
@@ -163,7 +163,7 @@ func TestCreateCodexEntry(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	entry, err := cli.CreateCodexEntry(context.Background(), 1, CreateCodexParams{
+	entry, err := cli.Codex().CreateCodexEntry(context.Background(), 1, CreateCodexParams{
 		Name:    "Lyra Vance",
 		Type:    "character",
 		Details: "Lead engineer and pilot.",
@@ -171,7 +171,7 @@ func TestCreateCodexEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateCodexEntry returned error: %v", err)
 	}
-	if entry.ID != 15 || entry.Name != "Lyra Vance" || entry.DisplayType() != "character" {
+	if entry.ID != 15 || entry.Name != "Lyra Vance" || entry.Display().Type != "character" {
 		t.Fatalf("unexpected entry: %+v", entry)
 	}
 }
@@ -197,7 +197,7 @@ func TestUpdateCodexEntry(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	entry, err := cli.UpdateCodexEntry(context.Background(), 15, UpdateCodexParams{
+	entry, err := cli.Codex().UpdateCodexEntry(context.Background(), 15, UpdateCodexParams{
 		Name: &newName,
 	})
 	if err != nil {
@@ -219,7 +219,7 @@ func TestDeleteCodexEntry(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	err := cli.DeleteCodexEntry(context.Background(), 15)
+	err := cli.Codex().DeleteCodexEntry(context.Background(), 15)
 	if err != nil {
 		t.Fatalf("DeleteCodexEntry returned error: %v", err)
 	}

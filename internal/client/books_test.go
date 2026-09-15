@@ -46,7 +46,7 @@ func TestListBooks(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	books, err := cli.ListBooks(context.Background())
+	books, err := cli.Books().ListBooks(context.Background())
 	if err != nil {
 		t.Fatalf("ListBooks returned error: %v", err)
 	}
@@ -58,11 +58,11 @@ func TestListBooks(t *testing.T) {
 	if books[0].ID != 1 || books[0].Title != "The First Story" {
 		t.Fatalf("unexpected book 0: %+v", books[0])
 	}
-	if books[0].DisplayPremise() != "Once upon a time in space." {
-		t.Fatalf("expected premise normalized, got %q", books[0].DisplayPremise())
+	if books[0].Display().Premise != "Once upon a time in space." {
+		t.Fatalf("expected premise normalized, got %q", books[0].Display().Premise)
 	}
-	if books[1].DisplayPremise() != "-" {
-		t.Fatalf("expected dash for empty premise, got %q", books[1].DisplayPremise())
+	if books[1].Display().Premise != "-" {
+		t.Fatalf("expected dash for empty premise, got %q", books[1].Display().Premise)
 	}
 }
 
@@ -101,32 +101,32 @@ func TestGetBook(t *testing.T) {
 	cli := New(server.URL, "token", server.Client())
 
 	t.Run("success with populated chapters", func(t *testing.T) {
-		book, err := cli.GetBook(context.Background(), 1)
+		book, err := cli.Books().GetBook(context.Background(), 1)
 		if err != nil {
 			t.Fatalf("GetBook returned error: %v", err)
 		}
 		if book.ID != 1 || book.Title != "Book One" {
 			t.Fatalf("unexpected book: %+v", book)
 		}
-		if book.DisplayLore() != "A secret galaxy." {
-			t.Fatalf("unexpected lore: %q", book.DisplayLore())
+		if book.Display().Lore != "A secret galaxy." {
+			t.Fatalf("unexpected lore: %q", book.Display().Lore)
 		}
-		if book.DisplayCharacters() != "Hero and Villain." {
-			t.Fatalf("unexpected characters: %q", book.DisplayCharacters())
+		if book.Display().Characters != "Hero and Villain." {
+			t.Fatalf("unexpected characters: %q", book.Display().Characters)
 		}
-		if book.DisplayPremise() != "The journey begins." {
-			t.Fatalf("unexpected premise: %q", book.DisplayPremise())
+		if book.Display().Premise != "The journey begins." {
+			t.Fatalf("unexpected premise: %q", book.Display().Premise)
 		}
 		if len(book.Chapters) != 2 {
 			t.Fatalf("expected 2 chapters, got %d", len(book.Chapters))
 		}
-		if book.Chapters[0].DisplayTitle() != "Chapter 1: The Call" {
-			t.Fatalf("unexpected chapter title: %s", book.Chapters[0].DisplayTitle())
+		if book.Chapters[0].Display().Title != "Chapter 1: The Call" {
+			t.Fatalf("unexpected chapter title: %s", book.Chapters[0].Display().Title)
 		}
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		_, err := cli.GetBook(context.Background(), 99)
+		_, err := cli.Books().GetBook(context.Background(), 99)
 		if err == nil {
 			t.Fatal("expected 404 error, got nil")
 		}
@@ -183,7 +183,7 @@ func TestCreateBook(t *testing.T) {
 		chars := "Captain John."
 		target := 75000
 
-		book, err := cli.CreateBook(context.Background(), CreateBookParams{
+		book, err := cli.Books().CreateBook(context.Background(), CreateBookParams{
 			Title:           "Starlight",
 			Premise:         &premise,
 			Lore:            &lore,
@@ -196,13 +196,13 @@ func TestCreateBook(t *testing.T) {
 		if book.ID != 5 || book.Title != "Starlight" {
 			t.Fatalf("unexpected book: %+v", book)
 		}
-		if book.DisplayPremise() != premise {
-			t.Fatalf("unexpected premise: %q", book.DisplayPremise())
+		if book.Display().Premise != premise {
+			t.Fatalf("unexpected premise: %q", book.Display().Premise)
 		}
 	})
 
 	t.Run("validation error", func(t *testing.T) {
-		_, err := cli.CreateBook(context.Background(), CreateBookParams{
+		_, err := cli.Books().CreateBook(context.Background(), CreateBookParams{
 			Title: "",
 		})
 		if err == nil {
@@ -246,7 +246,7 @@ func TestUpdateBook(t *testing.T) {
 	newPremise := "Updated Premise"
 	target := 60000
 
-	book, err := cli.UpdateBook(context.Background(), 1, UpdateBookParams{
+	book, err := cli.Books().UpdateBook(context.Background(), 1, UpdateBookParams{
 		Title:           &newTitle,
 		Premise:         &newPremise,
 		TargetWordCount: &target,
@@ -257,8 +257,8 @@ func TestUpdateBook(t *testing.T) {
 	if book.Title != "Updated Title" {
 		t.Fatalf("expected Updated Title, got %s", book.Title)
 	}
-	if book.DisplayPremise() != "Updated Premise" {
-		t.Fatalf("expected Updated Premise, got %s", book.DisplayPremise())
+	if book.Display().Premise != "Updated Premise" {
+		t.Fatalf("expected Updated Premise, got %s", book.Display().Premise)
 	}
 }
 
@@ -273,11 +273,11 @@ func TestDeleteBook(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	if err := cli.DeleteBook(context.Background(), 1); err != nil {
+	if err := cli.Books().DeleteBook(context.Background(), 1); err != nil {
 		t.Fatalf("expected successful delete, got error: %v", err)
 	}
 
-	if err := cli.DeleteBook(context.Background(), 2); err == nil {
+	if err := cli.Books().DeleteBook(context.Background(), 2); err == nil {
 		t.Fatal("expected error deleting non-existent book, got nil")
 	}
 }
@@ -301,7 +301,7 @@ func TestDuplicateBook(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	copyBook, err := cli.DuplicateBook(context.Background(), 1)
+	copyBook, err := cli.Books().DuplicateBook(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -327,7 +327,7 @@ func TestExportStory(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	content, err := cli.ExportStory(context.Background(), 1, "markdown")
+	content, err := cli.Books().ExportStory(context.Background(), 1, "markdown")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -390,7 +390,7 @@ func TestImportDocx(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	book, err := cli.ImportDocx(context.Background(), docxPath, "Custom Title")
+	book, err := cli.Books().ImportDocx(context.Background(), docxPath, "Custom Title")
 	if err != nil {
 		t.Fatalf("unexpected error importing docx: %v", err)
 	}

@@ -1,17 +1,12 @@
 package client
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -62,31 +57,16 @@ type SendMessageResponse struct {
 }
 
 // ListConversations fetches all chat conversations for a book story.
-func (c *Client) ListConversations(ctx context.Context, bookID string) ([]Conversation, error) {
+func (c *Conversations) ListConversations(ctx context.Context, bookID string) ([]Conversation, error) {
 	bookID = strings.TrimSpace(bookID)
 	if bookID == "" {
 		return nil, errors.New("book ID is required")
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/conversations", bookID)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -103,40 +83,20 @@ func (c *Client) ListConversations(ctx context.Context, bookID string) ([]Conver
 }
 
 // GetConversation fetches a single chat thread by ID, including its message turns.
-func (c *Client) GetConversation(ctx context.Context, id string) (*Conversation, error) {
+func (c *Conversations) GetConversation(ctx context.Context, id string) (*Conversation, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return nil, errors.New("conversation ID is required")
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s", id)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	conversation, err := decodeConversation(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Conversation `json:"data"`
-	}
-	var conversation Conversation
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		conversation = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &conversation); err != nil {
 		return nil, fmt.Errorf("failed to decode conversation response: %w", err)
 	}
 
@@ -144,7 +104,7 @@ func (c *Client) GetConversation(ctx context.Context, id string) (*Conversation,
 }
 
 // CreateConversation creates a new chat conversation thread under a book manuscript.
-func (c *Client) CreateConversation(ctx context.Context, bookID string, title string) (*Conversation, error) {
+func (c *Conversations) CreateConversation(ctx context.Context, bookID string, title string) (*Conversation, error) {
 	bookID = strings.TrimSpace(bookID)
 	if bookID == "" {
 		return nil, errors.New("book ID is required")
@@ -156,33 +116,13 @@ func (c *Client) CreateConversation(ctx context.Context, bookID string, title st
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/conversations", bookID)
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	conversation, err := decodeConversation(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Conversation `json:"data"`
-	}
-	var conversation Conversation
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		conversation = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &conversation); err != nil {
 		return nil, fmt.Errorf("failed to decode create conversation response: %w", err)
 	}
 
@@ -190,19 +130,19 @@ func (c *Client) CreateConversation(ctx context.Context, bookID string, title st
 }
 
 // DeleteConversation deletes a chat thread and its associated message turns.
-func (c *Client) DeleteConversation(ctx context.Context, id string) error {
+func (c *Conversations) DeleteConversation(ctx context.Context, id string) error {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return errors.New("conversation ID is required")
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s", id)
-	req, err := c.NewRequest(ctx, http.MethodDelete, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -212,19 +152,19 @@ func (c *Client) DeleteConversation(ctx context.Context, id string) error {
 }
 
 // ExportConversation downloads the raw JSON conversation export.
-func (c *Client) ExportConversation(ctx context.Context, id string) ([]byte, error) {
+func (c *Conversations) ExportConversation(ctx context.Context, id string) ([]byte, error) {
 	id = strings.TrimSpace(id)
 	if id == "" {
 		return nil, errors.New("conversation ID is required")
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s/export", id)
-	req, err := c.NewRequest(ctx, http.MethodGet, path, nil)
+	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -238,69 +178,24 @@ func (c *Client) ExportConversation(ctx context.Context, id string) ([]byte, err
 }
 
 // ImportConversation uploads a JSON conversation export to rebuild a chat thread in a book.
-func (c *Client) ImportConversation(ctx context.Context, bookID string, filePath string) (*Conversation, error) {
+func (c *Conversations) ImportConversation(ctx context.Context, bookID string, filePath string) (*Conversation, error) {
 	bookID = strings.TrimSpace(bookID)
 	if bookID == "" {
 		return nil, errors.New("book ID is required")
 	}
 
-	file, err := os.Open(filePath)
+	path := fmt.Sprintf("/api/stories/%s/conversations/import", bookID)
+	req, err := c.transport.uploadRequest(ctx, path, filePath, "file", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open file %s: %w", filePath, err)
+		return nil, err
 	}
-	defer file.Close()
-
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-
-	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create form file: %w", err)
-	}
-
-	if _, err := io.Copy(part, file); err != nil {
-		return nil, fmt.Errorf("failed to copy file data: %w", err)
-	}
-
-	if err := writer.Close(); err != nil {
-		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/api/stories/%s/conversations/import", c.BaseURL, bookID)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, body)
+	bodyBytes, err := c.transport.readResponse(req, "import conversation")
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("User-Agent", c.UserAgent)
-	if c.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+c.Token)
-	}
-
-	resp, err := c.Do(req)
+	conversation, err := decodeConversation(bodyBytes)
 	if err != nil {
-		return nil, fmt.Errorf("request to import conversation failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	var envelope struct {
-		Data Conversation `json:"data"`
-	}
-	var conversation Conversation
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		conversation = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &conversation); err != nil {
 		return nil, fmt.Errorf("failed to decode import response: %w", err)
 	}
 
@@ -308,7 +203,7 @@ func (c *Client) ImportConversation(ctx context.Context, bookID string, filePath
 }
 
 // SendChatMessage sends a message turn to a conversation and receives the assistant response.
-func (c *Client) SendChatMessage(ctx context.Context, conversationID string, message string) (*SendMessageResponse, error) {
+func (c *Conversations) SendChatMessage(ctx context.Context, conversationID string, message string) (*SendMessageResponse, error) {
 	conversationID = strings.TrimSpace(conversationID)
 	if conversationID == "" {
 		return nil, errors.New("conversation ID is required")
@@ -319,24 +214,9 @@ func (c *Client) SendChatMessage(ctx context.Context, conversationID string, mes
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s/messages", conversationID)
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
 	var envelope struct {
@@ -353,7 +233,7 @@ func (c *Client) SendChatMessage(ctx context.Context, conversationID string, mes
 }
 
 // StreamChatMessage sends a message turn and receives tokens streamed over SSE.
-func (c *Client) StreamChatMessage(ctx context.Context, conversationID string, message string, onToken func(string)) (*SendMessageResponse, error) {
+func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID string, message string, onToken func(string)) (*SendMessageResponse, error) {
 	conversationID = strings.TrimSpace(conversationID)
 	if conversationID == "" {
 		return nil, errors.New("conversation ID is required")
@@ -364,13 +244,13 @@ func (c *Client) StreamChatMessage(ctx context.Context, conversationID string, m
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s/messages/stream", conversationID)
-	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
+	req, err := c.transport.NewRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "text/event-stream")
 
-	resp, err := c.Do(req)
+	resp, err := c.transport.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request to %s failed: %w", path, err)
 	}
@@ -380,91 +260,35 @@ func (c *Client) StreamChatMessage(ctx context.Context, conversationID string, m
 		return nil, err
 	}
 
-	reader := bufio.NewReader(resp.Body)
-	var currentEvent string
-	var currentData strings.Builder
-	var finalResp *SendMessageResponse
-	var accumulatedContent strings.Builder
-	var streamErr error
-
-	dispatch := func() {
-		if currentEvent == "" && currentData.Len() == 0 {
-			return
-		}
-		dataStr := strings.TrimSpace(currentData.String())
-
-		switch currentEvent {
-		case "delta":
-			var d struct {
-				Delta string `json:"delta"`
-			}
-			if err := json.Unmarshal([]byte(dataStr), &d); err == nil {
-				accumulatedContent.WriteString(d.Delta)
-				if onToken != nil {
-					onToken(d.Delta)
-				}
-			}
-		case "done":
-			var donePayload SendMessageResponse
-			if err := json.Unmarshal([]byte(dataStr), &donePayload); err == nil {
-				finalResp = &donePayload
-			}
-		case "error":
-			var errPayload struct {
-				Message string `json:"message"`
-			}
-			if err := json.Unmarshal([]byte(dataStr), &errPayload); err == nil && errPayload.Message != "" {
-				streamErr = errors.New(errPayload.Message)
-			} else {
-				streamErr = fmt.Errorf("stream error: %s", dataStr)
-			}
-		}
-
-		currentEvent = ""
-		currentData.Reset()
+	state := chatEvents{tokens: streamTokens{onToken: onToken}}
+	if err := readEvents(resp.Body, true, state.accept); err != nil {
+		return nil, fmt.Errorf("error reading stream: %w", err)
 	}
-
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil && err != io.EOF {
-			return nil, fmt.Errorf("error reading stream: %w", err)
-		}
-
-		line = strings.TrimRight(line, "\r\n")
-
-		if line == "" {
-			dispatch()
-		} else if strings.HasPrefix(line, "event:") {
-			currentEvent = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-		} else if strings.HasPrefix(line, "data:") {
-			dataPart := strings.TrimPrefix(line, "data:")
-			if strings.HasPrefix(dataPart, " ") {
-				dataPart = dataPart[1:]
-			}
-			if currentData.Len() > 0 {
-				currentData.WriteString("\n")
-			}
-			currentData.WriteString(dataPart)
-		}
-
-		if err == io.EOF {
-			dispatch()
-			break
-		}
+	if state.err != nil {
+		return nil, state.err
 	}
-
-	if streamErr != nil {
-		return nil, streamErr
+	if state.done == nil {
+		state.done = &SendMessageResponse{Message: &ChatMessage{
+			Role: "assistant", Content: state.tokens.content.String(),
+		}}
 	}
+	return state.done, nil
+}
 
-	if finalResp == nil {
-		finalResp = &SendMessageResponse{
-			Message: &ChatMessage{
-				Role:    "assistant",
-				Content: accumulatedContent.String(),
-			},
-		}
+// Conversations owns conversations operations over the shared authenticated transport.
+type Conversations struct{ transport *Client }
+
+// Conversations returns the conversations module for this client.
+func (c *Client) Conversations() *Conversations { return &Conversations{transport: c} }
+
+func decodeConversation(data []byte) (Conversation, error) {
+	var envelope struct {
+		Data Conversation `json:"data"`
 	}
-
-	return finalResp, nil
+	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
+		return envelope.Data, nil
+	}
+	var conversation Conversation
+	err := json.Unmarshal(data, &conversation)
+	return conversation, err
 }
