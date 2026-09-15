@@ -122,7 +122,7 @@ func rewriteSelection(selection, filePath string) (string, error) {
 }
 
 func streamRewrite(c *command.Environment, generation *client.Generation, ctx context.Context, id string, params client.RewriteParams) int {
-	output := tokenOutput{out: c.Out}
+	output := newTokenOutput(c.Out)
 	res, err := generation.StreamRewrite(ctx, id, params, output.write)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error rewriting text: %v\n", err)

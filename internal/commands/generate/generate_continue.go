@@ -85,7 +85,7 @@ Flags:
 }
 
 func streamContinue(c *command.Environment, generation *client.Generation, ctx context.Context, id string, persist bool) int {
-	output := tokenOutput{out: c.Out}
+	output := newTokenOutput(c.Out)
 	res, err := generation.StreamContinue(ctx, id, persist, output.write)
 	if err != nil {
 		return continuationError(c, generation, ctx, id, err)

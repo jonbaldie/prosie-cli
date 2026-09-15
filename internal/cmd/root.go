@@ -10,6 +10,7 @@ import (
 	chatcmd "github.com/jonbaldie/prosie-cli/internal/commands/chat"
 	codexcmd "github.com/jonbaldie/prosie-cli/internal/commands/codex"
 	generatecmd "github.com/jonbaldie/prosie-cli/internal/commands/generate"
+	llmcmd "github.com/jonbaldie/prosie-cli/internal/commands/llm"
 	seriescmd "github.com/jonbaldie/prosie-cli/internal/commands/series"
 	versioncmd "github.com/jonbaldie/prosie-cli/internal/commands/version"
 	"io"
@@ -52,6 +53,7 @@ func (c *RootCmd) Execute(args []string) int {
 		"chat":      chatcmd.Execute,
 		"codex":     codexcmd.Execute,
 		"generate":  generatecmd.Execute,
+		"llm":       llmcmd.Execute,
 		"series":    seriescmd.Execute,
 		"version":   versioncmd.Execute,
 		"--version": versioncmd.Execute, "-v": versioncmd.Execute,
@@ -72,6 +74,7 @@ Available Commands:
   chat        Manage novel chat assistant (list, show, send, stream, export, import, delete)
   codex       Manage narrative facts and lore notes (list, show, create, update, delete)
   generate    Generate AI prose (continue, reject, rewrite, summarize)
+  llm         Manage LLM provider, model, and API key settings
   series      Manage book collections and shared lore (list, show, create, update, delete, attach, detach)
   version     Display the CLI version
 
