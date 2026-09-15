@@ -4,10 +4,10 @@ Follow every step in order when shipping a CLI release. Each step ends on a comp
 
 ## 1. Quality gates
 
-From the CLI root, run `make messgo` and `make mutago`.
+From the CLI root, run `make messgo`.
 
 - `make messgo`: completion criterion is a clean exit (code 0). The ruleset `quality-gates/messgo-ruleset.xml` is the single home of rule exceptions; `ExitExpression` is the one documented exception (`main()` must call `os.Exit` to propagate exit codes). Extend that ruleset for a new unavoidable finding instead of arguing it away.
-- `make mutago`: completion criterion is covered-code MSI of 80% or above in the summary line. The run takes tens of minutes; launch it in the background and record `mutago-summary.json` as evidence. `make mutago` already carries the `--coverage --test-flags='-coverpkg=./... ./...'` flags needed so tests exercise mutations in the `internal/commands/*` packages — run the target, do not hand-roll a `mutago` invocation.
+- `make mutago` (mutation testing, MSI target 80%) is **not** a local merge or release gate: it takes well over 15 minutes on a dev machine. It is to run in CI instead; see [issue #7](https://github.com/jonbaldie/prosie-cli/issues/7). Until that lands, run it opportunistically in the background when touching test-heavy code, and never hold a release for it.
 
 ## 2. Commit, push, tag
 
