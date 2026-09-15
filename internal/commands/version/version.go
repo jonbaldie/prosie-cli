@@ -14,9 +14,8 @@ func Execute(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if err := fs.Parse(args); err != nil {
-		fmt.Fprintf(c.Err, "error parsing flags: %v\n", err)
-		return 1
+	if _, err := command.ParseFlagsAndArgs(fs, args); err != nil {
+		return command.FlagError(c, err, printVersionHelp)
 	}
 
 	if *jsonFlag {
@@ -28,4 +27,18 @@ func Execute(c *command.Environment, args []string) int {
 
 	fmt.Fprintf(c.Out, "prosie version %s\n", version.Version)
 	return 0
+}
+
+// printVersionHelp prints help for the version command.
+func printVersionHelp(c *command.Environment) {
+	help := `Display the CLI version.
+
+Usage:
+  prosie version [flags]
+
+Flags:
+  -h, --help   Show help for command
+      --json   Output in JSON format
+`
+	fmt.Fprint(c.Out, help)
 }
