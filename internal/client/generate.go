@@ -53,11 +53,39 @@ type SummaryResult struct {
 	EstimatedPromptTokens int    `json:"estimated_prompt_tokens,omitempty"`
 }
 
-// Continue requests AI continuation for a chapter without streaming.
-func (c *Generation) Continue(ctx context.Context, chapterID string, persist bool) (*ContinueResult, error) {
+// ContinueParams holds parameters for continuing a chapter.
+//
+// Instruction is an optional final prompt that steers the continuation (for
+// example, "Write the closing scene and resolve every open thread").
+// WordTarget is a soft length hint in words; LineLimit is a hard cap on
+// generated lines. Zero values are omitted from the request so the server
+// applies its defaults.
+type ContinueParams struct {
+	Persist     bool
+	Instruction string
+	WordTarget  int
+	LineLimit   int
+}
+
+func (p ContinueParams) body() map[string]any {
 	body := map[string]any{
-		"persist": persist,
+		"persist": p.Persist,
 	}
+	if p.Instruction != "" {
+		body["instruction"] = p.Instruction
+	}
+	if p.WordTarget > 0 {
+		body["word_target"] = p.WordTarget
+	}
+	if p.LineLimit > 0 {
+		body["line_limit"] = p.LineLimit
+	}
+	return body
+}
+
+// Continue requests AI continuation for a chapter without streaming.
+func (c *Generation) Continue(ctx context.Context, chapterID string, params ContinueParams) (*ContinueResult, error) {
+	body := params.body()
 
 	path := fmt.Sprintf("/api/scenes/%s/continue", url.PathEscape(chapterID))
 	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
@@ -85,10 +113,8 @@ func (c *Generation) Continue(ctx context.Context, chapterID string, persist boo
 }
 
 // StreamContinue requests AI continuation for a chapter and streams tokens in real time.
-func (c *Generation) StreamContinue(ctx context.Context, chapterID string, persist bool, onToken func(string)) (*ContinueResult, error) {
-	body := map[string]any{
-		"persist": persist,
-	}
+func (c *Generation) StreamContinue(ctx context.Context, chapterID string, params ContinueParams, onToken func(string)) (*ContinueResult, error) {
+	body := params.body()
 
 	path := fmt.Sprintf("/api/scenes/%s/continue/stream", url.PathEscape(chapterID))
 	resp, err := c.transport.openGenerationStream(ctx, path, body)
@@ -104,7 +130,7 @@ func (c *Generation) StreamContinue(ctx context.Context, chapterID string, persi
 	if res == nil {
 		res = &ContinueResult{
 			Prose:     accumulated,
-			Persisted: persist,
+			Persisted: params.Persist,
 		}
 	}
 
