@@ -49,7 +49,28 @@ prosie chapter show <id>
 prosie generate continue <chapter-id>
 prosie generate rewrite <chapter-id>
 prosie generate summarize <chapter-id>
+
+# LLM settings
+prosie llm show
+prosie llm show --json
+prosie llm models
+prosie llm models --json
+prosie llm update --provider openrouter --model openai/gpt-5.6-luna
+prosie llm update --provider openrouter --model openai/gpt-5.6-luna --json
 ```
+
+## LLM settings
+
+Use `prosie llm update` to change the provider or model. To store provider
+keys, set one or more of these environment variables before you run the
+command:
+
+- `PROSIE_OPENAI_API_KEY`
+- `PROSIE_ANTHROPIC_API_KEY`
+- `PROSIE_OPENROUTER_API_KEY`
+
+The CLI does not accept keys as command arguments and never returns stored
+key values. `prosie llm show` reports only whether each key is configured.
 
 ## Saved books and exports
 

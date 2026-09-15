@@ -16,13 +16,21 @@ func generationContext(c *command.Environment) context.Context {
 }
 
 type tokenOutput struct {
-	out  io.Writer
-	last string
+	write  func(string)
+	finish func(string)
 }
 
-func (o *tokenOutput) write(token string) { fmt.Fprint(o.out, token); o.last = token }
-func (o *tokenOutput) finish(prose string) {
-	if !strings.HasSuffix(prose, "\n") && o.last != "" && !strings.HasSuffix(o.last, "\n") {
-		fmt.Fprintln(o.out)
+func newTokenOutput(out io.Writer) tokenOutput {
+	last := ""
+	return tokenOutput{
+		write: func(token string) {
+			fmt.Fprint(out, token)
+			last = token
+		},
+		finish: func(prose string) {
+			if !strings.HasSuffix(prose, "\n") && last != "" && !strings.HasSuffix(last, "\n") {
+				fmt.Fprintln(out)
+			}
+		},
 	}
 }
