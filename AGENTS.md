@@ -11,6 +11,11 @@ Only reply in ASD-STE100 Simplified Technical English.
 - All errors must write to standard error.
 - All tests must verify external behavior and exit codes.
 - Keep test coverage comprehensive. Run `go test ./...` before commit.
+- Quality gates for production code: `make messgo` and `make mutago`. Both must pass before a release. Rules and exceptions live in `quality-gates/messgo-ruleset.xml`.
+
+## Release workflow
+
+When shipping a release (tagging, verifying released assets, updating the Homebrew formula), read `docs/release.md` and follow it end to end. Never publish a tag with a quality gate red.
 
 ## Agent skills
 
