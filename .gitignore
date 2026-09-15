@@ -2,3 +2,5 @@ bin/
 dist/
 .DS_Store
 *.exe
+report.json
+mutago-summary.json
