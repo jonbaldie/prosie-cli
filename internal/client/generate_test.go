@@ -397,7 +397,7 @@ func TestSummarize(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "test-token", server.Client())
-	res, err := cli.Generation().Summarize(context.Background(), "101")
+	res, err := cli.Generation().Summarize(context.Background(), "101", SummarizeParams{Persist: true})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

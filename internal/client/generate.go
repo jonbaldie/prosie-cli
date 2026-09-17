@@ -248,10 +248,15 @@ func (c *Generation) StreamRewrite(ctx context.Context, chapterID string, params
 	return res, nil
 }
 
+// SummarizeParams holds parameters for generating a chapter summary.
+type SummarizeParams struct {
+	Persist bool
+}
+
 // Summarize requests chapter summary generation and stores it on the server.
-func (c *Generation) Summarize(ctx context.Context, chapterID string) (*SummaryResult, error) {
+func (c *Generation) Summarize(ctx context.Context, chapterID string, params SummarizeParams) (*SummaryResult, error) {
 	body := map[string]any{
-		"persist": true,
+		"persist": params.Persist,
 	}
 
 	path := fmt.Sprintf("/api/scenes/%s/summarize", url.PathEscape(chapterID))

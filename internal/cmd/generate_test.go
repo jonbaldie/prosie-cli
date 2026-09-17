@@ -685,14 +685,17 @@ func TestGenerateRewrite(t *testing.T) {
 }
 
 func TestGenerateSummarize(t *testing.T) {
+	var lastBody map[string]any
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/api/scenes/101/summarize" && r.Method == http.MethodPost:
+			_ = json.NewDecoder(r.Body).Decode(&lastBody)
+
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"summary":   "The investigation begins in the engine room.",
-					"persisted": true,
+					"persisted": lastBody["persist"] == true,
 					"model":     "test-model",
 				},
 			})
@@ -761,6 +764,28 @@ func TestGenerateSummarize(t *testing.T) {
 		}
 		if !strings.Contains(errOut.String(), "Scene not found.") {
 			t.Fatalf("expected 404 error: %s", errOut.String())
+		}
+	})
+
+	t.Run("defaults to persist true", func(t *testing.T) {
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "summarize", "101"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if lastBody["persist"] != true {
+			t.Fatalf("expected persist:true in request body, got %+v", lastBody)
+		}
+	})
+
+	t.Run("--no-persist sends persist false", func(t *testing.T) {
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "summarize", "101", "--no-persist"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if lastBody["persist"] != false {
+			t.Fatalf("expected persist:false in request body, got %+v", lastBody)
 		}
 	})
 }
