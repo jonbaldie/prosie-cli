@@ -516,6 +516,22 @@ func TestChatStream(t *testing.T) {
 			t.Fatalf("expected error in stderr, got: %s", errOut.String())
 		}
 	})
+
+	t.Run("stream with --json", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"chat", "stream", "--conversation", "801", "Stream me this story beat", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(out.Bytes(), &payload); err != nil {
+			t.Fatalf("invalid json output: %v, raw: %s", err, out.String())
+		}
+		msg, ok := payload["message"].(map[string]any)
+		if !ok || msg["content"] != "Streaming is active." {
+			t.Fatalf("unexpected message in json: %+v", payload)
+		}
+	})
 }
 
 func TestChatExport(t *testing.T) {

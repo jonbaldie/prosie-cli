@@ -16,6 +16,7 @@ func executeChatStream(c *command.Environment, args []string) int {
 	convFlag := fs.String("conversation", "", "Existing conversation ID to continue")
 	fs.StringVar(convFlag, "c", "", "Existing conversation ID to continue (shorthand)")
 	titleFlag := fs.String("title", "", "Title for newly created conversation")
+	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args)
 	if err != nil {
@@ -44,12 +45,28 @@ func executeChatStream(c *command.Environment, args []string) int {
 		convID = strconv.Itoa(conv.ID)
 	}
 
-	_, err = cli.Conversations().StreamChatMessage(context.Background(), convID, message, func(token string) {
+	onToken := func(token string) {
 		fmt.Fprint(c.Out, token)
-	})
+	}
+	if *jsonFlag {
+		onToken = func(token string) {}
+	}
+
+	resp, err := cli.Conversations().StreamChatMessage(context.Background(), convID, message, onToken)
 	if err != nil {
 		fmt.Fprintf(c.Err, "\nerror streaming message: %v\n", err)
 		return 1
+	}
+
+	if *jsonFlag {
+		convIDInt, _ := strconv.Atoi(convID)
+		_ = command.WriteJSON(c, map[string]any{
+			"conversation_id": convIDInt,
+			"message":         resp.Message,
+			"model":           resp.Model,
+			"usage":           resp.Usage,
+		})
+		return 0
 	}
 
 	fmt.Fprintln(c.Out)
@@ -66,6 +83,7 @@ Usage:
 Flags:
   -c, --conversation string   Existing conversation ID to continue
   -h, --help                  Show help for command
+      --json                  Format output as JSON (disables token streaming)
       --title string          Title for new conversation thread
 `
 	fmt.Fprint(c.Out, help)
