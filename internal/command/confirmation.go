@@ -10,7 +10,7 @@ func ConfirmDeletion(c *Environment, yes bool, resource string, id any) bool {
 	if yes {
 		return true
 	}
-	fmt.Fprintf(c.Out, "Are you sure you want to delete %s %v? [y/N]: ", resource, id)
+	fmt.Fprintf(c.Err, "Are you sure you want to delete %s %v? [y/N]: ", resource, id)
 	scanner := bufio.NewScanner(c.In)
 	if scanner.Scan() {
 		answer := strings.TrimSpace(strings.ToLower(scanner.Text()))
@@ -18,6 +18,6 @@ func ConfirmDeletion(c *Environment, yes bool, resource string, id any) bool {
 			return true
 		}
 	}
-	fmt.Fprintln(c.Out, "Deletion cancelled.")
+	fmt.Fprintln(c.Err, "Deletion cancelled.")
 	return false
 }

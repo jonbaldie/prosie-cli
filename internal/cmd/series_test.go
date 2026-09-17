@@ -389,8 +389,11 @@ func TestSeriesDelete(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
 		}
-		if !strings.Contains(out.String(), "Deletion cancelled.") {
+		if out.Len() != 0 {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Deletion cancelled.") {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
 		}
 	})
 
@@ -403,6 +406,9 @@ func TestSeriesDelete(t *testing.T) {
 		}
 		if !strings.Contains(out.String(), "Deleted series 3.") {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Are you sure you want to delete series 3? [y/N]: ") {
+			t.Fatalf("expected prompt on stderr, got: %s", errOut.String())
 		}
 	})
 
@@ -429,6 +435,40 @@ func TestSeriesDelete(t *testing.T) {
 		}
 		if res["id"] != float64(3) || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
+		}
+	})
+
+	t.Run("delete confirmed via prompt with --json", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = strings.NewReader("y\n")
+		code := cmd.Execute([]string{"series", "delete", "3", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var res map[string]any
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if res["id"] != float64(3) || res["deleted"] != true {
+			t.Fatalf("unexpected json: %+v", res)
+		}
+		if !strings.Contains(errOut.String(), "Are you sure you want to delete series 3? [y/N]: ") {
+			t.Fatalf("expected prompt on stderr, got: %s", errOut.String())
+		}
+	})
+
+	t.Run("delete cancelled via prompt with --json", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = strings.NewReader("n\n")
+		code := cmd.Execute([]string{"series", "delete", "3", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if out.Len() != 0 {
+			t.Fatalf("expected empty stdout on cancellation, got: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Deletion cancelled.") {
+			t.Fatalf("expected cancellation on stderr, got: %s", errOut.String())
 		}
 	})
 }
