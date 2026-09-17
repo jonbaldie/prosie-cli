@@ -295,6 +295,7 @@ func TestChatShow(t *testing.T) {
 func TestChatSend(t *testing.T) {
 	createdThread := false
 	sentMessage := false
+	var lastReceivedContent string
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -339,6 +340,7 @@ func TestChatSend(t *testing.T) {
 			var body map[string]any
 			_ = json.NewDecoder(r.Body).Decode(&body)
 			content, _ := body["content"].(string)
+			lastReceivedContent = content
 
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
@@ -404,6 +406,18 @@ func TestChatSend(t *testing.T) {
 		}
 		if !strings.Contains(out.String(), "Reply from 777: Continuing old query") {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+	})
+
+	t.Run("send with --conversation flag and unquoted multi-word message", func(t *testing.T) {
+		lastReceivedContent = ""
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"chat", "send", "--conversation", "777", "hello", "world"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if lastReceivedContent != "hello world" {
+			t.Fatalf("expected API to receive content %q, got %q", "hello world", lastReceivedContent)
 		}
 	})
 
