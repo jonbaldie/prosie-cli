@@ -257,6 +257,33 @@ func TestChapterShow(t *testing.T) {
 			t.Fatalf("expected 404 message: %s", errOut.String())
 		}
 	})
+
+	t.Run("bare dash requests id dash", func(t *testing.T) {
+		var capturedPath string
+		dashHandler := func(w http.ResponseWriter, r *http.Request) {
+			capturedPath = r.URL.Path
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": map[string]any{
+					"id":      1,
+					"content": "Prose content for dash.",
+				},
+			})
+		}
+		_, dashCfg, dashClient := setupTestChapterEnv(t, dashHandler)
+
+		cmd, out, errOut := newTestRootCmd(dashCfg, dashClient)
+		code := cmd.Execute([]string{"chapter", "show", "-"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if capturedPath != "/api/scenes/-" {
+			t.Fatalf("expected path /api/scenes/-, got %s", capturedPath)
+		}
+		if !strings.Contains(out.String(), "Prose content for dash.") {
+			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+	})
 }
 
 func TestChapterCreate(t *testing.T) {
@@ -527,6 +554,55 @@ func TestChapterReorder(t *testing.T) {
 		}
 		if len(chapters) != 3 || chapters[0].ID != 103 {
 			t.Fatalf("unexpected chapters: %+v", chapters)
+		}
+	})
+
+	t.Run("bare dash preserves book id and chapter order", func(t *testing.T) {
+		var capturedPath string
+		var capturedBody map[string]any
+
+		dashHandler := func(w http.ResponseWriter, r *http.Request) {
+			capturedPath = r.URL.Path
+			_ = json.NewDecoder(r.Body).Decode(&capturedBody)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": []map[string]any{
+					{"id": 1, "order": 0, "name": "Chapter 1"},
+					{"id": 2, "order": 1, "name": "Chapter 2"},
+				},
+			})
+		}
+		_, dashCfg, dashClient := setupTestChapterEnv(t, dashHandler)
+
+		cmd, _, errOut := newTestRootCmd(dashCfg, dashClient)
+		code := cmd.Execute([]string{"chapter", "reorder", "7", "-", "1,2"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if capturedPath != "/api/stories/7/scenes/reorder" {
+			t.Fatalf("expected path /api/stories/7/scenes/reorder, got %s", capturedPath)
+		}
+		sceneIDs, ok := capturedBody["scene_ids"].([]any)
+		if !ok {
+			t.Fatalf("expected scene_ids in body: %v", capturedBody)
+		}
+		var idx1, idx2 int = -1, -1
+		for i, id := range sceneIDs {
+			if id == "--" {
+				t.Fatalf("invented '--' found in scene_ids: %v", sceneIDs)
+			}
+			if id == float64(7) || id == "7" {
+				t.Fatalf("book ID 7 leaked into scene_ids: %v", sceneIDs)
+			}
+			if id == float64(1) || id == "1" {
+				idx1 = i
+			}
+			if id == float64(2) || id == "2" {
+				idx2 = i
+			}
+		}
+		if idx1 == -1 || idx2 == -1 || idx1 >= idx2 {
+			t.Fatalf("expected chapter IDs 1 and 2 in order, got scene_ids: %v", sceneIDs)
 		}
 	})
 }
