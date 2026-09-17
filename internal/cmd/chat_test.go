@@ -716,14 +716,17 @@ func TestChatDelete(t *testing.T) {
 	})
 
 	t.Run("cancelled via prompt", func(t *testing.T) {
-		cmd, out, _ := newTestRootCmd(cfgPath, httpClient)
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		cmd.In = bytes.NewBufferString("n\n")
 		code := cmd.Execute([]string{"chat", "delete", "901"})
 		if code != 0 {
 			t.Fatalf("expected code 0, got %d", code)
 		}
-		if !strings.Contains(out.String(), "Deletion cancelled.") {
+		if out.Len() != 0 {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Deletion cancelled.") {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
 		}
 	})
 
@@ -740,6 +743,9 @@ func TestChatDelete(t *testing.T) {
 		}
 		if !strings.Contains(out.String(), "Deleted conversation 901.") {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Are you sure you want to delete conversation 901? [y/N]: ") {
+			t.Fatalf("expected prompt on stderr, got: %s", errOut.String())
 		}
 	})
 
@@ -770,6 +776,44 @@ func TestChatDelete(t *testing.T) {
 		}
 		if res["id"] != "901" || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
+		}
+	})
+
+	t.Run("delete confirmed via prompt with --json", func(t *testing.T) {
+		deleted = false
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = bytes.NewBufferString("y\n")
+		code := cmd.Execute([]string{"chat", "delete", "901", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !deleted {
+			t.Fatalf("expected conversation to be deleted")
+		}
+		var res map[string]any
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if res["id"] != "901" || res["deleted"] != true {
+			t.Fatalf("unexpected json: %+v", res)
+		}
+		if !strings.Contains(errOut.String(), "Are you sure you want to delete conversation 901? [y/N]: ") {
+			t.Fatalf("expected prompt on stderr, got: %s", errOut.String())
+		}
+	})
+
+	t.Run("delete cancelled via prompt with --json", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = bytes.NewBufferString("n\n")
+		code := cmd.Execute([]string{"chat", "delete", "901", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if out.Len() != 0 {
+			t.Fatalf("expected empty stdout on cancellation, got: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "Deletion cancelled.") {
+			t.Fatalf("expected cancellation on stderr, got: %s", errOut.String())
 		}
 	})
 }
