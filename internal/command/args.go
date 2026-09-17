@@ -29,7 +29,7 @@ func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 			posArgs = append(posArgs, args[i+1:]...)
 			break
 		}
-		if !strings.HasPrefix(arg, "-") {
+		if arg == "-" || !strings.HasPrefix(arg, "-") {
 			posArgs = append(posArgs, arg)
 			continue
 		}
@@ -51,12 +51,12 @@ func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 		return nil, err
 	}
 
-	return fs.Args(), nil
+	return posArgs, nil
 }
 
 func flagNeedsValue(fs *flag.FlagSet, arg string) bool {
 	name := strings.TrimLeft(arg, "-")
-	if strings.Contains(name, "=") {
+	if name == "" || strings.Contains(name, "=") {
 		return false
 	}
 	f := fs.Lookup(name)
