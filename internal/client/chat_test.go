@@ -453,3 +453,95 @@ func TestStreamChatMessage_Errors(t *testing.T) {
 		t.Fatalf("expected rate limit error, got %v", err)
 	}
 }
+
+// TestConversationIDsAreEscaped verifies every conversation endpoint escapes a
+// user-supplied ID containing "/" and "?" instead of letting it split the path
+// or add a query parameter (issue #11).
+func TestConversationIDsAreEscaped(t *testing.T) {
+	const rawID = "1/foo?x=1"
+	const wantPath = "/api/conversations/1%2Ffoo%3Fx=1"
+
+	var gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.EscapedPath()
+		if r.URL.RawQuery != "" {
+			gotPath += "?" + r.URL.RawQuery
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(r.URL.Path, "/conversations") && r.Method == http.MethodGet {
+			_, _ = w.Write([]byte(`{"data":[]}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"data":{"id":1}}`))
+	}))
+	defer server.Close()
+
+	cli := New(server.URL, "test-token", server.Client())
+
+	if _, err := cli.Conversations().GetConversation(context.Background(), rawID); err != nil {
+		t.Fatalf("GetConversation returned error: %v", err)
+	}
+	if gotPath != wantPath {
+		t.Fatalf("GetConversation: got path %q, want %q", gotPath, wantPath)
+	}
+
+	if err := cli.Conversations().DeleteConversation(context.Background(), rawID); err != nil {
+		t.Fatalf("DeleteConversation returned error: %v", err)
+	}
+	if gotPath != wantPath {
+		t.Fatalf("DeleteConversation: got path %q, want %q", gotPath, wantPath)
+	}
+
+	if _, err := cli.Conversations().ExportConversation(context.Background(), rawID); err != nil {
+		t.Fatalf("ExportConversation returned error: %v", err)
+	}
+	wantExportPath := "/api/conversations/1%2Ffoo%3Fx=1/export"
+	if gotPath != wantExportPath {
+		t.Fatalf("ExportConversation: got path %q, want %q", gotPath, wantExportPath)
+	}
+
+	if _, err := cli.Conversations().SendChatMessage(context.Background(), rawID, "hello"); err != nil {
+		t.Fatalf("SendChatMessage returned error: %v", err)
+	}
+	wantMessagesPath := "/api/conversations/1%2Ffoo%3Fx=1/messages"
+	if gotPath != wantMessagesPath {
+		t.Fatalf("SendChatMessage: got path %q, want %q", gotPath, wantMessagesPath)
+	}
+
+	if _, err := cli.Conversations().StreamChatMessage(context.Background(), rawID, "hello", nil); err != nil {
+		t.Fatalf("StreamChatMessage returned error: %v", err)
+	}
+	wantStreamPath := "/api/conversations/1%2Ffoo%3Fx=1/messages/stream"
+	if gotPath != wantStreamPath {
+		t.Fatalf("StreamChatMessage: got path %q, want %q", gotPath, wantStreamPath)
+	}
+
+	const rawBookID = "2 bar?y=3"
+	wantStoriesPath := "/api/stories/2%20bar%3Fy=3/conversations"
+
+	if _, err := cli.Conversations().ListConversations(context.Background(), rawBookID); err != nil {
+		t.Fatalf("ListConversations returned error: %v", err)
+	}
+	if gotPath != wantStoriesPath {
+		t.Fatalf("ListConversations: got path %q, want %q", gotPath, wantStoriesPath)
+	}
+
+	if _, err := cli.Conversations().CreateConversation(context.Background(), rawBookID, "Title"); err != nil {
+		t.Fatalf("CreateConversation returned error: %v", err)
+	}
+	if gotPath != wantStoriesPath {
+		t.Fatalf("CreateConversation: got path %q, want %q", gotPath, wantStoriesPath)
+	}
+
+	wantImportPath := "/api/stories/2%20bar%3Fy=3/conversations/import"
+	tmpFile := filepath.Join(t.TempDir(), "import.json")
+	if err := os.WriteFile(tmpFile, []byte(`{}`), 0o600); err != nil {
+		t.Fatalf("failed to write temp import file: %v", err)
+	}
+	if _, err := cli.Conversations().ImportConversation(context.Background(), rawBookID, tmpFile); err != nil {
+		t.Fatalf("ImportConversation returned error: %v", err)
+	}
+	if gotPath != wantImportPath {
+		t.Fatalf("ImportConversation: got path %q, want %q", gotPath, wantImportPath)
+	}
+}

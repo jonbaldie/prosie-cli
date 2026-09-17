@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -63,7 +64,7 @@ func (c *Conversations) ListConversations(ctx context.Context, bookID string) ([
 		return nil, errors.New("book ID is required")
 	}
 
-	path := fmt.Sprintf("/api/stories/%s/conversations", bookID)
+	path := fmt.Sprintf("/api/stories/%s/conversations", url.PathEscape(bookID))
 	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
@@ -89,7 +90,7 @@ func (c *Conversations) GetConversation(ctx context.Context, id string) (*Conver
 		return nil, errors.New("conversation ID is required")
 	}
 
-	path := fmt.Sprintf("/api/conversations/%s", id)
+	path := fmt.Sprintf("/api/conversations/%s", url.PathEscape(id))
 	bodyBytes, err := c.transport.request(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
@@ -115,7 +116,7 @@ func (c *Conversations) CreateConversation(ctx context.Context, bookID string, t
 		body["title"] = title
 	}
 
-	path := fmt.Sprintf("/api/stories/%s/conversations", bookID)
+	path := fmt.Sprintf("/api/stories/%s/conversations", url.PathEscape(bookID))
 	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
@@ -136,7 +137,7 @@ func (c *Conversations) DeleteConversation(ctx context.Context, id string) error
 		return errors.New("conversation ID is required")
 	}
 
-	path := fmt.Sprintf("/api/conversations/%s", id)
+	path := fmt.Sprintf("/api/conversations/%s", url.PathEscape(id))
 	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
 	if err != nil {
 		return err
@@ -158,7 +159,7 @@ func (c *Conversations) ExportConversation(ctx context.Context, id string) ([]by
 		return nil, errors.New("conversation ID is required")
 	}
 
-	path := fmt.Sprintf("/api/conversations/%s/export", id)
+	path := fmt.Sprintf("/api/conversations/%s/export", url.PathEscape(id))
 	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, err
@@ -184,7 +185,7 @@ func (c *Conversations) ImportConversation(ctx context.Context, bookID string, f
 		return nil, errors.New("book ID is required")
 	}
 
-	path := fmt.Sprintf("/api/stories/%s/conversations/import", bookID)
+	path := fmt.Sprintf("/api/stories/%s/conversations/import", url.PathEscape(bookID))
 	req, err := c.transport.uploadRequest(ctx, path, filePath, "file", nil)
 	if err != nil {
 		return nil, err
@@ -213,7 +214,7 @@ func (c *Conversations) SendChatMessage(ctx context.Context, conversationID stri
 		"content": message,
 	}
 
-	path := fmt.Sprintf("/api/conversations/%s/messages", conversationID)
+	path := fmt.Sprintf("/api/conversations/%s/messages", url.PathEscape(conversationID))
 	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
@@ -243,7 +244,7 @@ func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID st
 		"content": message,
 	}
 
-	path := fmt.Sprintf("/api/conversations/%s/messages/stream", conversationID)
+	path := fmt.Sprintf("/api/conversations/%s/messages/stream", url.PathEscape(conversationID))
 	req, err := c.transport.NewRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err
