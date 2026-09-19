@@ -118,6 +118,9 @@ func TestSeriesList(t *testing.T) {
 		if len(list) != 2 || list[0].Title != "The Solar Cycle" {
 			t.Fatalf("unexpected json list: %+v", list)
 		}
+		if strings.Contains(out.String(), `"chapters": []`) || strings.Contains(out.String(), `"chapters":[]`) {
+			t.Fatalf("expected unloaded chapters to not be emitted as empty array, got: %s", out.String())
+		}
 	})
 
 	t.Run("empty list", func(t *testing.T) {
@@ -229,6 +232,9 @@ func TestSeriesShow(t *testing.T) {
 		}
 		if s.ID != 1 || s.Title != "The Solar Cycle" || len(s.Books) != 1 || len(s.CodexEntries) != 1 {
 			t.Fatalf("unexpected series json: %+v", s)
+		}
+		if strings.Contains(out.String(), `"chapters": []`) || strings.Contains(out.String(), `"chapters":[]`) {
+			t.Fatalf("expected unloaded chapters to not be emitted as empty array, got: %s", out.String())
 		}
 	})
 
@@ -524,6 +530,9 @@ func TestSeriesAttach(t *testing.T) {
 		}
 		if b.ID != 10 || b.SeriesID == nil || *b.SeriesID != 1 {
 			t.Fatalf("unexpected book json: %+v", b)
+		}
+		if strings.Contains(out.String(), `"chapters": []`) || strings.Contains(out.String(), `"chapters":[]`) {
+			t.Fatalf("expected unloaded chapters to not be emitted as empty array, got: %s", out.String())
 		}
 	})
 }

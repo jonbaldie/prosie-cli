@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +83,16 @@ func TestListSeries(t *testing.T) {
 	if seriesList[1].ID != 2 || seriesList[1].Title != "Voidborne" {
 		t.Fatalf("unexpected series[1]: %+v", seriesList[1])
 	}
+	if seriesList[0].Books[0].Chapters != nil {
+		t.Fatalf("expected nil chapters on series member book, got: %+v", seriesList[0].Books[0].Chapters)
+	}
+	seriesData, err := json.Marshal(seriesList)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	if strings.Contains(string(seriesData), `"chapters"`) {
+		t.Fatalf("expected no chapters field in series list JSON, got: %s", string(seriesData))
+	}
 }
 
 func TestGetSeries(t *testing.T) {
@@ -142,6 +153,16 @@ func TestGetSeries(t *testing.T) {
 	}
 	if len(s.CodexEntries) != 1 || s.CodexEntries[0].Name != "Helios Drive" {
 		t.Fatalf("expected 1 codex entry 'Helios Drive', got %+v", s.CodexEntries)
+	}
+	if s.Books[0].Chapters != nil {
+		t.Fatalf("expected nil chapters on series book, got: %+v", s.Books[0].Chapters)
+	}
+	sData, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	if strings.Contains(string(sData), `"chapters"`) {
+		t.Fatalf("expected no chapters field in series JSON, got: %s", string(sData))
 	}
 }
 
@@ -276,6 +297,16 @@ func TestAttachSeriesBook(t *testing.T) {
 	}
 	if book.ID != 10 || book.SeriesID == nil || *book.SeriesID != 1 {
 		t.Fatalf("unexpected book: %+v", book)
+	}
+	if book.Chapters != nil {
+		t.Fatalf("expected nil chapters on attached book, got: %+v", book.Chapters)
+	}
+	bookData, err := json.Marshal(book)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	if strings.Contains(string(bookData), `"chapters"`) {
+		t.Fatalf("expected no chapters field in attached book JSON, got: %s", string(bookData))
 	}
 }
 

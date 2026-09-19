@@ -46,7 +46,7 @@ func TestBookUpdatePreservesExplicitAndOmittedFields(t *testing.T) {
 					t.Errorf("request body: got %#v; want %#v", got, want)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				fmt.Fprint(w, `{"data":{"id":41,"title":"Voyage","word_count":13,"filter_using_story_so_far":true,"chapters":[]}}`)
+				fmt.Fprint(w, `{"data":{"id":41,"title":"Voyage","word_count":13,"filter_using_story_so_far":true}}`)
 			}))
 			defer server.Close()
 			t.Setenv("PROSIE_API_URL", server.URL)
@@ -65,7 +65,7 @@ func TestBookUpdatePreservesExplicitAndOmittedFields(t *testing.T) {
 			if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 				t.Fatal(err)
 			}
-			if err := json.Unmarshal([]byte(`{"id":41,"title":"Voyage","word_count":13,"filter_using_story_so_far":true,"chapters":[]}`), &want); err != nil {
+			if err := json.Unmarshal([]byte(`{"id":41,"title":"Voyage","word_count":13,"filter_using_story_so_far":true}`), &want); err != nil {
 				t.Fatal(err)
 			}
 			if !reflect.DeepEqual(got, want) {
