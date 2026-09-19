@@ -479,6 +479,9 @@ func TestBookDuplicate(t *testing.T) {
 		if b["id"] != float64(13) || b["title"] != "Copy of Original Book" {
 			t.Fatalf("unexpected json: %+v", b)
 		}
+		if _, ok := b["chapters"]; ok {
+			t.Fatalf("expected chapters to be omitted from duplicated book json, got: %+v", b["chapters"])
+		}
 	})
 }
 

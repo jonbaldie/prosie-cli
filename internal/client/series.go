@@ -40,23 +40,37 @@ func displaySeriesDescription(s *Series) string {
 }
 
 func (s *Series) normalize() {
+	normalizeSeriesTitles(s)
+	normalizeSeriesBooks(s)
+	if s.Books == nil {
+		s.Books = []Book{}
+	}
+	if s.CodexEntries == nil {
+		s.CodexEntries = []CodexEntry{}
+	}
+}
+
+func normalizeSeriesTitles(s *Series) {
 	if s.Title == "" {
 		s.Title = s.Name
 	}
 	if s.Name == "" {
 		s.Name = s.Title
 	}
+}
+
+func normalizeSeriesBooks(s *Series) {
 	if len(s.Books) == 0 && len(s.Stories) > 0 {
 		s.Books = s.Stories
 	}
 	if len(s.Stories) == 0 && len(s.Books) > 0 {
 		s.Stories = s.Books
 	}
-	if s.Books == nil {
-		s.Books = []Book{}
+	for i := range s.Books {
+		s.Books[i].normalize()
 	}
-	if s.CodexEntries == nil {
-		s.CodexEntries = []CodexEntry{}
+	for i := range s.Stories {
+		s.Stories[i].normalize()
 	}
 }
 

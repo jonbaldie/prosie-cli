@@ -26,7 +26,7 @@ type Book struct {
 	TargetProgressPercent *int      `json:"target_progress_percent,omitempty"`
 	CreatedAt             string    `json:"created_at,omitempty"`
 	UpdatedAt             string    `json:"updated_at,omitempty"`
-	Chapters              []Chapter `json:"chapters"`
+	Chapters              []Chapter `json:"chapters,omitempty"`
 }
 
 func displayBookPremise(b *Book) string {
@@ -62,9 +62,6 @@ func (b *Book) normalize() {
 	}
 	if b.StorySoFar == nil && b.Premise != nil {
 		b.StorySoFar = b.Premise
-	}
-	if b.Chapters == nil {
-		b.Chapters = []Chapter{}
 	}
 }
 

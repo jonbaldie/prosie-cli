@@ -308,6 +308,49 @@ func TestDuplicateBook(t *testing.T) {
 	if copyBook.ID != 2 || copyBook.Title != "Copy of Original" {
 		t.Fatalf("unexpected duplicate book: %+v", copyBook)
 	}
+	if copyBook.Chapters != nil {
+		t.Fatalf("expected nil chapters on duplicated book, got: %+v", copyBook.Chapters)
+	}
+	data, err := json.Marshal(copyBook)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	if strings.Contains(string(data), `"chapters"`) {
+		t.Fatalf("expected no chapters field in duplicate book JSON, got: %s", string(data))
+	}
+}
+
+func TestBookChaptersJSONSerialization(t *testing.T) {
+	t.Run("omits chapters when unloaded", func(t *testing.T) {
+		b := Book{ID: 1, Title: "Test"}
+		b.normalize()
+		if b.Chapters != nil {
+			t.Fatalf("expected nil Chapters, got %+v", b.Chapters)
+		}
+		data, err := json.Marshal(b)
+		if err != nil {
+			t.Fatalf("unexpected marshal error: %v", err)
+		}
+		if strings.Contains(string(data), `"chapters"`) {
+			t.Fatalf("expected chapters to be omitted from JSON, got: %s", string(data))
+		}
+	})
+
+	t.Run("includes chapters when loaded", func(t *testing.T) {
+		b := Book{
+			ID:       1,
+			Title:    "Test",
+			Chapters: []Chapter{{ID: 10, Title: "Chapter 1"}},
+		}
+		b.normalize()
+		data, err := json.Marshal(b)
+		if err != nil {
+			t.Fatalf("unexpected marshal error: %v", err)
+		}
+		if !strings.Contains(string(data), `"chapters"`) {
+			t.Fatalf("expected chapters to be present in JSON, got: %s", string(data))
+		}
+	})
 }
 
 func TestExportStory(t *testing.T) {
