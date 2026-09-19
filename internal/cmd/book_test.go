@@ -603,8 +603,17 @@ func TestBookExport(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
-		w.Header().Set("Content-Type", "text/markdown")
-		_, _ = w.Write([]byte("# Full Manuscript\n\nChapter 1 text.\n\nChapter 2 text."))
+		switch r.URL.Query().Get("format") {
+		case "markdown":
+			w.Header().Set("Content-Type", "text/markdown")
+			_, _ = w.Write([]byte("# Full Manuscript\n\nChapter 1 text.\n\nChapter 2 text."))
+		case "docx":
+			w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+			_, _ = w.Write([]byte("PK\x03\x04docx-bytes"))
+		default:
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"message":"The selected format is invalid."}`))
+		}
 	}
 	_, cfgPath, httpClient := setupTestBookEnv(t, handler)
 
@@ -667,6 +676,53 @@ func TestBookExport(t *testing.T) {
 		}
 		if res["id"] != float64(5) || res["output"] != outFile {
 			t.Fatalf("unexpected json: %+v", res)
+		}
+	})
+
+	t.Run("export docx to file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		outFile := filepath.Join(tmpDir, "exported.docx")
+
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "export", "5", "--format", "docx", "-o", outFile})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "Exported book 5 to "+outFile) {
+			t.Fatalf("unexpected output: %s", out.String())
+		}
+
+		data, err := os.ReadFile(outFile)
+		if err != nil {
+			t.Fatalf("failed to read exported file: %v", err)
+		}
+		if string(data) != "PK\x03\x04docx-bytes" {
+			t.Fatalf("file does not contain docx bytes: %q", string(data))
+		}
+	})
+
+	t.Run("invalid format reports API error", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "export", "5", "--format", "pdf"})
+		if code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if out.Len() != 0 {
+			t.Fatalf("expected empty stdout, got: %s", out.String())
+		}
+		if !strings.Contains(errOut.String(), "error exporting book") {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
+		}
+	})
+
+	t.Run("help documents --format", func(t *testing.T) {
+		cmd, out, _ := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "export", "--help"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d", code)
+		}
+		if !strings.Contains(out.String(), "--format string   Export format (markdown, docx)") {
+			t.Fatalf("help does not document --format: %s", out.String())
 		}
 	})
 }

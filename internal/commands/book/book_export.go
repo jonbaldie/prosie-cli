@@ -15,6 +15,7 @@ func executeBookExport(c *command.Environment, args []string) int {
 
 	output := fs.String("output", "", "Write output to a file instead of stdout")
 	fs.StringVar(output, "o", "", "Write output to a file instead of stdout (shorthand)")
+	format := fs.String("format", "markdown", "Export format (markdown, docx)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args)
@@ -39,7 +40,7 @@ func executeBookExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	data, err := cli.Books().ExportStory(context.Background(), id, "markdown")
+	data, err := cli.Books().ExportStory(context.Background(), id, *format)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting book: %v\n", err)
 		return 1
@@ -55,6 +56,7 @@ Usage:
   prosie book export <id> [flags]
 
 Flags:
+      --format string   Export format (markdown, docx) (default "markdown")
   -h, --help            Show help for command
       --json            Format output as JSON
   -o, --output string   Write output to a file instead of stdout

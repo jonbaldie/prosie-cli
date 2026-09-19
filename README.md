@@ -40,6 +40,7 @@ prosie book list
 prosie book show <id>
 prosie book create --title "My Novel"
 prosie book export <id>
+prosie book export <id> --format docx -o my-novel.docx
 
 # Chapters
 prosie chapter list <book-id>
