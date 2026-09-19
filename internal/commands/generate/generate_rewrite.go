@@ -20,7 +20,7 @@ func executeGenerateRewrite(c *command.Environment, args []string) int {
 	selectionFileFlag := fs.String("selection-file", "", "File containing text selection to rewrite")
 	promptFlag := fs.String("prompt", "", "Custom rewrite instructions")
 	instructionFlag := fs.String("instruction", "", "Custom rewrite instructions (alias for --prompt)")
-	actionFlag := fs.String("action", "", "Preset rewrite action key (e.g. show-not-tell, tighten)")
+	actionFlag := fs.String("action", "", "Preset rewrite action key: show, tighten, voice, or user-<id>")
 	persistFlag := fs.Bool("persist", false, "Save rewritten prose to chapter")
 	streamFlag := fs.Bool("stream", false, "Stream rewrite tokens in real time")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
@@ -82,7 +82,7 @@ Flags:
       --selection        Text selection to rewrite
       --selection-file   File containing text selection to rewrite
       --prompt           Custom rewrite instructions
-      --action           Preset action key (e.g. show-not-tell, tighten)
+      --action           Preset action key: show, tighten, voice, or user-<id>
       --persist          Save rewritten prose to chapter
       --stream           Stream rewrite tokens in real time
       --json             Output in JSON format

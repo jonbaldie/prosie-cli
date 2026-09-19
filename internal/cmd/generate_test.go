@@ -567,6 +567,21 @@ func TestGenerateRewrite(t *testing.T) {
 		}
 	})
 
+	t.Run("help cites real preset action keys", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		if code := cmd.Execute([]string{"generate", "rewrite", "--help"}); code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if strings.Contains(out.String(), "show-not-tell") {
+			t.Fatalf("help cites nonexistent preset key show-not-tell: %s", out.String())
+		}
+		for _, key := range []string{"show", "tighten", "voice", "user-<id>"} {
+			if !strings.Contains(out.String(), key) {
+				t.Fatalf("help missing preset key %s: %s", key, out.String())
+			}
+		}
+	})
+
 	t.Run("rewrite with prompt plain text", func(t *testing.T) {
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{
@@ -587,7 +602,7 @@ func TestGenerateRewrite(t *testing.T) {
 		code := cmd.Execute([]string{
 			"generate", "rewrite", "101",
 			"--selection", "She said quietly.",
-			"--action", "show-not-tell",
+			"--action", "show",
 		})
 		if code != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
