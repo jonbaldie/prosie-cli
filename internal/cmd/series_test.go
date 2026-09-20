@@ -50,6 +50,18 @@ func TestSeriesUnknownSubcommand(t *testing.T) {
 	}
 }
 
+// assertNoUnloadedSeriesRelations fails if a JSON payload reports unloaded relations as empty arrays.
+func assertNoUnloadedSeriesRelations(t *testing.T, out string) {
+	t.Helper()
+	for _, field := range []string{"books", "stories", "codex_entries", "chapters"} {
+		for _, form := range []string{`"` + field + `": []`, `"` + field + `":[]`} {
+			if strings.Contains(out, form) {
+				t.Fatalf("expected unloaded %s to not be emitted as empty array, got: %s", field, out)
+			}
+		}
+	}
+}
+
 func TestSeriesList(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -118,9 +130,7 @@ func TestSeriesList(t *testing.T) {
 		if len(list) != 2 || list[0].Title != "The Solar Cycle" {
 			t.Fatalf("unexpected json list: %+v", list)
 		}
-		if strings.Contains(out.String(), `"chapters": []`) || strings.Contains(out.String(), `"chapters":[]`) {
-			t.Fatalf("expected unloaded chapters to not be emitted as empty array, got: %s", out.String())
-		}
+		assertNoUnloadedSeriesRelations(t, out.String())
 	})
 
 	t.Run("empty list", func(t *testing.T) {
@@ -306,6 +316,7 @@ func TestSeriesCreate(t *testing.T) {
 		if s.ID != 3 || s.Title != "Chronicles of Mars" {
 			t.Fatalf("unexpected json: %+v", s)
 		}
+		assertNoUnloadedSeriesRelations(t, out.String())
 	})
 }
 
@@ -364,6 +375,7 @@ func TestSeriesUpdate(t *testing.T) {
 		if s.ID != 3 || s.Title != "Updated Mars" {
 			t.Fatalf("unexpected json: %+v", s)
 		}
+		assertNoUnloadedSeriesRelations(t, out.String())
 	})
 }
 

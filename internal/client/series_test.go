@@ -93,6 +93,15 @@ func TestListSeries(t *testing.T) {
 	if strings.Contains(string(seriesData), `"chapters"`) {
 		t.Fatalf("expected no chapters field in series list JSON, got: %s", string(seriesData))
 	}
+	if seriesList[1].Books != nil {
+		t.Fatalf("expected nil books on series without members, got: %+v", seriesList[1].Books)
+	}
+	if seriesList[0].CodexEntries != nil || seriesList[1].CodexEntries != nil {
+		t.Fatalf("expected nil codex entries on listed series, got: %+v and %+v", seriesList[0].CodexEntries, seriesList[1].CodexEntries)
+	}
+	if strings.Contains(string(seriesData), `"codex_entries"`) {
+		t.Fatalf("expected no codex_entries field in series list JSON, got: %s", string(seriesData))
+	}
 }
 
 func TestGetSeries(t *testing.T) {
@@ -222,6 +231,7 @@ func TestCreateSeries(t *testing.T) {
 	if s.ID != 5 || s.Title != "New Series" {
 		t.Fatalf("unexpected created series: %+v", s)
 	}
+	assertSeriesRelationsUnloaded(t, s)
 }
 
 func TestUpdateSeries(t *testing.T) {
@@ -253,6 +263,30 @@ func TestUpdateSeries(t *testing.T) {
 	}
 	if s.ID != 5 || s.Title != newTitle || *s.Description != newDesc {
 		t.Fatalf("unexpected updated series: %+v", s)
+	}
+	assertSeriesRelationsUnloaded(t, s)
+}
+
+// assertSeriesRelationsUnloaded fails if unloaded books or codex entries reach the JSON output.
+func assertSeriesRelationsUnloaded(t *testing.T, s *Series) {
+	t.Helper()
+	if s.Books != nil {
+		t.Fatalf("expected nil books for unloaded payload, got: %+v", s.Books)
+	}
+	if s.Stories != nil {
+		t.Fatalf("expected nil stories for unloaded payload, got: %+v", s.Stories)
+	}
+	if s.CodexEntries != nil {
+		t.Fatalf("expected nil codex entries for unloaded payload, got: %+v", s.CodexEntries)
+	}
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Fatalf("unexpected marshal error: %v", err)
+	}
+	for _, field := range []string{`"books"`, `"stories"`, `"codex_entries"`} {
+		if strings.Contains(string(data), field) {
+			t.Fatalf("expected no %s field in series JSON, got: %s", field, string(data))
+		}
 	}
 }
 
