@@ -39,15 +39,10 @@ func displaySeriesDescription(s *Series) string {
 	return "-"
 }
 
+// Unloaded relations stay nil so that omitempty leaves them out of JSON output.
 func (s *Series) normalize() {
 	normalizeSeriesTitles(s)
 	normalizeSeriesBooks(s)
-	if s.Books == nil {
-		s.Books = []Book{}
-	}
-	if s.CodexEntries == nil {
-		s.CodexEntries = []CodexEntry{}
-	}
 }
 
 func normalizeSeriesTitles(s *Series) {
