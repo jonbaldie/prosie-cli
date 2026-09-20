@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
+	"strconv"
 )
 
 func executeChatDelete(c *command.Environment, args []string) int {
@@ -44,8 +45,12 @@ func executeChatDelete(c *command.Environment, args []string) int {
 	}
 
 	if *jsonFlag {
+		var idVal any = convID
+		if intVal, err := strconv.Atoi(convID); err == nil {
+			idVal = intVal
+		}
 		_ = command.WriteJSON(c, map[string]any{
-			"id":      convID,
+			"id":      idVal,
 			"deleted": true,
 		})
 		return 0

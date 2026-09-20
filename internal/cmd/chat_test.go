@@ -695,7 +695,7 @@ func TestChatImport(t *testing.T) {
 func TestChatDelete(t *testing.T) {
 	deleted := false
 	handler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/api/conversations/901" && r.Method == http.MethodDelete {
+		if (r.URL.Path == "/api/conversations/901" || r.URL.Path == "/api/conversations/draft-7") && r.Method == http.MethodDelete {
 			deleted = true
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -774,7 +774,22 @@ func TestChatDelete(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if res["id"] != "901" || res["deleted"] != true {
+		if res["id"] != float64(901) || res["deleted"] != true {
+			t.Fatalf("unexpected json: %+v", res)
+		}
+	})
+
+	t.Run("delete non-numeric id with --json keeps the string id", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"chat", "delete", "draft-7", "-y", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var res map[string]any
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if res["id"] != "draft-7" || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
 		}
 	})
@@ -794,7 +809,7 @@ func TestChatDelete(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if res["id"] != "901" || res["deleted"] != true {
+		if res["id"] != float64(901) || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
 		}
 		if !strings.Contains(errOut.String(), "Are you sure you want to delete conversation 901? [y/N]: ") {
