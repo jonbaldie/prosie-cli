@@ -19,9 +19,27 @@ func FlagError(c *Environment, err error, help func(*Environment)) int {
 // ParseFlagsAndArgs reorders arguments so flags precede positional arguments,
 // enabling users to place flags before or after positional arguments.
 func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
-	var flagArgs []string
-	var posArgs []string
+	flagArgs, posArgs, valueMissing := splitArgs(fs, args)
 
+	var reordered []string
+	reordered = append(reordered, flagArgs...)
+	// A flag without its value must stay last, so flag.FlagSet reports
+	// "flag needs an argument". An injected "--" becomes its value.
+	if len(posArgs) > 0 && !valueMissing {
+		reordered = append(reordered, "--")
+		reordered = append(reordered, posArgs...)
+	}
+
+	if err := fs.Parse(reordered); err != nil {
+		return nil, err
+	}
+
+	return posArgs, nil
+}
+
+// splitArgs separates flags with their values from positional arguments.
+// valueMissing is true when the last argument is a flag without its value.
+func splitArgs(fs *flag.FlagSet, args []string) (flagArgs, posArgs []string, valueMissing bool) {
 	count := len(args)
 	for i := 0; i < count; i++ {
 		arg := args[i]
@@ -34,24 +52,17 @@ func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 			continue
 		}
 		flagArgs = append(flagArgs, arg)
-		if flagNeedsValue(fs, arg) && i+1 < count {
-			i++
-			flagArgs = append(flagArgs, args[i])
+		if !flagNeedsValue(fs, arg) {
+			continue
 		}
+		if i+1 == count {
+			return flagArgs, posArgs, true
+		}
+		i++
+		flagArgs = append(flagArgs, args[i])
 	}
 
-	var reordered []string
-	reordered = append(reordered, flagArgs...)
-	if len(posArgs) > 0 {
-		reordered = append(reordered, "--")
-		reordered = append(reordered, posArgs...)
-	}
-
-	if err := fs.Parse(reordered); err != nil {
-		return nil, err
-	}
-
-	return posArgs, nil
+	return flagArgs, posArgs, false
 }
 
 func flagNeedsValue(fs *flag.FlagSet, arg string) bool {
