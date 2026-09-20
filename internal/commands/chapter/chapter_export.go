@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
 )
 
 func executeChapterExport(c *command.Environment, args []string) int {
@@ -42,12 +41,7 @@ func executeChapterExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	var idVal any = id
-	if intVal, err := strconv.Atoi(id); err == nil {
-		idVal = intVal
-	}
-
-	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), idVal, *output, data, *jsonFlag)
+	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), command.JSONID(id), *output, data, *jsonFlag)
 }
 
 func printChapterExportHelp(c *command.Environment) {

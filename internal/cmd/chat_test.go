@@ -774,7 +774,7 @@ func TestChatDelete(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if res["id"] != "901" || res["deleted"] != true {
+		if res["id"] != float64(901) || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
 		}
 	})
@@ -794,7 +794,7 @@ func TestChatDelete(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
 			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
 		}
-		if res["id"] != "901" || res["deleted"] != true {
+		if res["id"] != float64(901) || res["deleted"] != true {
 			t.Fatalf("unexpected json: %+v", res)
 		}
 		if !strings.Contains(errOut.String(), "Are you sure you want to delete conversation 901? [y/N]: ") {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
 )
 
 func executeChapterDelete(c *command.Environment, args []string) int {
@@ -45,12 +44,8 @@ func executeChapterDelete(c *command.Environment, args []string) int {
 	}
 
 	if *jsonFlag {
-		var idVal any = id
-		if intVal, err := strconv.Atoi(id); err == nil {
-			idVal = intVal
-		}
 		_ = command.WriteJSON(c, map[string]any{
-			"id":      idVal,
+			"id":      command.JSONID(id),
 			"deleted": true,
 		})
 		return 0

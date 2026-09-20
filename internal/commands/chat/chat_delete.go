@@ -45,7 +45,7 @@ func executeChatDelete(c *command.Environment, args []string) int {
 
 	if *jsonFlag {
 		_ = command.WriteJSON(c, map[string]any{
-			"id":      convID,
+			"id":      command.JSONID(convID),
 			"deleted": true,
 		})
 		return 0
