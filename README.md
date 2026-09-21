@@ -50,6 +50,7 @@ prosie chapter show <id>
 prosie generate continue <chapter-id>
 prosie generate continue <chapter-id> --instruction "Write the closing scene; resolve every open thread." --words 900
 prosie generate rewrite <chapter-id>
+prosie generate undo <chapter-id>
 prosie generate summarize <chapter-id>
 
 # LLM settings

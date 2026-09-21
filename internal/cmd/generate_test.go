@@ -41,6 +41,9 @@ func TestGenerateHelp(t *testing.T) {
 	if !strings.Contains(out.String(), "Manage AI prose generation on Prosie.") {
 		t.Fatalf("unexpected help output: %s", out.String())
 	}
+	if !strings.Contains(out.String(), "undo        Undo latest AI rewrite on a chapter") {
+		t.Fatalf("help output does not list undo: %s", out.String())
+	}
 }
 
 func TestGenerateUnknownSubcommand(t *testing.T) {
@@ -477,6 +480,99 @@ func TestGenerateReject(t *testing.T) {
 		}
 		if !strings.Contains(errOut.String(), "Scene not found.") {
 			t.Fatalf("expected 404 message: %s", errOut.String())
+		}
+	})
+}
+
+func TestGenerateUndo(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/api/scenes/101/rewrite/undo" && r.Method == http.MethodPost:
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"data": map[string]any{
+					"id":      101,
+					"name":    "Chapter One",
+					"content": "Text before the rewrite.",
+				},
+			})
+		case r.URL.Path == "/api/scenes/202/rewrite/undo" && r.Method == http.MethodPost:
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"message": "No rewrite undo baseline found for this scene.",
+				"errors": map[string][]string{
+					"scene": {"No rewrite undo baseline found for this scene."},
+				},
+			})
+		default:
+			http.NotFound(w, r)
+		}
+	}
+	_, cfgPath, httpClient := setupTestGenerateEnv(t, handler)
+
+	t.Run("missing chapter id", func(t *testing.T) {
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "undo"})
+		if code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if !strings.Contains(errOut.String(), "chapter ID is required") {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
+		}
+	})
+
+	t.Run("help flag", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "undo", "--help"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "Undo the latest AI rewrite on a chapter.") {
+			t.Fatalf("unexpected help text: %s", out.String())
+		}
+	})
+
+	t.Run("plain text output", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "undo", "101"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "Undid latest rewrite for chapter 101.") {
+			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if errOut.Len() != 0 {
+			t.Fatalf("unexpected stderr: %s", errOut.String())
+		}
+	})
+
+	t.Run("json output", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "undo", "101", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var ch client.Chapter
+		if err := json.Unmarshal(out.Bytes(), &ch); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if ch.ID != 101 || ch.Content != "Text before the rewrite." {
+			t.Fatalf("unexpected chapter json: %+v", ch)
+		}
+	})
+
+	t.Run("no undo baseline", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "undo", "202"})
+		if code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if !strings.Contains(errOut.String(), "No rewrite undo baseline found for this scene.") {
+			t.Fatalf("expected baseline message on stderr: %s", errOut.String())
+		}
+		if out.Len() != 0 {
+			t.Fatalf("unexpected stdout: %s", out.String())
 		}
 	})
 }

@@ -291,6 +291,37 @@ func TestRejectContinuation(t *testing.T) {
 	}
 }
 
+func TestUndoRewrite(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/scenes/101/rewrite/undo" {
+			http.NotFound(w, r)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"id":         101,
+				"story_id":   1,
+				"order":      0,
+				"name":       "Restored Chapter",
+				"content":    "Text before the rewrite.",
+				"word_count": 4,
+			},
+		})
+	}))
+	defer server.Close()
+
+	cli := New(server.URL, "test-token", server.Client())
+	chapter, err := cli.Generation().UndoRewrite(context.Background(), "101")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if chapter.ID != 101 || chapter.Content != "Text before the rewrite." {
+		t.Errorf("unexpected restored chapter: %+v", chapter)
+	}
+}
+
 func TestRewrite(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/api/scenes/101/rewrite" {
