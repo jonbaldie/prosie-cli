@@ -26,6 +26,8 @@ func Execute(c *command.Environment, args []string) int {
 		return executeGenerateRewrite(c, subArgs)
 	case "summarize":
 		return executeGenerateSummarize(c, subArgs)
+	case "undo":
+		return executeGenerateUndo(c, subArgs)
 	default:
 		fmt.Fprintf(c.Err, "unknown generate command: %s\nRun 'prosie generate --help' for usage.\n", subCmd)
 		return 1
@@ -44,6 +46,7 @@ Available Commands:
   reject      Revert latest AI continuation on a chapter
   rewrite     Rewrite selected chapter text
   summarize   Generate or update one-line chapter summary
+  undo        Undo latest AI rewrite on a chapter
 
 Flags:
   -h, --help   Show help for command

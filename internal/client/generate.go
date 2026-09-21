@@ -157,6 +157,17 @@ func (c *Generation) CancelContinue(ctx context.Context, chapterID string) error
 // RejectContinuation reverts the latest AI continuation run on the chapter.
 func (c *Generation) RejectContinuation(ctx context.Context, chapterID string) (*Chapter, error) {
 	path := fmt.Sprintf("/api/scenes/%s/reject-continuation", url.PathEscape(chapterID))
+	return c.postForChapter(ctx, path, "reject continuation")
+}
+
+// UndoRewrite restores the chapter content from before the latest AI rewrite.
+func (c *Generation) UndoRewrite(ctx context.Context, chapterID string) (*Chapter, error) {
+	path := fmt.Sprintf("/api/scenes/%s/rewrite/undo", url.PathEscape(chapterID))
+	return c.postForChapter(ctx, path, "rewrite undo")
+}
+
+// postForChapter sends a bodyless POST and decodes the chapter the API returns.
+func (c *Generation) postForChapter(ctx context.Context, path, action string) (*Chapter, error) {
 	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, nil)
 	if err != nil {
 		return nil, err
@@ -169,7 +180,7 @@ func (c *Generation) RejectContinuation(ctx context.Context, chapterID string) (
 	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
 		chapter = envelope.Data
 	} else if err := json.Unmarshal(bodyBytes, &chapter); err != nil {
-		return nil, fmt.Errorf("failed to decode reject continuation response: %w", err)
+		return nil, fmt.Errorf("failed to decode %s response: %w", action, err)
 	}
 
 	chapter.normalize()
