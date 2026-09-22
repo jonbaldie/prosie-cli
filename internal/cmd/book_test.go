@@ -115,6 +115,24 @@ func TestBookList(t *testing.T) {
 		}
 	})
 
+	t.Run("leading global json flag", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"--json", "book", "list"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var books []client.Book
+		if err := json.Unmarshal(out.Bytes(), &books); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if len(books) != 2 {
+			t.Fatalf("expected 2 books, got %d", len(books))
+		}
+		if books[0].Title != "Solar Drift" || books[1].Title != "Echoes of Stone" {
+			t.Fatalf("unexpected books json: %+v", books)
+		}
+	})
+
 	t.Run("empty list", func(t *testing.T) {
 		emptyHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")

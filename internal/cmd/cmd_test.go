@@ -66,6 +66,20 @@ func TestHelpCommand(t *testing.T) {
 	}
 }
 
+func TestJSONWithoutCommandShowsRootHelp(t *testing.T) {
+	cmd, out, errOut := newTestRootCmd("", nil)
+	code := cmd.Execute([]string{"--json"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d. stderr: %s", code, errOut.String())
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %s", errOut.String())
+	}
+	if !strings.Contains(out.String(), "Usage:") {
+		t.Fatalf("expected usage text, got %s", out.String())
+	}
+}
+
 func TestAuthLoginWithToken(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.json")
