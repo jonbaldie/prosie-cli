@@ -245,21 +245,11 @@ func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID st
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s/messages/stream", url.PathEscape(conversationID))
-	req, err := c.transport.NewRequest(ctx, http.MethodPost, path, body)
+	resp, err := c.transport.openSSEStream(ctx, path, body)
 	if err != nil {
 		return nil, err
-	}
-	req.Header.Set("Accept", "text/event-stream")
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
 	}
 	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
 
 	state := chatEvents{tokens: streamTokens{onToken: onToken}}
 	if err := readEvents(resp.Body, true, state.accept); err != nil {
