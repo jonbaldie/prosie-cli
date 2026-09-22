@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestListConversations(t *testing.T) {
@@ -431,6 +432,63 @@ func TestStreamChatMessage(t *testing.T) {
 	}
 	if resp.Usage.TotalTokens != 54 {
 		t.Fatalf("unexpected tokens: %d", resp.Usage.TotalTokens)
+	}
+}
+
+func TestStreamChatMessage_ContextCancellation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatalf("expected ResponseWriter to be Flusher")
+		}
+
+		_, _ = fmt.Fprintf(w, "event: delta\ndata: {\"delta\":\"Start...\"}\n\n")
+		flusher.Flush()
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cli := New(server.URL, "token", server.Client())
+	errCh := make(chan error, 1)
+	go func() {
+		_, err := cli.Conversations().StreamChatMessage(ctx, "44", "Stop me", func(string) {
+			cancel()
+		})
+		errCh <- err
+	}()
+
+	select {
+	case err := <-errCh:
+		if err == nil || (err != context.Canceled && !strings.Contains(err.Error(), "context canceled")) {
+			t.Fatalf("expected context cancellation error, got %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("StreamChatMessage did not stop after context cancellation")
+	}
+}
+
+func TestSendChatMessageHonorsClientTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatalf("expected ResponseWriter to be Flusher")
+		}
+		flusher.Flush()
+		time.Sleep(100 * time.Millisecond)
+		_, _ = fmt.Fprint(w, `{"data":{"message":{"role":"assistant","content":"Too late"}}}`)
+	}))
+	defer server.Close()
+
+	httpClient := server.Client()
+	httpClient.Timeout = 20 * time.Millisecond
+	cli := New(server.URL, "token", httpClient)
+	_, err := cli.Conversations().SendChatMessage(context.Background(), "44", "Wait")
+	if err == nil || !strings.Contains(err.Error(), "Client.Timeout") {
+		t.Fatalf("expected client timeout error, got %v", err)
 	}
 }
 

@@ -117,7 +117,7 @@ func (c *Generation) StreamContinue(ctx context.Context, chapterID string, param
 	body := params.body()
 
 	path := fmt.Sprintf("/api/scenes/%s/continue/stream", url.PathEscape(chapterID))
-	resp, err := c.transport.openGenerationStream(ctx, path, body)
+	resp, err := c.transport.openSSEStream(ctx, path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -239,7 +239,7 @@ func (c *Generation) StreamRewrite(ctx context.Context, chapterID string, params
 	}
 
 	path := fmt.Sprintf("/api/scenes/%s/rewrite/stream", url.PathEscape(chapterID))
-	resp, err := c.transport.openGenerationStream(ctx, path, body)
+	resp, err := c.transport.openSSEStream(ctx, path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ type Generation struct{ transport *Client }
 // Generation returns the generation module for this client.
 func (c *Client) Generation() *Generation { return &Generation{transport: c} }
 
-func (c *Client) openGenerationStream(ctx context.Context, path string, body any) (*http.Response, error) {
+func (c *Client) openSSEStream(ctx context.Context, path string, body any) (*http.Response, error) {
 	req, err := c.NewRequest(ctx, http.MethodPost, path, body)
 	if err != nil {
 		return nil, err

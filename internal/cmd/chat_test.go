@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/config"
@@ -532,6 +533,45 @@ func TestChatStream(t *testing.T) {
 			t.Fatalf("unexpected message in json: %+v", payload)
 		}
 	})
+}
+
+func TestChatStreamKeepsStreamingPastClientTimeout(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/conversations/803/messages/stream" || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, ok := w.(http.Flusher)
+		if !ok {
+			t.Fatalf("expected flusher")
+		}
+
+		_, _ = fmt.Fprintf(w, "event: delta\ndata: {\"delta\":\"Still \"}\n\n")
+		flusher.Flush()
+		time.Sleep(100 * time.Millisecond)
+		_, _ = fmt.Fprintf(w, "event: delta\ndata: {\"delta\":\"streaming.\"}\n\n")
+		_, _ = fmt.Fprintf(w, "event: done\ndata: {\"message\":{\"role\":\"assistant\",\"content\":\"Still streaming.\"}}\n\n")
+		flusher.Flush()
+	}
+	_, cfgPath, httpClient := setupTestChatEnv(t, handler)
+	httpClient.Timeout = 20 * time.Millisecond
+
+	cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+	code := cmd.Execute([]string{"chat", "stream", "--conversation", "803", "Keep going"})
+	if code != 0 {
+		t.Fatalf("expected exit code 0, got %d. stderr: %s", code, errOut.String())
+	}
+	if out.String() != "Still streaming.\n" {
+		t.Fatalf("unexpected stdout: %q", out.String())
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("expected empty stderr, got %q", errOut.String())
+	}
+	if httpClient.Timeout != 20*time.Millisecond {
+		t.Fatalf("expected shared client timeout to remain unchanged, got %s", httpClient.Timeout)
+	}
 }
 
 func TestChatExport(t *testing.T) {
