@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -77,6 +78,78 @@ func TestDeviceLoginDisplaysVerificationURLAndSavesIssuedScopes(t *testing.T) {
 	}
 }
 
+func TestDeviceLoginJSONStreamsAuthorizationBeforeAuthenticatedResult(t *testing.T) {
+	polls := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/oauth/device/code":
+			fmt.Fprint(w, `{"device_code":"device-secret","user_code":"ABCD-1234","verification_uri":"https://example.test/activate","expires_in":60,"interval":1}`)
+		case "/oauth/token":
+			polls++
+			if polls == 1 {
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, `{"error":"authorization_pending"}`)
+				return
+			}
+			fmt.Fprint(w, `{"access_token":"issued-token","token_type":"Bearer","scope":"read write"}`)
+		case "/api/user":
+			fmt.Fprint(w, `{"id":9,"name":"Device Writer","email":"device@example.test"}`)
+		default:
+			t.Errorf("unexpected path %s", r.URL.Path)
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("PROSIE_API_URL", server.URL)
+	t.Setenv("PROSIE_API_TOKEN", "")
+
+	root := cmd.NewRootCmd()
+	out, errOut := &bytes.Buffer{}, &bytes.Buffer{}
+	root.Out, root.Err, root.ConfigPath, root.HTTPClient = out, errOut, filepath.Join(t.TempDir(), "config.json"), server.Client()
+	if code := root.Execute([]string{"auth", "login", "--no-browser", "--json"}); code != 0 {
+		t.Fatalf("code=%d stderr=%q stdout=%q", code, errOut.String(), out.String())
+	}
+	if errOut.Len() != 0 {
+		t.Fatalf("stderr=%q", errOut.String())
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(out.Bytes()))
+	var authorization map[string]any
+	if err := decoder.Decode(&authorization); err != nil {
+		t.Fatalf("authorization event: %v; stdout=%q", err, out.String())
+	}
+	if authorization["user_code"] != "ABCD-1234" {
+		t.Fatalf("authorization event user_code=%v; stdout=%q", authorization["user_code"], out.String())
+	}
+	if authorization["verification_url"] != "https://example.test/activate?user_code=ABCD-1234" {
+		t.Fatalf("authorization event verification_url=%v", authorization["verification_url"])
+	}
+	if authorization["expires_in"] != float64(60) {
+		t.Fatalf("authorization event expires_in=%v", authorization["expires_in"])
+	}
+
+	var result map[string]any
+	if err := decoder.Decode(&result); err != nil {
+		t.Fatalf("authenticated result: %v; stdout=%q", err, out.String())
+	}
+	if result["status"] != "authenticated" {
+		t.Fatalf("authenticated result status=%v", result["status"])
+	}
+	wantResult := map[string]any{
+		"status":  "authenticated",
+		"api_url": server.URL,
+		"user":    map[string]any{"id": float64(9), "name": "Device Writer", "email": "device@example.test"},
+		"scopes":  []any{"read", "write"},
+	}
+	if !reflect.DeepEqual(result, wantResult) {
+		t.Fatalf("authenticated result=%#v; want=%#v", result, wantResult)
+	}
+	if err := decoder.Decode(&map[string]any{}); err != io.EOF {
+		t.Fatalf("unexpected trailing JSON: %v; stdout=%q", err, out.String())
+	}
+}
+
 func checkDeviceRequest(t *testing.T, r *http.Request, expected string) {
 	t.Helper()
 	if r.Method != "POST" || r.Header.Get("Content-Type") != "application/json" {
@@ -133,8 +206,20 @@ func TestDeviceLoginReportsAuthorizationFailures(t *testing.T) {
 			if code := root.Execute([]string{"auth", "login", "--no-browser", "--json"}); code != 1 {
 				t.Fatalf("code=%d; want=1", code)
 			}
-			if out.Len() != 0 || errOut.String() != tc.want {
+			if errOut.String() != tc.want {
 				t.Fatalf("stdout=%q stderr=%q; want stderr=%q", out.String(), errOut.String(), tc.want)
+			}
+			if strings.HasSuffix(tc.path, "/device/code") && out.Len() != 0 {
+				t.Fatalf("device authorization failure stdout=%q; want empty stdout", out.String())
+			}
+			if tc.path == "/oauth/token" {
+				var authorization map[string]any
+				if err := json.Unmarshal(out.Bytes(), &authorization); err != nil {
+					t.Fatalf("authorization stdout=%q: %v", out.String(), err)
+				}
+				if authorization["user_code"] != "AB" || authorization["verification_url"] != "https://example.test/approve?user_code=AB" || authorization["expires_in"] != float64(60) {
+					t.Fatalf("authorization=%#v", authorization)
+				}
 			}
 		})
 	}

@@ -110,7 +110,13 @@ func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes 
 func showDeviceAuthorization(c *command.Environment, dcr *auth.DeviceCodeResponse, noBrowser, jsonOutput bool) {
 	verificationURL := dcr.VerificationURLFull()
 
-	if !jsonOutput {
+	if jsonOutput {
+		_ = command.WriteJSON(c, map[string]any{
+			"user_code":        dcr.UserCode,
+			"verification_url": verificationURL,
+			"expires_in":       dcr.ExpiresIn,
+		})
+	} else {
 		fmt.Fprintf(c.Out, "First, copy your one-time code: %s\n", dcr.UserCode)
 		fmt.Fprintf(c.Out, "Open this URL in your browser to approve authorization:\n  %s\n\n", verificationURL)
 	}
