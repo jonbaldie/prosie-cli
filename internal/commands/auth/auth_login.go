@@ -28,7 +28,8 @@ func executeAuthLogin(c *command.Environment, args []string) int {
 
 	cfg, err := config.Load(c.ConfigPath)
 	if err != nil {
-		cfg = &config.Config{}
+		fmt.Fprintf(c.Err, "%v\n", err)
+		return 1
 	}
 	apiURL := config.ResolveApiURL(cfg)
 
