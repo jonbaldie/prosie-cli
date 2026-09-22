@@ -25,7 +25,7 @@ type Environment struct {
 func Client(c *Environment) (*client.Client, error) {
 	cfg, err := config.Load(c.ConfigPath)
 	if err != nil {
-		cfg = &config.Config{}
+		return nil, err
 	}
 
 	apiURL := config.ResolveApiURL(cfg)

@@ -23,10 +23,6 @@ func executeAuthStatus(c *command.Environment, args []string) int {
 
 	status, err := auth.InspectStatus(context.Background(), c.ConfigPath, c.HTTPClient)
 	if err != nil {
-		if *jsonFlag {
-			_ = command.WriteJSON(c, status)
-			return 1
-		}
 		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
 		return 1
 	}

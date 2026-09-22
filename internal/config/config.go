@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,12 +65,12 @@ func Load(path string) (*Config, error) {
 		if errors.Is(err, os.ErrNotExist) {
 			return &Config{}, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("error reading config.json at %s: %w", path, err)
 	}
 
 	var cfg Config
 	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading config.json at %s: %w", path, err)
 	}
 
 	return &cfg, nil

@@ -46,7 +46,7 @@ func LoginWithToken(ctx context.Context, cfgPath, baseURL, token string, httpCli
 
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		cfg = &config.Config{}
+		return nil, fmt.Errorf("token verification failed: %w", err)
 	}
 
 	cfg.Token = token
@@ -72,7 +72,7 @@ func LoginWithToken(ctx context.Context, cfgPath, baseURL, token string, httpCli
 func InspectStatus(ctx context.Context, cfgPath string, httpClient *http.Client) (*StatusResult, error) {
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		cfg = &config.Config{}
+		return nil, err
 	}
 
 	apiURL := config.ResolveApiURL(cfg)
