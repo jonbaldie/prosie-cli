@@ -133,6 +133,24 @@ func TestChapterList(t *testing.T) {
 		}
 	})
 
+	t.Run("leading global json flag", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"--json", "chapter", "list", "1"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var chapters []client.Chapter
+		if err := json.Unmarshal(out.Bytes(), &chapters); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if len(chapters) != 2 {
+			t.Fatalf("expected 2 chapters, got %d", len(chapters))
+		}
+		if chapters[0].ID != 101 || chapters[1].ID != 102 {
+			t.Fatalf("unexpected chapters: %+v", chapters)
+		}
+	})
+
 	t.Run("empty list", func(t *testing.T) {
 		emptyHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
