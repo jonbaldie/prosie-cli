@@ -18,6 +18,10 @@ brew install jonbaldie/tap/prosie
 
 Download pre-built static binaries from [GitHub Releases](https://github.com/jonbaldie/prosie-cli/releases).
 
+### Local Builds
+
+A local build from a checkout with no tracked changes at an exact `v` release tag reports that tag's version. A build without an exact release tag, or without Git, reports `0.0.0-dev`. The local release script uses the same fallback when it cannot find a tag. Pass a version to `scripts/build-release.sh` to set one explicitly.
+
 ## Authentication
 
 Log in with your browser using the OAuth 2.0 device authorization flow:
