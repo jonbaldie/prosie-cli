@@ -1,0 +1,25 @@
+Build version check
+Date: 2026-09-26
+Source tag: v0.4.0
+Go: go1.26.3 darwin/arm64
+
+Plain local build
+Command: go build -trimpath -o /tmp/prosie-cli-afk-2026-09-26/prosie .
+Output: prosie version 0.1.0
+
+Local release build without a version argument
+Command: DIST_DIR=/tmp/prosie-cli-afk-2026-09-26/release-local ./scripts/build-release.sh
+Output: Building prosie-cli release v0.1.0
+Archive names start with prosie_0.1.0_. The extracted arm64 binary prints:
+prosie version 0.1.0
+
+Local release build with a version argument
+Command: DIST_DIR=/tmp/prosie-cli-afk-2026-09-26/release-explicit ./scripts/build-release.sh v0.4.0
+Archive names start with prosie_0.4.0_. The extracted arm64 binary prints:
+prosie version 0.4.0
+
+Official release binary
+Asset: prosie_0.4.0_darwin_arm64.tar.gz from GitHub release v0.4.0
+The downloaded asset checksum matches official-release-checksums.txt.
+The extracted binary prints:
+prosie version 0.4.0

@@ -1,0 +1,19 @@
+Run on the isolated local API fixture. The same call ran twice.
+
+Command:
+prosie --json chat send --conversation 300 -- 'Hold the lantern for the final beat.'
+
+Run 1:
+exit=0
+stdout: The lantern is still lit.
+stderr: empty
+
+Run 2:
+exit=0
+stdout: The lantern is still lit.
+stderr: empty
+
+The captured API request body on both runs was:
+{"content":"Hold the lantern for the final beat. --json"}
+
+The same command with --json after the command flags wrote a JSON object. The root flag path moved --json after the -- separator. The CLI then sent it as part of the message and wrote plain text.

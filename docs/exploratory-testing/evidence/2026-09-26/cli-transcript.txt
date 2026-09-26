@@ -1,0 +1,341 @@
+
+$ prosie auth status --json
+exit: 1
+stdout:
+{
+  "authenticated": false,
+  "api_url": "http://127.0.0.1:59249",
+  "token_source": "none"
+}
+
+stderr:
+
+
+$ prosie auth login --token test-token --json
+exit: 0
+stdout:
+{
+  "status": "authenticated",
+  "api_url": "http://127.0.0.1:59249",
+  "user": {
+    "id": 17,
+    "name": "Isolated Tester",
+    "email": "tester@example.invalid"
+  },
+  "scopes": [
+    "read",
+    "write",
+    "generate"
+  ]
+}
+
+stderr:
+
+config mode=600 bytes=126
+
+$ prosie auth status --json
+exit: 0
+stdout:
+{
+  "authenticated": true,
+  "api_url": "http://127.0.0.1:59249",
+  "token_source": "config",
+  "scopes": [
+    "read",
+    "write",
+    "generate"
+  ],
+  "user": {
+    "id": 17,
+    "name": "Isolated Tester",
+    "email": "tester@example.invalid"
+  }
+}
+
+stderr:
+
+
+$ prosie auth logout --json
+exit: 0
+stdout:
+{
+  "env_token_override": false,
+  "message": "Logged out successfully",
+  "status": "logged_out"
+}
+
+stderr:
+
+
+$ prosie auth status --json
+exit: 1
+stdout:
+{
+  "authenticated": false,
+  "api_url": "http://127.0.0.1:59249",
+  "token_source": "none"
+}
+
+stderr:
+
+
+$ prosie book create --title AFK\ Fixture\ Novel --premise A\ courier\ carries\ a\ lamp\ through\ a\ flooded\ city. --json
+exit: 0
+stdout:
+{
+  "filter_using_story_so_far": false,
+  "id": 100,
+  "title": "AFK Fixture Novel",
+  "story_so_far": "A courier carries a lamp through a flooded city.",
+  "premise": "A courier carries a lamp through a flooded city.",
+  "word_count": 0,
+  "chapters": [
+    {
+      "id": 101,
+      "story_id": 100,
+      "order": 0,
+      "name": "Chapter 1",
+      "title": "Chapter 1"
+    }
+  ]
+}
+
+stderr:
+
+
+$ prosie book show 100 --json
+exit: 0
+stdout:
+{
+  "filter_using_story_so_far": false,
+  "id": 100,
+  "title": "AFK Fixture Novel",
+  "story_so_far": "A courier carries a lamp through a flooded city.",
+  "premise": "A courier carries a lamp through a flooded city.",
+  "word_count": 0,
+  "chapters": [
+    {
+      "id": 101,
+      "story_id": 100,
+      "order": 0,
+      "name": "Chapter 1",
+      "title": "Chapter 1"
+    }
+  ]
+}
+
+stderr:
+
+
+$ prosie chapter list 100 --json
+exit: 0
+stdout:
+[
+  {
+    "id": 101,
+    "story_id": 100,
+    "order": 0,
+    "name": "Chapter 1",
+    "title": "Chapter 1"
+  }
+]
+
+stderr:
+
+
+$ prosie chapter create 100 --title The\ Lantern\ Bridge --content Mara\ crossed\ the\ bridge.\ The\ lamp\ held\ its\ light. --json
+exit: 0
+stdout:
+{
+  "id": 102,
+  "story_id": 100,
+  "order": 1,
+  "name": "The Lantern Bridge",
+  "title": "The Lantern Bridge",
+  "content": "Mara crossed the bridge. The lamp held its light.",
+  "word_count": 9
+}
+
+stderr:
+
+
+$ prosie chapter update 102 --title The\ Bridge --summary Mara\ reaches\ the\ bridge. --json
+exit: 0
+stdout:
+{
+  "id": 102,
+  "story_id": 100,
+  "order": 1,
+  "name": "The Bridge",
+  "title": "The Bridge",
+  "content": "Mara crossed the bridge. The lamp held its light.",
+  "summary": "Mara reaches the bridge.",
+  "word_count": 9
+}
+
+stderr:
+
+
+$ prosie chapter export 102 --format markdown --json
+exit: 0
+stdout:
+{
+  "bytes": 49,
+  "content": "Mara crossed the bridge. The lamp held its light.",
+  "id": 102
+}
+
+stderr:
+
+
+$ prosie book export 100 --format markdown --json
+exit: 0
+stdout:
+{
+  "bytes": 102,
+  "content": "# AFK Fixture Novel\n\n## Chapter 1\n\n\n\n## The Bridge\n\nMara crossed the bridge. The lamp held its light.\n",
+  "id": 100
+}
+
+stderr:
+
+
+$ prosie chat send 100 Write\ a\ quiet\ line\ about\ the\ lantern. --title Lantern\ notes --json
+exit: 0
+stdout:
+{
+  "conversation_id": 300,
+  "message": {
+    "id": 501,
+    "conversation_id": 300,
+    "role": "assistant",
+    "content": "The lantern is still lit."
+  },
+  "model": "fixture-model",
+  "usage": {
+    "prompt_tokens": 8,
+    "completion_tokens": 6,
+    "total_tokens": 14
+  }
+}
+
+stderr:
+
+
+$ prosie chat send --conversation 300 First\ word\ stays:\ continue\ the\ scene. --json
+exit: 0
+stdout:
+{
+  "conversation_id": 300,
+  "message": {
+    "id": 503,
+    "conversation_id": 300,
+    "role": "assistant",
+    "content": "The lantern is still lit."
+  },
+  "model": "fixture-model",
+  "usage": {
+    "prompt_tokens": 8,
+    "completion_tokens": 6,
+    "total_tokens": 14
+  }
+}
+
+stderr:
+
+
+$ prosie chat stream --conversation 300 Close\ the\ scene\ with\ a\ clear\ image. --json
+exit: 0
+stdout:
+{
+  "conversation_id": 300,
+  "message": {
+    "id": 599,
+    "conversation_id": 300,
+    "role": "assistant",
+    "content": "The lantern is still lit."
+  },
+  "model": "fixture-model",
+  "usage": {
+    "prompt_tokens": 9,
+    "completion_tokens": 6,
+    "total_tokens": 15
+  }
+}
+
+stderr:
+
+
+$ prosie chat export 300 --json
+exit: 0
+stdout:
+{
+  "fidelity": "balanced",
+  "id": 300,
+  "messages": [
+    {
+      "content": "Write a quiet line about the lantern.",
+      "role": "user"
+    },
+    {
+      "content": "The lantern is still lit.",
+      "conversation_id": 300,
+      "id": 501,
+      "role": "assistant"
+    },
+    {
+      "content": "First word stays: continue the scene.",
+      "role": "user"
+    },
+    {
+      "content": "The lantern is still lit.",
+      "conversation_id": 300,
+      "id": 503,
+      "role": "assistant"
+    },
+    {
+      "content": "Close the scene with a clear image.",
+      "role": "user"
+    },
+    {
+      "content": "The lantern is still lit.",
+      "conversation_id": 300,
+      "id": 599,
+      "role": "assistant"
+    }
+  ],
+  "story_id": 100,
+  "title": "Lantern notes"
+}
+
+stderr:
+
+
+$ prosie chapter delete 102 --yes --json
+exit: 0
+stdout:
+{
+  "deleted": true,
+  "id": 102
+}
+
+stderr:
+
+
+$ prosie book delete 100 --yes --json
+exit: 0
+stdout:
+{
+  "deleted": true,
+  "id": 100
+}
+
+stderr:
+
+
+$ prosie book list --json
+exit: 0
+stdout:
+[]
+
+stderr:
