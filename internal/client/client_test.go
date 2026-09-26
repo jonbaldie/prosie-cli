@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/jonbaldie/prosie-cli/internal/version"
 )
 
 func TestClientHeadersAndToken(t *testing.T) {
@@ -39,8 +41,9 @@ func TestClientHeadersAndToken(t *testing.T) {
 	if capturedAccept != "application/json" {
 		t.Fatalf("expected Accept header 'application/json', got %q", capturedAccept)
 	}
-	if capturedUA != "prosie-cli/0.1.0" {
-		t.Fatalf("expected User-Agent 'prosie-cli/0.1.0', got %q", capturedUA)
+	wantUA := "prosie-cli/" + version.Version
+	if capturedUA != wantUA {
+		t.Fatalf("expected User-Agent %q, got %q", wantUA, capturedUA)
 	}
 }
 

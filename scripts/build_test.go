@@ -3,6 +3,7 @@ package scripts_test
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -73,13 +74,13 @@ func TestCrossCompilation(t *testing.T) {
 	}
 }
 
-func TestBuildReleaseScript(t *testing.T) {
+func TestBuildReleaseScriptWithExplicitVersion(t *testing.T) {
 	repoRoot := getRepoRoot(t)
 	scriptPath := filepath.Join(repoRoot, "scripts", "build-release.sh")
 
 	distDir := t.TempDir()
 
-	cmd := exec.Command(scriptPath, "0.1.0")
+	cmd := exec.Command(scriptPath, "v0.4.0")
 	cmd.Dir = repoRoot
 	cmd.Env = append(os.Environ(),
 		"DIST_DIR="+distDir,
@@ -99,7 +100,7 @@ func TestBuildReleaseScript(t *testing.T) {
 	checksumContent := string(checksumBytes)
 
 	for _, p := range releasePlatforms {
-		archiveName := fmt.Sprintf("prosie_0.1.0_%s_%s%s", p.goos, p.goarch, p.ext)
+		archiveName := fmt.Sprintf("prosie_0.4.0_%s_%s%s", p.goos, p.goarch, p.ext)
 		archivePath := filepath.Join(distDir, archiveName)
 
 		archiveInfo, err := os.Stat(archivePath)
@@ -134,7 +135,7 @@ func TestBuildReleaseScript(t *testing.T) {
 
 	// Verify the host platform binary actually runs and returns the expected version
 	hostExt := ".tar.gz"
-	hostArchive := fmt.Sprintf("prosie_0.1.0_%s_%s%s", runtime.GOOS, runtime.GOARCH, hostExt)
+	hostArchive := fmt.Sprintf("prosie_0.4.0_%s_%s%s", runtime.GOOS, runtime.GOARCH, hostExt)
 	hostArchivePath := filepath.Join(distDir, hostArchive)
 	if _, err := os.Stat(hostArchivePath); err == nil {
 		unpackDir := t.TempDir()
@@ -149,9 +150,160 @@ func TestBuildReleaseScript(t *testing.T) {
 		if err != nil {
 			t.Fatalf("running extracted binary failed: %v (%s)", err, string(verOut))
 		}
-		if !strings.Contains(string(verOut), "0.1.0") {
-			t.Errorf("expected version 0.1.0, got %s", string(verOut))
+		if string(verOut) != "prosie version 0.4.0\n" {
+			t.Errorf("expected version output %q, got %q", "prosie version 0.4.0\n", string(verOut))
 		}
+	}
+}
+
+func TestLocalBuildsUseExactTagByDefault(t *testing.T) {
+	repoRoot := getRepoRoot(t)
+	projectDir := newGitProject(t, repoRoot, "v0.4.0")
+
+	binPath := filepath.Join(t.TempDir(), "prosie")
+	buildCmd := exec.Command("go", "build", "-trimpath", "-o", binPath, ".")
+	buildCmd.Dir = projectDir
+	if output, err := buildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("plain tagged build failed: %v\nOutput: %s", err, string(output))
+	}
+	assertVersionOutput(t, binPath, projectDir, "prosie version 0.4.0\n")
+
+	untaggedProject := newGitProject(t, repoRoot, "")
+	assertVersionOutput(t, binPath, untaggedProject, "prosie version 0.0.0-dev\n")
+	assertVersionOutputWithEnv(t, binPath, t.TempDir(), "prosie version 0.0.0-dev\n", "PATH=")
+
+	distDir := t.TempDir()
+	releaseCmd := exec.Command(filepath.Join(projectDir, "scripts", "build-release.sh"))
+	releaseCmd.Dir = projectDir
+	releaseCmd.Env = append(os.Environ(), "DIST_DIR="+distDir, "VERSION=")
+	if output, err := releaseCmd.CombinedOutput(); err != nil {
+		t.Fatalf("default local release build failed: %v\nOutput: %s", err, string(output))
+	}
+
+	for _, p := range releasePlatforms {
+		archiveName := fmt.Sprintf("prosie_0.4.0_%s_%s%s", p.goos, p.goarch, p.ext)
+		if _, err := os.Stat(filepath.Join(distDir, archiveName)); err != nil {
+			t.Errorf("expected tagged archive %s: %v", archiveName, err)
+		}
+	}
+
+	hostArchive := filepath.Join(distDir, fmt.Sprintf("prosie_0.4.0_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+	unpackDir := t.TempDir()
+	if output, err := exec.Command("tar", "-xzf", hostArchive, "-C", unpackDir).CombinedOutput(); err != nil {
+		t.Fatalf("failed to extract tagged host archive: %v (%s)", err, string(output))
+	}
+	assertVersionOutput(t, filepath.Join(unpackDir, "prosie"), projectDir, "prosie version 0.4.0\n")
+
+	fallbackDistDir := t.TempDir()
+	fallbackReleaseCmd := exec.Command(filepath.Join(untaggedProject, "scripts", "build-release.sh"))
+	fallbackReleaseCmd.Dir = untaggedProject
+	fallbackReleaseCmd.Env = append(os.Environ(), "DIST_DIR="+fallbackDistDir, "VERSION=")
+	if output, err := fallbackReleaseCmd.CombinedOutput(); err != nil {
+		t.Fatalf("default untagged release build failed: %v\nOutput: %s", err, string(output))
+	}
+	for _, p := range releasePlatforms {
+		archiveName := fmt.Sprintf("prosie_0.0.0-dev_%s_%s%s", p.goos, p.goarch, p.ext)
+		if _, err := os.Stat(filepath.Join(fallbackDistDir, archiveName)); err != nil {
+			t.Errorf("expected fallback archive %s: %v", archiveName, err)
+		}
+	}
+	fallbackHostArchive := filepath.Join(fallbackDistDir, fmt.Sprintf("prosie_0.0.0-dev_%s_%s.tar.gz", runtime.GOOS, runtime.GOARCH))
+	fallbackUnpackDir := t.TempDir()
+	if output, err := exec.Command("tar", "-xzf", fallbackHostArchive, "-C", fallbackUnpackDir).CombinedOutput(); err != nil {
+		t.Fatalf("failed to extract fallback host archive: %v (%s)", err, string(output))
+	}
+	assertVersionOutput(t, filepath.Join(fallbackUnpackDir, "prosie"), untaggedProject, "prosie version 0.0.0-dev\n")
+}
+
+func newGitProject(t *testing.T, sourceRoot, tag string) string {
+	t.Helper()
+
+	projectDir := filepath.Join(t.TempDir(), "project")
+	if err := os.MkdirAll(projectDir, 0o755); err != nil {
+		t.Fatalf("failed to create project fixture: %v", err)
+	}
+	fileList, err := exec.Command("git", "-C", sourceRoot, "ls-files", "-z").Output()
+	if err != nil {
+		t.Fatalf("failed to list project files: %v", err)
+	}
+	for _, relativePath := range strings.Split(strings.TrimSuffix(string(fileList), "\x00"), "\x00") {
+		if relativePath == "" {
+			continue
+		}
+		sourcePath := filepath.Join(sourceRoot, filepath.FromSlash(relativePath))
+		destinationPath := filepath.Join(projectDir, filepath.FromSlash(relativePath))
+		info, err := os.Lstat(sourcePath)
+		if err != nil {
+			t.Fatalf("failed to inspect project file %s: %v", relativePath, err)
+		}
+		if err := os.MkdirAll(filepath.Dir(destinationPath), 0o755); err != nil {
+			t.Fatalf("failed to create fixture directory for %s: %v", relativePath, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(sourcePath)
+			if err != nil {
+				t.Fatalf("failed to read project link %s: %v", relativePath, err)
+			}
+			if err := os.Symlink(target, destinationPath); err != nil {
+				t.Fatalf("failed to copy project link %s: %v", relativePath, err)
+			}
+			continue
+		}
+		if !info.Mode().IsRegular() {
+			continue
+		}
+		contents, err := os.ReadFile(sourcePath)
+		if err != nil {
+			t.Fatalf("failed to read project file %s: %v", relativePath, err)
+		}
+		if err := os.WriteFile(destinationPath, contents, info.Mode().Perm()); err != nil {
+			t.Fatalf("failed to copy project file %s: %v", relativePath, err)
+		}
+	}
+
+	runGit(t, projectDir, "init", "--quiet")
+	runGit(t, projectDir, "config", "user.name", "Prosie CLI test")
+	runGit(t, projectDir, "config", "user.email", "prosie-cli-test@example.invalid")
+	runGit(t, projectDir, "add", "-A")
+	runGit(t, projectDir, "commit", "--quiet", "-m", "test fixture")
+	if tag != "" {
+		runGit(t, projectDir, "tag", tag)
+	}
+	return projectDir
+}
+
+func runGit(t *testing.T, repoDir string, args ...string) {
+	t.Helper()
+	commandArgs := append([]string{"-C", repoDir}, args...)
+	output, err := exec.Command("git", commandArgs...).CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v failed: %v\nOutput: %s", args, err, string(output))
+	}
+}
+
+func assertVersionOutput(t *testing.T, binaryPath, workingDir, expected string) {
+	assertVersionOutputWithEnv(t, binaryPath, workingDir, expected)
+}
+
+func assertVersionOutputWithEnv(t *testing.T, binaryPath, workingDir, expected string, env ...string) {
+	t.Helper()
+
+	cmd := exec.Command(binaryPath, "--version")
+	cmd.Dir = workingDir
+	if len(env) > 0 {
+		cmd.Env = append(os.Environ(), env...)
+	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		t.Errorf("%s --version failed: %v\nstdout: %s\nstderr: %s", binaryPath, err, stdout.String(), stderr.String())
+	}
+	if stderr.Len() != 0 {
+		t.Errorf("%s --version wrote to stderr: %s", binaryPath, stderr.String())
+	}
+	if stdout.String() != expected {
+		t.Errorf("%s --version output = %q, want %q", binaryPath, stdout.String(), expected)
 	}
 }
 

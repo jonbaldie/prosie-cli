@@ -6,7 +6,12 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 VERSION="${1:-${VERSION:-}}"
 if [ -z "$VERSION" ]; then
-  VERSION=$(grep -E 'Version\s*=' "${ROOT_DIR}/internal/version/version.go" | sed -E 's/.*"([^"]+)".*/\1/')
+  if [ -z "$(git -C "$ROOT_DIR" status --porcelain --untracked-files=no 2>/dev/null)" ]; then
+    VERSION=$(git -C "$ROOT_DIR" describe --exact-match --tags --match 'v[0-9]*' HEAD 2>/dev/null || true)
+  fi
+fi
+if [ -z "$VERSION" ]; then
+  VERSION=$(grep -E 'fallbackVersion[[:space:]]*=' "${ROOT_DIR}/internal/version/version.go" | sed -E 's/.*"([^"]+)".*/\1/')
 fi
 VERSION="${VERSION#v}"
 
@@ -38,11 +43,14 @@ for PLATFORM in "${PLATFORMS[@]}"; do
 
   BUILD_TMP="$(mktemp -d)"
 
-  CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build \
-    -trimpath \
-    -ldflags="-s -w -X github.com/jonbaldie/prosie-cli/internal/version.Version=${VERSION}" \
-    -o "$BUILD_TMP/$BINARY_NAME" \
-    "${ROOT_DIR}"
+  (
+    cd "$ROOT_DIR"
+    CGO_ENABLED=0 GOOS="$GOOS" GOARCH="$GOARCH" go build \
+      -trimpath \
+      -ldflags="-s -w -X github.com/jonbaldie/prosie-cli/internal/version.Version=${VERSION}" \
+      -o "$BUILD_TMP/$BINARY_NAME" \
+      .
+  )
 
   cp "${ROOT_DIR}/LICENSE" "$BUILD_TMP/"
   if [ -f "${ROOT_DIR}/README.md" ]; then

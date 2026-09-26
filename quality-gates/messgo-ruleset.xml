@@ -2,12 +2,14 @@
 <ruleset name="prosie-cli policy"
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0">
   <description>
-    Prosie CLI messgo policy. ExitExpression is intentionally excluded:
-    main() must call os.Exit to propagate the CLI exit code to the shell.
+    Prosie CLI messgo policy. ExitExpression is excluded because main() must
+    call os.Exit to propagate the CLI exit code to the shell. GlobalVariable
+    is excluded because the release linker must set version.Version with -X.
   </description>
   <rule ref="unusedcode" />
   <rule ref="codesize" />
   <rule ref="design">
     <exclude name="ExitExpression" />
+    <exclude name="GlobalVariable" />
   </rule>
 </ruleset>
