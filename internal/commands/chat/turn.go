@@ -22,7 +22,7 @@ func sendTurn(c *command.Environment, target client.TurnTarget, message string, 
 	if err == nil {
 		return &result
 	}
-	if result.ConversationID == "" {
+	if target.ConversationID == "" && !result.Created {
 		fmt.Fprintf(c.Err, "error creating conversation: %v\n", err)
 		return nil
 	}

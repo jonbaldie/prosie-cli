@@ -276,8 +276,7 @@ type TurnTarget struct {
 }
 
 // TurnResult is the outcome of a message turn. ConversationID is set when the
-// conversation exists, also when SendTurn returns an error. An empty
-// ConversationID with an error means conversation creation failed.
+// conversation exists, also when SendTurn returns an error.
 type TurnResult struct {
 	ConversationID string
 	Created        bool
@@ -287,7 +286,7 @@ type TurnResult struct {
 // SendTurn creates the conversation when necessary and sends one message turn.
 // A nil onToken sends through the non-streaming endpoint.
 func (c *Conversations) SendTurn(ctx context.Context, target TurnTarget, message string, onToken func(string)) (TurnResult, error) {
-	result := TurnResult{ConversationID: strings.TrimSpace(target.ConversationID)}
+	result := TurnResult{ConversationID: target.ConversationID}
 	if result.ConversationID == "" {
 		conv, err := c.CreateConversation(ctx, target.BookID, target.Title)
 		if err != nil {

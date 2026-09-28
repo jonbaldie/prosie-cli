@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -96,5 +97,30 @@ func TestChatTurnFailures(t *testing.T) {
 				t.Fatalf("expected creation error in stderr, got %q", errOut.String())
 			}
 		})
+	}
+}
+
+func TestChatStreamFailureAfterTokensEndsTheLine(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/conversations/804/messages/stream" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = io.WriteString(w, "event: delta\ndata: {\"delta\":\"Partial\"}\n\n")
+		_, _ = io.WriteString(w, "event: error\ndata: {\"message\":\"Upstream AI timeout.\"}\n\n")
+	}
+	_, cfgPath, httpClient := setupTestChatEnv(t, handler)
+
+	cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+	code := cmd.Execute([]string{"chat", "stream", "--conversation", "804", "Go on"})
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+	if out.String() != "Partial\n" {
+		t.Fatalf("expected partial tokens and a line end on stdout, got %q", out.String())
+	}
+	if !strings.HasPrefix(errOut.String(), "error sending message: ") || !strings.Contains(errOut.String(), "Upstream AI timeout.") {
+		t.Fatalf("unexpected stderr: %q", errOut.String())
 	}
 }
