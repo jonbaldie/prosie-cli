@@ -1,12 +1,12 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
+
+	"github.com/jonbaldie/prosie-cli/internal/client"
+	"github.com/jonbaldie/prosie-cli/internal/command"
 )
 
 func executeChatStream(c *command.Environment, args []string) int {
@@ -23,49 +23,32 @@ func executeChatStream(c *command.Environment, args []string) int {
 		return command.FlagError(c, err, printChatStreamHelp)
 	}
 
-	convID := *convFlag
-	bookID, message, err := messageInput(posArgs, convID, "stream")
+	bookID, message, err := messageInput(posArgs, *convFlag, "stream")
 	if err != nil {
 		fmt.Fprintf(c.Err, "error: %v\n", err)
 		return 1
 	}
 
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if convID == "" {
-		conv, err := cli.Conversations().CreateConversation(context.Background(), bookID, *titleFlag)
-		if err != nil {
-			fmt.Fprintf(c.Err, "error creating conversation: %v\n", err)
-			return 1
-		}
-		convID = strconv.Itoa(conv.ID)
-	}
-
+	streamed := false
 	onToken := func(token string) {
+		streamed = true
 		fmt.Fprint(c.Out, token)
 	}
 	if *jsonFlag {
 		onToken = func(token string) {}
 	}
 
-	resp, err := cli.Conversations().StreamChatMessage(context.Background(), convID, message, onToken)
-	if err != nil {
-		fmt.Fprintf(c.Err, "\nerror streaming message: %v\n", err)
+	target := client.TurnTarget{BookID: bookID, ConversationID: *convFlag, Title: *titleFlag}
+	result := sendTurn(c, target, message, onToken)
+	if result == nil {
+		if streamed {
+			fmt.Fprintln(c.Out)
+		}
 		return 1
 	}
 
 	if *jsonFlag {
-		convIDInt, _ := strconv.Atoi(convID)
-		_ = command.WriteJSON(c, map[string]any{
-			"conversation_id": convIDInt,
-			"message":         resp.Message,
-			"model":           resp.Model,
-			"usage":           resp.Usage,
-		})
+		writeTurnJSON(c, result)
 		return 0
 	}
 

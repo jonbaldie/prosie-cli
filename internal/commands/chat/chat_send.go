@@ -1,12 +1,12 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
+
+	"github.com/jonbaldie/prosie-cli/internal/client"
+	"github.com/jonbaldie/prosie-cli/internal/command"
 )
 
 func executeChatSend(c *command.Environment, args []string) int {
@@ -23,47 +23,25 @@ func executeChatSend(c *command.Environment, args []string) int {
 		return command.FlagError(c, err, printChatSendHelp)
 	}
 
-	convID := *convFlag
-	bookID, message, err := messageInput(posArgs, convID, "send")
+	bookID, message, err := messageInput(posArgs, *convFlag, "send")
 	if err != nil {
 		fmt.Fprintf(c.Err, "error: %v\n", err)
 		return 1
 	}
 
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if convID == "" {
-		conv, err := cli.Conversations().CreateConversation(context.Background(), bookID, *titleFlag)
-		if err != nil {
-			fmt.Fprintf(c.Err, "error creating conversation: %v\n", err)
-			return 1
-		}
-		convID = strconv.Itoa(conv.ID)
-	}
-
-	resp, err := cli.Conversations().SendChatMessage(context.Background(), convID, message)
-	if err != nil {
-		fmt.Fprintf(c.Err, "error sending message: %v\n", err)
+	target := client.TurnTarget{BookID: bookID, ConversationID: *convFlag, Title: *titleFlag}
+	result := sendTurn(c, target, message, nil)
+	if result == nil {
 		return 1
 	}
 
 	if *jsonFlag {
-		convIDInt, _ := strconv.Atoi(convID)
-		_ = command.WriteJSON(c, map[string]any{
-			"conversation_id": convIDInt,
-			"message":         resp.Message,
-			"model":           resp.Model,
-			"usage":           resp.Usage,
-		})
+		writeTurnJSON(c, result)
 		return 0
 	}
 
-	if resp.Message != nil {
-		fmt.Fprintln(c.Out, resp.Message.Content)
+	if result.Response.Message != nil {
+		fmt.Fprintln(c.Out, result.Response.Message.Content)
 	}
 	return 0
 }

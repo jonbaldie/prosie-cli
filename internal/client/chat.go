@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -264,6 +265,45 @@ func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID st
 		}}
 	}
 	return state.done, nil
+}
+
+// TurnTarget selects where a message turn goes: an existing conversation, or a
+// new conversation in a book when ConversationID is empty.
+type TurnTarget struct {
+	BookID         string
+	ConversationID string
+	Title          string // title for a new conversation
+}
+
+// TurnResult is the outcome of a message turn. ConversationID is set when the
+// conversation exists, also when SendTurn returns an error. An empty
+// ConversationID with an error means conversation creation failed.
+type TurnResult struct {
+	ConversationID string
+	Created        bool
+	Response       *SendMessageResponse
+}
+
+// SendTurn creates the conversation when necessary and sends one message turn.
+// A nil onToken sends through the non-streaming endpoint.
+func (c *Conversations) SendTurn(ctx context.Context, target TurnTarget, message string, onToken func(string)) (TurnResult, error) {
+	result := TurnResult{ConversationID: strings.TrimSpace(target.ConversationID)}
+	if result.ConversationID == "" {
+		conv, err := c.CreateConversation(ctx, target.BookID, target.Title)
+		if err != nil {
+			return result, err
+		}
+		result.ConversationID = strconv.Itoa(conv.ID)
+		result.Created = true
+	}
+
+	var err error
+	if onToken == nil {
+		result.Response, err = c.SendChatMessage(ctx, result.ConversationID, message)
+	} else {
+		result.Response, err = c.StreamChatMessage(ctx, result.ConversationID, message, onToken)
+	}
+	return result, err
 }
 
 // Conversations owns conversations operations over the shared authenticated transport.

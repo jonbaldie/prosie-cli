@@ -603,3 +603,99 @@ func TestConversationIDsAreEscaped(t *testing.T) {
 		t.Fatalf("ImportConversation: got path %q, want %q", gotPath, wantImportPath)
 	}
 }
+
+func TestSendTurn(t *testing.T) {
+	var paths []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		paths = append(paths, r.Method+" "+r.URL.Path)
+		switch r.URL.Path {
+		case "/api/stories/5/conversations":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body["title"] != "Lore" {
+				t.Errorf("expected title Lore, got %+v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"id": 77}})
+		case "/api/conversations/77/messages", "/api/conversations/42/messages":
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{
+				"message": map[string]any{"role": "assistant", "content": "Reply"},
+			}})
+		case "/api/conversations/77/messages/stream":
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = io.WriteString(w, "event: delta\ndata: {\"delta\":\"Reply\"}\n\n")
+		case "/api/conversations/13/messages":
+			w.WriteHeader(http.StatusBadGateway)
+			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Upstream LLM error"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	conversations := New(server.URL, "token", server.Client()).Conversations()
+
+	t.Run("creates a conversation for a book, then sends", func(t *testing.T) {
+		paths = nil
+		result, err := conversations.SendTurn(context.Background(), TurnTarget{BookID: "5", Title: "Lore"}, "Hi", nil)
+		if err != nil {
+			t.Fatalf("SendTurn returned error: %v", err)
+		}
+		if result.ConversationID != "77" || !result.Created || result.Response.Message.Content != "Reply" {
+			t.Fatalf("unexpected result: %+v", result)
+		}
+		want := []string{"POST /api/stories/5/conversations", "POST /api/conversations/77/messages"}
+		if strings.Join(paths, ",") != strings.Join(want, ",") {
+			t.Fatalf("expected requests %v, got %v", want, paths)
+		}
+	})
+
+	t.Run("streams when onToken is set", func(t *testing.T) {
+		paths = nil
+		var tokens strings.Builder
+		result, err := conversations.SendTurn(context.Background(), TurnTarget{BookID: "5", Title: "Lore"}, "Hi", func(s string) { tokens.WriteString(s) })
+		if err != nil {
+			t.Fatalf("SendTurn returned error: %v", err)
+		}
+		if tokens.String() != "Reply" || result.Response.Message.Content != "Reply" {
+			t.Fatalf("unexpected stream result: tokens=%q result=%+v", tokens.String(), result)
+		}
+		if paths[len(paths)-1] != "POST /api/conversations/77/messages/stream" {
+			t.Fatalf("expected stream request, got %v", paths)
+		}
+	})
+
+	t.Run("uses an existing conversation without creating one", func(t *testing.T) {
+		paths = nil
+		result, err := conversations.SendTurn(context.Background(), TurnTarget{BookID: "5", ConversationID: "42"}, "Hi", nil)
+		if err != nil {
+			t.Fatalf("SendTurn returned error: %v", err)
+		}
+		if result.ConversationID != "42" || result.Created {
+			t.Fatalf("unexpected result: %+v", result)
+		}
+		if len(paths) != 1 || paths[0] != "POST /api/conversations/42/messages" {
+			t.Fatalf("expected only the message request, got %v", paths)
+		}
+	})
+
+	t.Run("keeps the conversation ID when the send fails", func(t *testing.T) {
+		result, err := conversations.SendTurn(context.Background(), TurnTarget{ConversationID: "13"}, "Hi", nil)
+		if err == nil || !strings.Contains(err.Error(), "Upstream LLM error") {
+			t.Fatalf("expected upstream error, got %v", err)
+		}
+		if result.ConversationID != "13" {
+			t.Fatalf("expected conversation ID 13, got %+v", result)
+		}
+	})
+
+	t.Run("returns no conversation ID when creation fails", func(t *testing.T) {
+		paths = nil
+		result, err := conversations.SendTurn(context.Background(), TurnTarget{BookID: "404"}, "Hi", nil)
+		if err == nil || result.ConversationID != "" || result.Created {
+			t.Fatalf("expected creation failure without conversation ID, got result=%+v err=%v", result, err)
+		}
+		if len(paths) != 1 {
+			t.Fatalf("expected no message request after failed creation, got %v", paths)
+		}
+	})
+}
