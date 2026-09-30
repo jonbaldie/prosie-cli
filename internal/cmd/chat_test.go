@@ -649,6 +649,29 @@ func TestChatExport(t *testing.T) {
 	})
 }
 
+func TestChatExportJSONRejectsUndecodableExport(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/conversations/100/export" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = io.WriteString(w, "not valid json at all")
+	}
+	_, cfgPath, httpClient := setupTestChatEnv(t, handler)
+
+	cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+	code := cmd.Execute([]string{"chat", "export", "100", "--json"})
+	if code != 1 {
+		t.Fatalf("expected code 1, got %d. stdout: %q", code, out.String())
+	}
+	if out.Len() != 0 {
+		t.Fatalf("expected empty stdout, got %q", out.String())
+	}
+	if !strings.Contains(errOut.String(), "error decoding conversation export") {
+		t.Fatalf("unexpected stderr: %q", errOut.String())
+	}
+}
+
 func TestChatImport(t *testing.T) {
 	tmpDir := t.TempDir()
 	jsonPath := filepath.Join(tmpDir, "import-chat.json")
