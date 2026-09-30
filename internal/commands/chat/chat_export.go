@@ -48,10 +48,12 @@ func executeChatExport(c *command.Environment, args []string) int {
 
 	if *jsonFlag {
 		var parsed any
-		if err := json.Unmarshal(data, &parsed); err == nil {
-			_ = command.WriteJSON(c, parsed)
-			return 0
+		if err := json.Unmarshal(data, &parsed); err != nil {
+			fmt.Fprintf(c.Err, "error decoding conversation export: %v\n", err)
+			return 1
 		}
+		_ = command.WriteJSON(c, parsed)
+		return 0
 	}
 
 	_, _ = c.Out.Write(data)
