@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/config"
@@ -472,4 +473,38 @@ func TestCodexDelete(t *testing.T) {
 			t.Fatalf("expected cancellation on stderr, got: %s", errOut.String())
 		}
 	})
+}
+
+func TestCodexListTruncatesMultiByteDetailsOnRuneBoundary(t *testing.T) {
+	details := strings.Repeat("A", 36) + "🔥" + strings.Repeat("B", 10)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": []map[string]any{
+				{
+					"id":         10,
+					"story_id":   1,
+					"name":       "Ember",
+					"category":   "lore",
+					"content":    details,
+					"updated_at": "2026-09-13T10:00:00Z",
+				},
+			},
+		})
+	}
+	_, cfgPath, httpClient := setupTestCodexEnv(t, handler)
+
+	cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+	code := cmd.Execute([]string{"codex", "list", "1"})
+	if code != 0 {
+		t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+	}
+	stdout := out.String()
+	if !utf8.ValidString(stdout) {
+		t.Fatalf("stdout is not valid UTF-8: %q", stdout)
+	}
+	want := strings.Repeat("A", 36) + "🔥" + "..."
+	if !strings.Contains(stdout, want) {
+		t.Fatalf("expected preview %q in stdout: %q", want, stdout)
+	}
 }

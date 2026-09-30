@@ -415,8 +415,8 @@ func printEntries(c *command.Environment, bookID int, entries []client.CodexEntr
 	fmt.Fprintln(w, "ID\tTYPE\tNAME\tDETAILS\tUPDATED")
 	for _, e := range entries {
 		detailsPreview := e.Display().Details
-		if len(detailsPreview) > 40 {
-			detailsPreview = detailsPreview[:37] + "..."
+		if runes := []rune(detailsPreview); len(runes) > 40 {
+			detailsPreview = string(runes[:37]) + "..."
 		}
 		updatedStr := command.FormatTimestamp(e.UpdatedAt)
 		fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\n", e.ID, e.Display().Type, e.Name, detailsPreview, updatedStr)
