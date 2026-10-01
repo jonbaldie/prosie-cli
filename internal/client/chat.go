@@ -252,19 +252,16 @@ func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID st
 	}
 	defer resp.Body.Close()
 
-	state := chatEvents{tokens: streamTokens{onToken: onToken}}
-	if err := readEvents(resp.Body, true, state.accept); err != nil {
-		return nil, fmt.Errorf("error reading stream: %w", err)
+	result, accumulated, err := streamSSE[SendMessageResponse](ctx, resp.Body, onToken)
+	if err != nil {
+		return nil, err
 	}
-	if state.err != nil {
-		return nil, state.err
-	}
-	if state.done == nil {
-		state.done = &SendMessageResponse{Message: &ChatMessage{
-			Role: "assistant", Content: state.tokens.content.String(),
+	if result == nil {
+		result = &SendMessageResponse{Message: &ChatMessage{
+			Role: "assistant", Content: accumulated,
 		}}
 	}
-	return state.done, nil
+	return result, nil
 }
 
 // TurnTarget selects where a message turn goes: an existing conversation, or a
