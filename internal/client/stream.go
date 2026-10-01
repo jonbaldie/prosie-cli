@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,7 +33,7 @@ func (f *eventFrame) dispatch(consume func(string, string)) {
 	f.data = nil
 }
 
-func readEvents(body io.Reader, flushEOF bool, consume func(string, string)) error {
+func readEvents(body io.Reader, consume func(string, string)) error {
 	reader := bufio.NewReader(body)
 	var frame eventFrame
 	for {
@@ -44,9 +45,7 @@ func readEvents(body io.Reader, flushEOF bool, consume func(string, string)) err
 			frame.dispatch(consume)
 		}
 		if err == io.EOF {
-			if flushEOF {
-				frame.dispatch(consume)
-			}
+			frame.dispatch(consume)
 			return nil
 		}
 	}
@@ -57,14 +56,11 @@ type streamTokens struct {
 	onToken func(string)
 }
 
-func (t *streamTokens) accept(data string, allowEmpty bool) {
+func (t *streamTokens) accept(data string) {
 	var payload struct {
 		Delta string `json:"delta"`
 	}
-	if json.Unmarshal([]byte(data), &payload) != nil {
-		return
-	}
-	if payload.Delta == "" && !allowEmpty {
+	if json.Unmarshal([]byte(data), &payload) != nil || payload.Delta == "" {
 		return
 	}
 	t.content.WriteString(payload.Delta)
@@ -83,16 +79,17 @@ func streamError(data string) string {
 	return data
 }
 
-type generationEvents[T any] struct {
+type streamEvents[T any] struct {
 	tokens streamTokens
 	done   *T
 	err    error
 }
 
-func (s *generationEvents[T]) accept(event, data string) {
+func (s *streamEvents[T]) accept(event, data string) {
+	data = strings.TrimSpace(data)
 	switch event {
 	case "delta":
-		s.tokens.accept(data, false)
+		s.tokens.accept(data)
 	case "done":
 		var result T
 		if json.Unmarshal([]byte(data), &result) == nil {
@@ -103,33 +100,18 @@ func (s *generationEvents[T]) accept(event, data string) {
 	}
 }
 
-type chatEvents struct {
-	tokens streamTokens
-	done   *SendMessageResponse
-	err    error
-}
-
-func (s *chatEvents) accept(event, data string) {
-	data = strings.TrimSpace(data)
-	switch event {
-	case "delta":
-		s.tokens.accept(data, true)
-	case "done":
-		var result SendMessageResponse
-		if json.Unmarshal([]byte(data), &result) == nil {
-			s.done = &result
-		}
-	case "error":
-		s.err = chatStreamError(data)
+// streamSSE reads and decodes Server-Sent Events from an HTTP response stream.
+func streamSSE[T any](ctx context.Context, body io.Reader, onToken func(string)) (*T, string, error) {
+	state := streamEvents[T]{tokens: streamTokens{onToken: onToken}}
+	err := readEvents(body, state.accept)
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return nil, state.tokens.content.String(), ctxErr
 	}
-}
-
-func chatStreamError(data string) error {
-	var payload struct {
-		Message string `json:"message"`
+	if err != nil {
+		return nil, state.tokens.content.String(), err
 	}
-	if json.Unmarshal([]byte(data), &payload) == nil && payload.Message != "" {
-		return fmt.Errorf("%s", payload.Message)
+	if state.err != nil {
+		return nil, state.tokens.content.String(), state.err
 	}
-	return fmt.Errorf("stream error: %s", data)
+	return state.done, state.tokens.content.String(), nil
 }

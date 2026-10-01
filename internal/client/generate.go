@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -293,22 +292,6 @@ func (c *Generation) Summarize(ctx context.Context, chapterID string, params Sum
 	}
 
 	return &result, nil
-}
-
-// streamSSE reads and decodes Server-Sent Events from an HTTP response stream.
-func streamSSE[T any](ctx context.Context, body io.Reader, onToken func(string)) (*T, string, error) {
-	state := generationEvents[T]{tokens: streamTokens{onToken: onToken}}
-	err := readEvents(body, false, state.accept)
-	if ctx.Err() != nil {
-		return nil, state.tokens.content.String(), ctx.Err()
-	}
-	if err != nil {
-		return nil, state.tokens.content.String(), err
-	}
-	if state.err != nil {
-		return nil, state.tokens.content.String(), state.err
-	}
-	return state.done, state.tokens.content.String(), nil
 }
 
 // Generation owns generation operations over the shared authenticated transport.
