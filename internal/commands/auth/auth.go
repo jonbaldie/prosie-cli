@@ -6,28 +6,11 @@ import (
 )
 
 func Execute(c *command.Environment, args []string) int {
-	if len(args) == 0 {
-		printAuthHelp(c)
-		return 0
-	}
-
-	subCmd := args[0]
-	subArgs := args[1:]
-
-	switch subCmd {
-	case "help", "--help", "-h":
-		printAuthHelp(c)
-		return 0
-	case "login":
-		return executeAuthLogin(c, subArgs)
-	case "status":
-		return executeAuthStatus(c, subArgs)
-	case "logout":
-		return executeAuthLogout(c, subArgs)
-	default:
-		fmt.Fprintf(c.Err, "unknown auth command: %s\nRun 'prosie auth --help' for usage.\n", subCmd)
-		return 1
-	}
+	return command.Dispatch(c, args, map[string]command.Handler{
+		"login":  executeAuthLogin,
+		"status": executeAuthStatus,
+		"logout": executeAuthLogout,
+	}, printAuthHelp, "unknown auth command: %s\nRun 'prosie auth --help' for usage.\n")
 }
 
 // printAuthHelp prints help for the auth command hierarchy.
