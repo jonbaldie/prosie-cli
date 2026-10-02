@@ -758,7 +758,8 @@ func TestChatImport(t *testing.T) {
 
 	t.Run("import from stdin", func(t *testing.T) {
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
-		cmd.In = bytes.NewBufferString(chatContent)
+		stdin := &closeTrackingReader{Buffer: bytes.NewBufferString(chatContent)}
+		cmd.In = stdin
 		code := cmd.Execute([]string{"chat", "import", "3", "-"})
 		if code != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
@@ -768,6 +769,9 @@ func TestChatImport(t *testing.T) {
 		}
 		if gotFilename != "conversation.json" || gotContent != chatContent {
 			t.Fatalf("unexpected file part: filename %q, content %q", gotFilename, gotContent)
+		}
+		if stdin.closed {
+			t.Fatal("chat import closed standard input")
 		}
 		if !strings.Contains(out.String(), "Imported conversation 601 (\"Imported Discussion\") into book 3.") {
 			t.Fatalf("unexpected stdout: %s", out.String())

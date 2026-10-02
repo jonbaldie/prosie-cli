@@ -247,11 +247,7 @@ func (c *BookCollection) ExportStory(ctx context.Context, id int, format string)
 // An empty title defaults to the upload's filename without its extension.
 func (c *BookCollection) ImportDocx(ctx context.Context, file UploadFile, title string) (*Book, error) {
 	title = importedBookTitle(file.Filename, title)
-	body, contentType, err := file.named("document.docx").encode("document", map[string]string{"title": title})
-	if err != nil {
-		return nil, err
-	}
-	req, err := c.transport.newRequest(ctx, http.MethodPost, "/api/stories/import-docx", body, contentType)
+	req, err := file.withDefaultFilename("document.docx").postRequest(ctx, c.transport, "/api/stories/import-docx", "document", map[string]string{"title": title})
 	if err != nil {
 		return nil, err
 	}

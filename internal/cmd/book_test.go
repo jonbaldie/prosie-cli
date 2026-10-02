@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -821,6 +822,29 @@ func TestBookImport(t *testing.T) {
 		}
 	})
 
+	t.Run("file cannot be opened", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "import", "bad\x00name.docx"})
+		if code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if out.Len() != 0 || !strings.Contains(errOut.String(), "error: failed to open file") {
+			t.Fatalf("unexpected output: stdout %q, stderr %q", out.String(), errOut.String())
+		}
+	})
+
+	t.Run("stdin read failure", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = failingReader{}
+		code := cmd.Execute([]string{"book", "import", "-"})
+		if code != 1 {
+			t.Fatalf("expected code 1, got %d", code)
+		}
+		if out.Len() != 0 || !strings.Contains(errOut.String(), "error importing book: failed to copy file data: stdin broken") {
+			t.Fatalf("unexpected output: stdout %q, stderr %q", out.String(), errOut.String())
+		}
+	})
+
 	t.Run("help documents stdin", func(t *testing.T) {
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{"book", "import", "--help"})
@@ -868,4 +892,19 @@ func TestBookImport(t *testing.T) {
 			t.Fatalf("unexpected json: %+v", b)
 		}
 	})
+}
+
+type failingReader struct{}
+
+func (failingReader) Read([]byte) (int, error) { return 0, errors.New("stdin broken") }
+
+// closeTrackingReader records whether a command closed its standard input.
+type closeTrackingReader struct {
+	*bytes.Buffer
+	closed bool
+}
+
+func (r *closeTrackingReader) Close() error {
+	r.closed = true
+	return nil
 }

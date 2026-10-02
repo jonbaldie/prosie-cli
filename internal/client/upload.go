@@ -2,9 +2,11 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 )
 
@@ -15,12 +17,21 @@ type UploadFile struct {
 	Reader   io.Reader
 }
 
-// named returns the upload with fallback as its filename when it has none.
-func (f UploadFile) named(fallback string) UploadFile {
+// withDefaultFilename returns the upload with fallback as its filename when it has none.
+func (f UploadFile) withDefaultFilename(fallback string) UploadFile {
 	if f.Filename == "" {
 		f.Filename = fallback
 	}
 	return f
+}
+
+// postRequest builds a multipart POST to path that sends the upload in field beside fields.
+func (f UploadFile) postRequest(ctx context.Context, transport *Client, path, field string, fields map[string]string) (*http.Request, error) {
+	body, contentType, err := f.encode(field, fields)
+	if err != nil {
+		return nil, err
+	}
+	return transport.newRequest(ctx, http.MethodPost, path, body, contentType)
 }
 
 // encode writes the upload and fields as a multipart body and returns its content type.
