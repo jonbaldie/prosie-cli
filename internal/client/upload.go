@@ -2,11 +2,9 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"path/filepath"
 )
 
@@ -25,15 +23,8 @@ func (f UploadFile) named(fallback string) UploadFile {
 	return f
 }
 
-func (c *Client) uploadRequest(ctx context.Context, path string, file UploadFile, field string, fields map[string]string) (*http.Request, error) {
-	body, contentType, err := encodeUpload(file.Reader, filepath.Base(file.Filename), field, fields)
-	if err != nil {
-		return nil, err
-	}
-	return c.newRequest(ctx, http.MethodPost, path, body, contentType)
-}
-
-func encodeUpload(file io.Reader, filename, field string, fields map[string]string) (*bytes.Buffer, string, error) {
+// encode writes the upload and fields as a multipart body and returns its content type.
+func (f UploadFile) encode(field string, fields map[string]string) (*bytes.Buffer, string, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 	for name, value := range fields {
@@ -41,11 +32,11 @@ func encodeUpload(file io.Reader, filename, field string, fields map[string]stri
 			return nil, "", fmt.Errorf("failed to write %s field: %w", name, err)
 		}
 	}
-	part, err := writer.CreateFormFile(field, filename)
+	part, err := writer.CreateFormFile(field, filepath.Base(f.Filename))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to create %s form field: %w", field, err)
 	}
-	if _, err := io.Copy(part, file); err != nil {
+	if _, err := io.Copy(part, f.Reader); err != nil {
 		return nil, "", fmt.Errorf("failed to copy file data: %w", err)
 	}
 	if err := writer.Close(); err != nil {

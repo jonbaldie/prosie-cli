@@ -187,7 +187,11 @@ func (c *Conversations) ImportConversation(ctx context.Context, bookID string, f
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/conversations/import", url.PathEscape(bookID))
-	req, err := c.transport.uploadRequest(ctx, path, file.named("conversation.json"), "file", nil)
+	body, contentType, err := file.named("conversation.json").encode("file", nil)
+	if err != nil {
+		return nil, err
+	}
+	req, err := c.transport.newRequest(ctx, http.MethodPost, path, body, contentType)
 	if err != nil {
 		return nil, err
 	}
