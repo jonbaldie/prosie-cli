@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -260,12 +258,7 @@ func TestExportConversation_Errors(t *testing.T) {
 }
 
 func TestImportConversation(t *testing.T) {
-	tmpDir := t.TempDir()
-	filePath := filepath.Join(tmpDir, "chat-thread.json")
 	exportContent := `{"version":1,"title":"Imported Thread","fidelity":"summary","messages":[{"role":"user","content":"Past question"}]}`
-	if err := os.WriteFile(filePath, []byte(exportContent), 0644); err != nil {
-		t.Fatalf("failed to write test file: %v", err)
-	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/stories/9/conversations/import" || r.Method != http.MethodPost {
@@ -273,12 +266,19 @@ func TestImportConversation(t *testing.T) {
 			return
 		}
 		_ = r.ParseMultipartForm(10 << 20)
-		file, _, err := r.FormFile("file")
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
+		fileBytes, _ := io.ReadAll(file)
+		if string(fileBytes) != exportContent {
+			t.Errorf("unexpected file content: %s", string(fileBytes))
+		}
+		if header.Filename != "chat-thread.json" {
+			t.Errorf("unexpected filename: %s", header.Filename)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -295,7 +295,7 @@ func TestImportConversation(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	conv, err := cli.Conversations().ImportConversation(context.Background(), "9", filePath)
+	conv, err := cli.Conversations().ImportConversation(context.Background(), "9", UploadFile{Filename: "chat-thread.json", Reader: strings.NewReader(exportContent)})
 	if err != nil {
 		t.Fatalf("ImportConversation returned error: %v", err)
 	}
@@ -307,14 +307,9 @@ func TestImportConversation(t *testing.T) {
 
 func TestImportConversation_Errors(t *testing.T) {
 	cli := New("http://localhost:1", "token", nil)
-	_, err := cli.Conversations().ImportConversation(context.Background(), "", "path/to/file")
+	_, err := cli.Conversations().ImportConversation(context.Background(), "", UploadFile{Filename: "chat.json", Reader: strings.NewReader("{}")})
 	if err == nil || !strings.Contains(err.Error(), "book ID is required") {
 		t.Fatalf("expected book ID is required, got %v", err)
-	}
-
-	_, err = cli.Conversations().ImportConversation(context.Background(), "1", "nonexistent/file.json")
-	if err == nil || !strings.Contains(err.Error(), "failed to open file") {
-		t.Fatalf("expected failed to open file error, got %v", err)
 	}
 }
 
@@ -592,11 +587,7 @@ func TestConversationIDsAreEscaped(t *testing.T) {
 	}
 
 	wantImportPath := "/api/stories/2%20bar%3Fy=3/conversations/import"
-	tmpFile := filepath.Join(t.TempDir(), "import.json")
-	if err := os.WriteFile(tmpFile, []byte(`{}`), 0o600); err != nil {
-		t.Fatalf("failed to write temp import file: %v", err)
-	}
-	if _, err := cli.Conversations().ImportConversation(context.Background(), rawBookID, tmpFile); err != nil {
+	if _, err := cli.Conversations().ImportConversation(context.Background(), rawBookID, UploadFile{Filename: "import.json", Reader: strings.NewReader(`{}`)}); err != nil {
 		t.Fatalf("ImportConversation returned error: %v", err)
 	}
 	if gotPath != wantImportPath {

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"os"
 )
 
 func executeChatImport(c *command.Environment, args []string) int {
@@ -28,10 +27,11 @@ func executeChatImport(c *command.Environment, args []string) int {
 	bookID := posArgs[0]
 	filePath := posArgs[1]
 
-	if _, err := os.Stat(filePath); err != nil {
-		fmt.Fprintf(c.Err, "error: file not found: %s\n", filePath)
+	upload, closeUpload, ok := command.OpenUpload(c, filePath)
+	if !ok {
 		return 1
 	}
+	defer closeUpload()
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -39,7 +39,7 @@ func executeChatImport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	conv, err := cli.Conversations().ImportConversation(context.Background(), bookID, filePath)
+	conv, err := cli.Conversations().ImportConversation(context.Background(), bookID, upload)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error importing conversation: %v\n", err)
 		return 1
@@ -60,9 +60,10 @@ func executeChatImport(c *command.Environment, args []string) int {
 
 func printChatImportHelp(c *command.Environment) {
 	help := `Import a JSON conversation file into a book.
+Use - as the file to read the JSON data from standard input.
 
 Usage:
-  prosie chat import <book-id> <file.json> [flags]
+  prosie chat import <book-id> <file.json | -> [flags]
 
 Flags:
   -h, --help   Show help for command

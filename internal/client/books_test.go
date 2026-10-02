@@ -6,8 +6,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -380,12 +378,6 @@ func TestExportStory(t *testing.T) {
 }
 
 func TestImportDocx(t *testing.T) {
-	tmpDir := t.TempDir()
-	docxPath := filepath.Join(tmpDir, "novel.docx")
-	if err := os.WriteFile(docxPath, []byte("fake-docx-binary-data"), 0644); err != nil {
-		t.Fatalf("failed to write test docx: %v", err)
-	}
-
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/stories/import-docx" || r.Method != http.MethodPost {
 			http.NotFound(w, r)
@@ -433,7 +425,7 @@ func TestImportDocx(t *testing.T) {
 	defer server.Close()
 
 	cli := New(server.URL, "token", server.Client())
-	book, err := cli.Books().ImportDocx(context.Background(), docxPath, "Custom Title")
+	book, err := cli.Books().ImportDocx(context.Background(), UploadFile{Filename: "novel.docx", Reader: strings.NewReader("fake-docx-binary-data")}, "Custom Title")
 	if err != nil {
 		t.Fatalf("unexpected error importing docx: %v", err)
 	}
@@ -443,5 +435,44 @@ func TestImportDocx(t *testing.T) {
 	}
 	if len(book.Chapters) != 2 {
 		t.Fatalf("expected 2 chapters, got %d", len(book.Chapters))
+	}
+}
+
+func TestImportDocx_UnnamedStream(t *testing.T) {
+	var gotTitle, gotFilename, gotAuth, gotContent string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseMultipartForm(10 << 20); err != nil {
+			t.Errorf("failed to parse multipart form: %v", err)
+		}
+		gotTitle = r.FormValue("title")
+		gotAuth = r.Header.Get("Authorization")
+		if file, header, err := r.FormFile("document"); err == nil {
+			gotFilename = header.Filename
+			content, _ := io.ReadAll(file)
+			gotContent = string(content)
+			file.Close()
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"id": 11, "title": gotTitle}})
+	}))
+	defer server.Close()
+
+	cli := New(server.URL, "token", server.Client())
+	book, err := cli.Books().ImportDocx(context.Background(), UploadFile{Reader: strings.NewReader("piped-docx")}, "")
+	if err != nil {
+		t.Fatalf("unexpected error importing docx: %v", err)
+	}
+	if book.Title != "Imported Book" || gotTitle != "Imported Book" {
+		t.Fatalf("expected default title %q, got book %q and field %q", "Imported Book", book.Title, gotTitle)
+	}
+	if gotFilename != "document.docx" {
+		t.Fatalf("expected part filename %q, got %q", "document.docx", gotFilename)
+	}
+	if gotContent != "piped-docx" {
+		t.Fatalf("unexpected file content: %q", gotContent)
+	}
+	if gotAuth != "Bearer token" {
+		t.Fatalf("expected bearer token, got %q", gotAuth)
 	}
 }

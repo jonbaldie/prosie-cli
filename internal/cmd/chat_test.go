@@ -680,18 +680,21 @@ func TestChatImport(t *testing.T) {
 		t.Fatalf("failed to write test json: %v", err)
 	}
 
+	var gotFilename, gotContent string
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/stories/3/conversations/import" || r.Method != http.MethodPost {
 			http.NotFound(w, r)
 			return
 		}
 		_ = r.ParseMultipartForm(10 << 20)
-		file, _, err := r.FormFile("file")
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
+		content, _ := io.ReadAll(file)
+		gotFilename, gotContent = header.Filename, string(content)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -733,6 +736,38 @@ func TestChatImport(t *testing.T) {
 		code := cmd.Execute([]string{"chat", "import", "3", jsonPath})
 		if code != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "Imported conversation 601 (\"Imported Discussion\") into book 3.") {
+			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if gotFilename != "import-chat.json" || gotContent != chatContent {
+			t.Fatalf("unexpected file part: filename %q, content %q", gotFilename, gotContent)
+		}
+	})
+
+	t.Run("help documents stdin", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"chat", "import", "--help"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "prosie chat import <book-id> <file.json | -> [flags]") || !strings.Contains(out.String(), "standard input") {
+			t.Fatalf("help does not document stdin: %s", out.String())
+		}
+	})
+
+	t.Run("import from stdin", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = bytes.NewBufferString(chatContent)
+		code := cmd.Execute([]string{"chat", "import", "3", "-"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if errOut.Len() != 0 {
+			t.Fatalf("expected empty stderr, got %q", errOut.String())
+		}
+		if gotFilename != "conversation.json" || gotContent != chatContent {
+			t.Fatalf("unexpected file part: filename %q, content %q", gotFilename, gotContent)
 		}
 		if !strings.Contains(out.String(), "Imported conversation 601 (\"Imported Discussion\") into book 3.") {
 			t.Fatalf("unexpected stdout: %s", out.String())

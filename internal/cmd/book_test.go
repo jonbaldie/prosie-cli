@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -752,6 +753,7 @@ func TestBookImport(t *testing.T) {
 		t.Fatalf("failed to create test docx: %v", err)
 	}
 
+	var gotFilename, gotContent string
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/api/stories/import-docx" || r.Method != http.MethodPost {
 			http.NotFound(w, r)
@@ -759,6 +761,13 @@ func TestBookImport(t *testing.T) {
 		}
 		_ = r.ParseMultipartForm(10 << 20)
 		title := r.FormValue("title")
+		gotFilename, gotContent = "", ""
+		if file, header, err := r.FormFile("document"); err == nil {
+			gotFilename = header.Filename
+			content, _ := io.ReadAll(file)
+			gotContent = string(content)
+			file.Close()
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -806,6 +815,42 @@ func TestBookImport(t *testing.T) {
 		}
 		if !strings.Contains(out.String(), "Imported book \"Imported Novel\" (ID: 99) with 2 chapters.") {
 			t.Fatalf("unexpected stdout: %s", out.String())
+		}
+		if gotFilename != "my-novel.docx" || gotContent != "dummy-docx-content" {
+			t.Fatalf("unexpected document part: filename %q, content %q", gotFilename, gotContent)
+		}
+	})
+
+	t.Run("help documents stdin", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"book", "import", "--help"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if !strings.Contains(out.String(), "prosie book import <file.docx | -> [flags]") || !strings.Contains(out.String(), "standard input") {
+			t.Fatalf("help does not document stdin: %s", out.String())
+		}
+	})
+
+	t.Run("import from stdin", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		cmd.In = bytes.NewBufferString("piped-docx-content")
+		code := cmd.Execute([]string{"book", "import", "-", "--json"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if errOut.Len() != 0 {
+			t.Fatalf("expected empty stderr, got %q", errOut.String())
+		}
+		if gotContent != "piped-docx-content" || gotFilename != "document.docx" {
+			t.Fatalf("unexpected document part: filename %q, content %q", gotFilename, gotContent)
+		}
+		var b map[string]any
+		if err := json.Unmarshal(out.Bytes(), &b); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if b["id"] != float64(99) || b["title"] != "Imported Book" {
+			t.Fatalf("unexpected json: %+v", b)
 		}
 	})
 
