@@ -330,6 +330,28 @@ func TestAuthStatus(t *testing.T) {
 		}
 	})
 
+	t.Run("status when logged in with leading --json", func(t *testing.T) {
+		t.Setenv("PROSIE_API_TOKEN", "")
+		_ = config.Save(configPath, &config.Config{
+			ApiURL: server.URL,
+			Token:  "my-token",
+			Scopes: []string{"read", "write", "generate"},
+		})
+
+		cmd, out, errOut := newTestRootCmd(configPath, server.Client())
+		code := cmd.Execute([]string{"auth", "--json", "status"})
+		if code != 0 {
+			t.Fatalf("expected exit code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var res auth.StatusResult
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if !res.Authenticated || res.User.Name != "Status Tester" || res.TokenSource != "config" {
+			t.Fatalf("unexpected status result: %+v", res)
+		}
+	})
+
 	t.Run("status when logged in via PROSIE_API_TOKEN override", func(t *testing.T) {
 		t.Setenv("PROSIE_API_TOKEN", "my-token")
 		// Config has different token
@@ -393,6 +415,20 @@ func TestAuthLogout(t *testing.T) {
 			t.Fatalf("unexpected logout json result: %+v", res)
 		}
 	})
+}
+
+func TestAuthUnknownSubcommand(t *testing.T) {
+	cmd, out, errOut := newTestRootCmd("", nil)
+	code := cmd.Execute([]string{"auth", "unknown"})
+	if code != 1 {
+		t.Fatalf("expected exit code 1, got %d", code)
+	}
+	if out.Len() != 0 {
+		t.Fatalf("expected empty stdout, got %s", out.String())
+	}
+	if !strings.Contains(errOut.String(), "unknown auth command: unknown") || !strings.Contains(errOut.String(), "Run 'prosie auth --help' for usage.") {
+		t.Fatalf("unexpected stderr: %s", errOut.String())
+	}
 }
 
 func TestAuthSubcommandHelp(t *testing.T) {

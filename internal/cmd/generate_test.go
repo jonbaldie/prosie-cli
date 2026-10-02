@@ -195,6 +195,21 @@ func TestGenerateContinue(t *testing.T) {
 		}
 	})
 
+	t.Run("leading --json before subcommand", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"generate", "--json", "continue", "101"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var res client.ContinueResult
+		if err := json.Unmarshal(out.Bytes(), &res); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if res.Prose != "The stars burned brightly." || !res.Persisted {
+			t.Fatalf("unexpected json result: %+v", res)
+		}
+	})
+
 	t.Run("not found error", func(t *testing.T) {
 		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{"generate", "continue", "404"})

@@ -6,32 +6,13 @@ import (
 )
 
 func Execute(c *command.Environment, args []string) int {
-	if len(args) == 0 {
-		printGenerateHelp(c)
-		return 0
-	}
-
-	subCmd := args[0]
-	subArgs := args[1:]
-
-	switch subCmd {
-	case "help", "--help", "-h":
-		printGenerateHelp(c)
-		return 0
-	case "continue":
-		return executeGenerateContinue(c, subArgs)
-	case "reject":
-		return executeGenerateReject(c, subArgs)
-	case "rewrite":
-		return executeGenerateRewrite(c, subArgs)
-	case "summarize":
-		return executeGenerateSummarize(c, subArgs)
-	case "undo":
-		return executeGenerateUndo(c, subArgs)
-	default:
-		fmt.Fprintf(c.Err, "unknown generate command: %s\nRun 'prosie generate --help' for usage.\n", subCmd)
-		return 1
-	}
+	return command.Dispatch(c, args, map[string]command.Handler{
+		"continue":  executeGenerateContinue,
+		"reject":    executeGenerateReject,
+		"rewrite":   executeGenerateRewrite,
+		"summarize": executeGenerateSummarize,
+		"undo":      executeGenerateUndo,
+	}, printGenerateHelp, "unknown generate command: %s\nRun 'prosie generate --help' for usage.\n")
 }
 
 // printGenerateHelp prints help for the generate command hierarchy.

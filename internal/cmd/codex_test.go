@@ -126,6 +126,21 @@ func TestCodexList(t *testing.T) {
 		}
 	})
 
+	t.Run("leading --json before subcommand", func(t *testing.T) {
+		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+		code := cmd.Execute([]string{"codex", "--json", "list", "1"})
+		if code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		var list []client.CodexEntry
+		if err := json.Unmarshal(out.Bytes(), &list); err != nil {
+			t.Fatalf("invalid json: %v, raw: %s", err, out.String())
+		}
+		if len(list) != 2 || list[0].Name != "Marcus Vance" {
+			t.Fatalf("unexpected list: %+v", list)
+		}
+	})
+
 	t.Run("empty list", func(t *testing.T) {
 		emptyHandler := func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")

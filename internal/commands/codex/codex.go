@@ -14,32 +14,13 @@ import (
 )
 
 func Execute(c *command.Environment, args []string) int {
-	if len(args) == 0 {
-		printCodexHelp(c)
-		return 0
-	}
-
-	subCmd := args[0]
-	subArgs := args[1:]
-
-	switch subCmd {
-	case "help", "--help", "-h":
-		printCodexHelp(c)
-		return 0
-	case "list":
-		return executeCodexList(c, subArgs)
-	case "show":
-		return executeCodexShow(c, subArgs)
-	case "create":
-		return executeCodexCreate(c, subArgs)
-	case "update":
-		return executeCodexUpdate(c, subArgs)
-	case "delete":
-		return executeCodexDelete(c, subArgs)
-	default:
-		fmt.Fprintf(c.Err, "unknown codex command: %s\nRun 'prosie codex --help' for usage.\n", subCmd)
-		return 1
-	}
+	return command.Dispatch(c, args, map[string]command.Handler{
+		"list":   executeCodexList,
+		"show":   executeCodexShow,
+		"create": executeCodexCreate,
+		"update": executeCodexUpdate,
+		"delete": executeCodexDelete,
+	}, printCodexHelp, "unknown codex command: %s\nRun 'prosie codex --help' for usage.\n")
 }
 
 // printCodexHelp prints help for the codex command hierarchy.
