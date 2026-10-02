@@ -70,21 +70,23 @@ func New(baseURL, token string, httpClient *http.Client) *Client {
 
 // NewRequest creates an HTTP request targeting the given relative API endpoint.
 func (c *Client) NewRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
+	if body == nil {
+		return c.newRequest(ctx, method, path, nil, "")
+	}
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	return c.newRequest(ctx, method, path, bytes.NewReader(buf), "application/json")
+}
+
+// newRequest creates an HTTP request with the shared API headers and an optional typed body.
+func (c *Client) newRequest(ctx context.Context, method, path string, body io.Reader, contentType string) (*http.Request, error) {
 	if !strings.HasPrefix(path, "/") {
 		path = "/" + path
 	}
-	url := c.BaseURL + path
 
-	var bodyReader io.Reader
-	if body != nil {
-		buf, err := json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
-		}
-		bodyReader = bytes.NewReader(buf)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
+	req, err := http.NewRequestWithContext(ctx, method, c.BaseURL+path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -92,8 +94,8 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, body any) 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.UserAgent)
 
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 
 	if c.Token != "" {

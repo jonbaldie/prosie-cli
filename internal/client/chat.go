@@ -179,15 +179,15 @@ func (c *Conversations) ExportConversation(ctx context.Context, id string) ([]by
 	return io.ReadAll(resp.Body)
 }
 
-// ImportConversation uploads a JSON conversation export to rebuild a chat thread in a book.
-func (c *Conversations) ImportConversation(ctx context.Context, bookID string, filePath string) (*Conversation, error) {
+// ImportConversation uploads a JSON conversation export stream to rebuild a chat thread in a book.
+func (c *Conversations) ImportConversation(ctx context.Context, bookID string, file UploadFile) (*Conversation, error) {
 	bookID = strings.TrimSpace(bookID)
 	if bookID == "" {
 		return nil, errors.New("book ID is required")
 	}
 
 	path := fmt.Sprintf("/api/stories/%s/conversations/import", url.PathEscape(bookID))
-	req, err := c.transport.uploadRequest(ctx, path, filePath, "file", nil)
+	req, err := file.withDefaultFilename("conversation.json").postRequest(ctx, c.transport, path, "file", nil)
 	if err != nil {
 		return nil, err
 	}

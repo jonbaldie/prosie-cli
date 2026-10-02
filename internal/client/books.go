@@ -243,10 +243,11 @@ func (c *BookCollection) ExportStory(ctx context.Context, id int, format string)
 	return io.ReadAll(resp.Body)
 }
 
-// ImportDocx uploads a DOCX file to create a new book with chapters.
-func (c *BookCollection) ImportDocx(ctx context.Context, filePath string, title string) (*Book, error) {
-	title = importedBookTitle(filePath, title)
-	req, err := c.transport.uploadRequest(ctx, "/api/stories/import-docx", filePath, "document", map[string]string{"title": title})
+// ImportDocx uploads a DOCX stream to create a new book with chapters.
+// An empty title defaults to the upload's filename without its extension.
+func (c *BookCollection) ImportDocx(ctx context.Context, file UploadFile, title string) (*Book, error) {
+	title = importedBookTitle(file.Filename, title)
+	req, err := file.withDefaultFilename("document.docx").postRequest(ctx, c.transport, "/api/stories/import-docx", "document", map[string]string{"title": title})
 	if err != nil {
 		return nil, err
 	}
@@ -367,9 +368,9 @@ func (b *Book) Display() BookDisplay {
 	return BookDisplay{Premise: displayBookPremise(b), Lore: displayBookLore(b), Characters: displayBookCharacters(b)}
 }
 
-func importedBookTitle(filePath, title string) string {
+func importedBookTitle(filename, title string) string {
 	if title == "" {
-		base := filepath.Base(filePath)
+		base := filepath.Base(filename)
 		title = strings.TrimSuffix(base, filepath.Ext(base))
 		if title == "" {
 			title = "Imported Book"
