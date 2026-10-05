@@ -199,7 +199,19 @@ func TestRawDownloadsReturnApiErrorAndCloseBody(t *testing.T) {
 	}
 }
 
-func TestGetUserClosesBodyAndReturnsApiError(t *testing.T) {
+func TestRawDownloadsWrapTransportFailure(t *testing.T) {
+	for _, tc := range downloadCases() {
+		t.Run(tc.name, func(t *testing.T) {
+			cause := errors.New("connection refused")
+			_, err := tc.call(context.Background(), recordingClient(&recordingTransport{err: cause}))
+			if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "request to "+tc.path) {
+				t.Fatalf("expected wrapped request failure for %s, got %v", tc.path, err)
+			}
+		})
+	}
+}
+
+func TestGetUserDecodesUserAndClosesBody(t *testing.T) {
 	transport := &recordingTransport{status: http.StatusOK, body: `{"id":5,"name":"Ada","email":"ada@example.com"}`}
 	user, err := recordingClient(transport).GetUser(context.Background())
 	if err != nil {
@@ -215,6 +227,24 @@ func TestGetUserClosesBodyAndReturnsApiError(t *testing.T) {
 	transport = &recordingTransport{status: http.StatusOK, body: `not json`}
 	if _, err := recordingClient(transport).GetUser(context.Background()); err == nil || !strings.HasPrefix(err.Error(), "failed to decode user response: ") {
 		t.Fatalf("expected decode error, got %v", err)
+	}
+}
+
+func TestGetUserReturnsApiErrorAndWrapsTransportFailure(t *testing.T) {
+	transport := &recordingTransport{status: http.StatusForbidden, body: `{"message":"Forbidden."}`}
+	_, err := recordingClient(transport).GetUser(context.Background())
+	var apiErr *ApiError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusForbidden || apiErr.Message != "Forbidden." {
+		t.Fatalf("expected 403 API error, got %v", err)
+	}
+	if !transport.served.closed {
+		t.Fatal("expected response body to be closed")
+	}
+
+	cause := errors.New("connection refused")
+	_, err = recordingClient(&recordingTransport{err: cause}).GetUser(context.Background())
+	if !errors.Is(err, cause) || !strings.HasPrefix(err.Error(), "request to /api/user failed: ") {
+		t.Fatalf("expected wrapped request failure, got %v", err)
 	}
 }
 
