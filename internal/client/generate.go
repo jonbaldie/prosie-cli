@@ -26,6 +26,7 @@ type ContinueResult struct {
 }
 
 // RewriteParams is the request body for rewriting a selection of text.
+// Persist is always sent, as it is for ContinueParams.
 type RewriteParams struct {
 	Selection   string `json:"selection"`
 	Instruction string `json:"instruction,omitempty"`

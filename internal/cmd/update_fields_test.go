@@ -123,3 +123,51 @@ func TestChapterTitleIsSentAsName(t *testing.T) {
 		})
 	}
 }
+
+// The story responder validates story_so_far and not premise, so --premise is sent as story_so_far only.
+func TestBookCreateSendsPremiseAsStorySoFar(t *testing.T) {
+	tests := []struct {
+		name  string
+		flags []string
+		body  string
+	}{
+		{"premise", []string{"--title", "Voyage", "--premise", "A rescue", "--target-words", "60000"}, `{"title":"Voyage","story_so_far":"A rescue","target_word_count":60000}`},
+		{"title only", []string{"--title", "Voyage"}, `{"title":"Voyage"}`},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if r.Method != "POST" || r.URL.Path != "/api/stories" {
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				}
+				var got, want map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+					t.Error(err)
+				}
+				if err := json.Unmarshal([]byte(tc.body), &want); err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("request body: got %#v; want %#v", got, want)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, `{"data":{"id":41,"title":"Voyage","word_count":0,"filter_using_story_so_far":true}}`)
+			}))
+			defer server.Close()
+			t.Setenv("PROSIE_API_URL", server.URL)
+			t.Setenv("PROSIE_API_TOKEN", "fixture-token")
+			root := cmd.NewRootCmd()
+			out, errOut := &bytes.Buffer{}, &bytes.Buffer{}
+			root.Out, root.Err, root.HTTPClient, root.ConfigPath = out, errOut, server.Client(), filepath.Join(t.TempDir(), "config.json")
+			args := append([]string{"book", "create", "--json"}, tc.flags...)
+			if code := root.Execute(args); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("code=%d stderr=%q", code, errOut.String())
+			}
+			if requests != 1 {
+				t.Fatalf("expected one create, got %d", requests)
+			}
+		})
+	}
+}
