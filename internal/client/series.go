@@ -207,18 +207,7 @@ func (c *SeriesCollection) UpdateSeries(ctx context.Context, id int, params Upda
 // DeleteSeries deletes a series by ID.
 func (c *SeriesCollection) DeleteSeries(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/series/%d", id)
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 // AttachSeriesBook attaches a book to a series.
@@ -246,18 +235,7 @@ func (c *SeriesCollection) AttachSeriesBook(ctx context.Context, seriesID, bookI
 // DetachSeriesBook removes a book from a series.
 func (c *SeriesCollection) DetachSeriesBook(ctx context.Context, seriesID, bookID int) error {
 	path := fmt.Sprintf("/api/series/%d/stories/%d", seriesID, bookID)
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 func decodeSeries(data []byte) (Series, error) {

@@ -139,18 +139,7 @@ func (c *Generation) StreamContinue(ctx context.Context, chapterID string, param
 // CancelContinue cancels an in-flight continuation generation on the server.
 func (c *Generation) CancelContinue(ctx context.Context, chapterID string) error {
 	path := fmt.Sprintf("/api/scenes/%s/continue/cancel", url.PathEscape(chapterID))
-	req, err := c.transport.NewRequest(ctx, http.MethodPost, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodPost, path, nil)
 }
 
 // RejectContinuation reverts the latest AI continuation run on the chapter.

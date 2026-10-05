@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -225,18 +224,7 @@ func (c *ChapterCollection) ReorderChapters(ctx context.Context, bookID string, 
 // DeleteChapter removes a chapter by ID.
 func (c *ChapterCollection) DeleteChapter(ctx context.Context, id string) error {
 	path := fmt.Sprintf("/api/scenes/%s", url.PathEscape(id))
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 // ExportChapter downloads the chapter prose in markdown or specified format.
@@ -245,22 +233,7 @@ func (c *ChapterCollection) ExportChapter(ctx context.Context, id string, format
 		format = "markdown"
 	}
 	path := fmt.Sprintf("/api/scenes/%s/export?format=%s", url.PathEscape(id), url.QueryEscape(format))
-	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	return io.ReadAll(resp.Body)
+	return c.transport.request(ctx, http.MethodGet, path, nil)
 }
 
 func decodeChapter(data []byte) (Chapter, error) {

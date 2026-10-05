@@ -229,18 +229,7 @@ func (c *CodexCollection) UpdateCodexEntry(ctx context.Context, id int, params U
 // DeleteCodexEntry deletes a codex entry by ID.
 func (c *CodexCollection) DeleteCodexEntry(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/codex-entries/%d", id)
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 func decodeCodexEntry(data []byte) (CodexEntry, error) {

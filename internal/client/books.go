@@ -188,18 +188,7 @@ func (c *BookCollection) UpdateBook(ctx context.Context, id int, params UpdateBo
 // DeleteBook removes a book manuscript by ID.
 func (c *BookCollection) DeleteBook(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/stories/%d", id)
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 // DuplicateBook clones a book with all its chapters and codex entries.
@@ -225,22 +214,7 @@ func (c *BookCollection) ExportStory(ctx context.Context, id int, format string)
 		format = "markdown"
 	}
 	path := fmt.Sprintf("/api/stories/%d/export?format=%s", id, url.QueryEscape(format))
-	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	return io.ReadAll(resp.Body)
+	return c.transport.request(ctx, http.MethodGet, path, nil)
 }
 
 // ImportDocx uploads a DOCX stream to create a new book with chapters.
