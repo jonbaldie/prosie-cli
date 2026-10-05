@@ -19,12 +19,14 @@ func TestCodexEditingPreservesNotesAndAliases(t *testing.T) {
 		args               []string
 		method, path, body string
 	}{
-		{"create character", []string{"codex", "create", "21", "--name", "Ada", "--type", "character", "--details", "Navigator", "--aliases", "Captain"}, "POST", "/api/stories/21/codex-entries", `{"name":"Ada","category":"character","type":"character","details":"Navigator","content":"Navigator","aliases":"Captain"}`},
-		{"create through aliases", []string{"codex", "create", "21", "--name", "Ada", "--category", "character", "--content", "Navigator"}, "POST", "/api/stories/21/codex-entries", `{"name":"Ada","category":"character","type":"character","details":"Navigator","content":"Navigator"}`},
-		{"default lore", []string{"codex", "create", "21", "--name", "Island", "--details", "Harbour", "--aliases", "  "}, "POST", "/api/stories/21/codex-entries", `{"name":"Island","category":"lore","type":"lore","details":"Harbour","content":"Harbour"}`},
-		{"update character", []string{"codex", "update", "41", "--name", "Ada", "--type", "character", "--details", "Navigator", "--aliases", "Captain"}, "PATCH", "/api/codex-entries/41", `{"name":"Ada","category":"character","type":"character","details":"Navigator","content":"Navigator","aliases":"Captain"}`},
-		{"update through aliases", []string{"codex", "update", "41", "--category", "character", "--content", "Navigator"}, "PATCH", "/api/codex-entries/41", `{"category":"character","type":"character","details":"Navigator","content":"Navigator"}`},
-		{"clear primary fields", []string{"codex", "update", "41", "--name=", "--type=", "--category", "lore", "--details=", "--content", "Old note", "--aliases="}, "PATCH", "/api/codex-entries/41", `{"name":"","category":"","type":"","details":"","content":"","aliases":""}`},
+		{"create character", []string{"codex", "create", "21", "--name", "Ada", "--type", "character", "--details", "Navigator", "--aliases", "Captain"}, "POST", "/api/stories/21/codex-entries", `{"name":"Ada","category":"character","content":"Navigator","aliases":"Captain"}`},
+		{"create through aliases", []string{"codex", "create", "21", "--name", "Ada", "--category", "character", "--content", "Navigator"}, "POST", "/api/stories/21/codex-entries", `{"name":"Ada","category":"character","content":"Navigator"}`},
+		{"default lore", []string{"codex", "create", "21", "--name", "Island", "--details", "Harbour", "--aliases", "  "}, "POST", "/api/stories/21/codex-entries", `{"name":"Island","category":"lore","content":"Harbour"}`},
+		{"create with both flag pairs", []string{"codex", "create", "21", "--name", "Ada", "--category", "lore", "--type", "character", "--content", "Old note", "--details", "Navigator"}, "POST", "/api/stories/21/codex-entries", `{"name":"Ada","category":"character","content":"Navigator"}`},
+		{"update character", []string{"codex", "update", "41", "--name", "Ada", "--type", "character", "--details", "Navigator", "--aliases", "Captain"}, "PATCH", "/api/codex-entries/41", `{"name":"Ada","category":"character","content":"Navigator","aliases":"Captain"}`},
+		{"update through aliases", []string{"codex", "update", "41", "--category", "character", "--content", "Navigator"}, "PATCH", "/api/codex-entries/41", `{"category":"character","content":"Navigator"}`},
+		{"update with both flag pairs", []string{"codex", "update", "41", "--category", "lore", "--type", "character", "--content", "Old note", "--details", "Navigator"}, "PATCH", "/api/codex-entries/41", `{"category":"character","content":"Navigator"}`},
+		{"clear primary fields", []string{"codex", "update", "41", "--name=", "--type=", "--category", "lore", "--details=", "--content", "Old note", "--aliases="}, "PATCH", "/api/codex-entries/41", `{"name":"","category":"","content":"","aliases":""}`},
 		{"keep omitted fields", []string{"codex", "update", "41", "--name", "Ada"}, "PATCH", "/api/codex-entries/41", `{"name":"Ada"}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

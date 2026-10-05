@@ -12,7 +12,7 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("update", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	title := fs.String("title", "", "Chapter title")
+	title := fs.String("title", "", "Chapter title (sent as name)")
 	content := fs.String("content", "", "Chapter prose content")
 	summary := fs.String("summary", "", "Chapter summary")
 	filePath := fs.String("file", "", "Path to file containing chapter prose")
@@ -69,7 +69,7 @@ Flags:
   -h, --help             Show help for command
       --json             Format output as JSON
       --summary string   Chapter summary
-      --title string     Chapter title
+      --title string     Chapter title (sent as name)
 `
 	fmt.Fprint(c.Out, help)
 }

@@ -165,9 +165,9 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 
 	name := fs.String("name", "", "Entry name (required)")
 	entryType := fs.String("type", "", "Entry type (lore or character)")
-	category := fs.String("category", "", "Entry category (alias for type)")
+	category := fs.String("category", "", "Entry category (alias for --type; --type wins)")
 	details := fs.String("details", "", "Entry description and facts (required)")
-	content := fs.String("content", "", "Entry content (alias for details)")
+	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
@@ -192,7 +192,6 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 		fmt.Fprintln(c.Err, err)
 		return 1
 	}
-	finalType := firstText(*entryType, *category, "lore")
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -202,12 +201,10 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 
 	params := client.CreateCodexParams{
 		Name:     *name,
-		Type:     finalType,
-		Category: finalType,
-		Details:  finalDetails,
+		Category: firstText(*entryType, *category, "lore"),
 		Content:  finalDetails,
+		Aliases:  optionalAliases(aliases),
 	}
-	params.Aliases = optionalAliases(aliases)
 
 	entry, err := cli.Codex().CreateCodexEntry(context.Background(), bookID, params)
 	if err != nil {
@@ -232,8 +229,8 @@ Usage:
 
 Flags:
       --aliases string    Alternative names and aliases
-      --category string   Entry category (alias for --type)
-      --content string    Entry content (alias for --details)
+      --category string   Entry category (alias for --type; --type wins)
+      --content string    Entry content (alias for --details; --details wins)
       --details string    Entry description and facts (required)
   -h, --help              Show help for command
       --json              Format output as JSON
@@ -249,9 +246,9 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 
 	name := fs.String("name", "", "Entry name")
 	entryType := fs.String("type", "", "Entry type (lore or character)")
-	category := fs.String("category", "", "Entry category (alias for type)")
+	category := fs.String("category", "", "Entry category (alias for --type; --type wins)")
 	details := fs.String("details", "", "Entry description and facts")
-	content := fs.String("content", "", "Entry content (alias for details)")
+	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
@@ -272,13 +269,11 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 	}
 
 	visited := command.VisitedFlags(fs)
-	finalType := providedAlias(visited, "type", entryType, "category", category)
-	finalDetails := providedAlias(visited, "details", details, "content", content)
 	params := client.UpdateCodexParams{
-		Name: command.Provided(visited, "name", name),
-		Type: finalType, Category: finalType,
-		Details: finalDetails, Content: finalDetails,
-		Aliases: command.Provided(visited, "aliases", aliases),
+		Name:     command.Provided(visited, "name", name),
+		Category: providedAlias(visited, "type", entryType, "category", category),
+		Content:  providedAlias(visited, "details", details, "content", content),
+		Aliases:  command.Provided(visited, "aliases", aliases),
 	}
 
 	cli, err := command.Client(c)
@@ -310,8 +305,8 @@ Usage:
 
 Flags:
       --aliases string    Alternative names and aliases
-      --category string   Entry category (alias for --type)
-      --content string    Entry content (alias for --details)
+      --category string   Entry category (alias for --type; --type wins)
+      --content string    Entry content (alias for --details; --details wins)
       --details string    Entry description and facts
   -h, --help              Show help for command
       --json              Format output as JSON

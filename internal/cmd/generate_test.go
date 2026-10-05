@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -914,4 +915,54 @@ func TestGenerateSummarize(t *testing.T) {
 			t.Fatalf("expected persist:false in request body, got %+v", lastBody)
 		}
 	})
+}
+
+// The streaming and plain rewrite requests send the same body: only the keys the caller set, plus selection and persist.
+func TestGenerateRewriteRequestBody(t *testing.T) {
+	for _, tc := range []struct {
+		name, path string
+		args       []string
+		body       string
+	}{
+		{"prompt", "/api/scenes/101/rewrite", []string{"--prompt", "Use stronger verbs"}, `{"selection":"She said quietly.","instruction":"Use stronger verbs","persist":false}`},
+		{"action persisted", "/api/scenes/101/rewrite", []string{"--action", "show", "--persist"}, `{"selection":"She said quietly.","action":"show","persist":true}`},
+		{"streamed prompt", "/api/scenes/101/rewrite/stream", []string{"--instruction", "Use stronger verbs", "--stream"}, `{"selection":"She said quietly.","instruction":"Use stronger verbs","persist":false}`},
+		{"streamed action persisted", "/api/scenes/101/rewrite/stream", []string{"--action", "tighten", "--persist", "--stream"}, `{"selection":"She said quietly.","action":"tighten","persist":true}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				requests++
+				if r.Method != http.MethodPost || r.URL.Path != tc.path {
+					t.Errorf("request=%s %s; want=POST %s", r.Method, r.URL.Path, tc.path)
+				}
+				var got, want map[string]any
+				if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+					t.Error(err)
+				}
+				if err := json.Unmarshal([]byte(tc.body), &want); err != nil {
+					t.Fatal(err)
+				}
+				if !reflect.DeepEqual(got, want) {
+					t.Errorf("request body: got %#v; want %#v", got, want)
+				}
+				if strings.HasSuffix(r.URL.Path, "/stream") {
+					w.Header().Set("Content-Type", "text/event-stream")
+					_, _ = w.Write([]byte("event: done\ndata: {\"prose\":\"She whispered.\",\"persisted\":false}\n\n"))
+					return
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"data":{"prose":"She whispered.","persisted":false}}`))
+			}
+			_, cfgPath, httpClient := setupTestGenerateEnv(t, handler)
+			cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+			args := append([]string{"generate", "rewrite", "101", "--selection", "She said quietly."}, tc.args...)
+			if code := cmd.Execute(args); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("code=%d stderr=%q", code, errOut.String())
+			}
+			if requests != 1 {
+				t.Fatalf("expected one request, got %d", requests)
+			}
+		})
+	}
 }

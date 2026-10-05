@@ -52,18 +52,17 @@ func (c *Chapter) normalize() {
 	}
 }
 
-// CreateChapterParams holds parameters for creating a new chapter.
+// CreateChapterParams is the request body for creating a new chapter.
 type CreateChapterParams struct {
-	Title   *string `json:"title,omitempty"`
 	Name    *string `json:"name,omitempty"`
 	Content *string `json:"content,omitempty"`
 	Summary *string `json:"summary,omitempty"`
 	Order   *int    `json:"order,omitempty"`
 }
 
-// UpdateChapterParams holds parameters for updating an existing chapter.
+// UpdateChapterParams is the request body for updating an existing chapter.
+// Nil fields are omitted, so the server keeps their current values.
 type UpdateChapterParams struct {
-	Title   *string `json:"title,omitempty"`
 	Name    *string `json:"name,omitempty"`
 	Content *string `json:"content,omitempty"`
 	Summary *string `json:"summary,omitempty"`
@@ -114,26 +113,8 @@ func (c *ChapterCollection) GetChapter(ctx context.Context, id string) (*Chapter
 
 // CreateChapter creates a new chapter within a book.
 func (c *ChapterCollection) CreateChapter(ctx context.Context, bookID string, params CreateChapterParams) (*Chapter, error) {
-	body := make(map[string]any)
-	if params.Title != nil {
-		body["name"] = *params.Title
-		body["title"] = *params.Title
-	}
-	if params.Name != nil {
-		body["name"] = *params.Name
-	}
-	if params.Content != nil {
-		body["content"] = *params.Content
-	}
-	if params.Summary != nil {
-		body["summary"] = *params.Summary
-	}
-	if params.Order != nil {
-		body["order"] = *params.Order
-	}
-
 	path := fmt.Sprintf("/api/stories/%s/scenes", url.PathEscape(bookID))
-	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -149,26 +130,8 @@ func (c *ChapterCollection) CreateChapter(ctx context.Context, bookID string, pa
 
 // UpdateChapter updates an existing chapter by ID.
 func (c *ChapterCollection) UpdateChapter(ctx context.Context, id string, params UpdateChapterParams) (*Chapter, error) {
-	body := make(map[string]any)
-	if params.Title != nil {
-		body["name"] = *params.Title
-		body["title"] = *params.Title
-	}
-	if params.Name != nil {
-		body["name"] = *params.Name
-	}
-	if params.Content != nil {
-		body["content"] = *params.Content
-	}
-	if params.Summary != nil {
-		body["summary"] = *params.Summary
-	}
-	if params.Order != nil {
-		body["order"] = *params.Order
-	}
-
 	path := fmt.Sprintf("/api/scenes/%s", url.PathEscape(id))
-	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, params)
 	if err != nil {
 		return nil, err
 	}

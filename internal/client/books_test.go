@@ -183,7 +183,7 @@ func TestCreateBook(t *testing.T) {
 
 		book, err := cli.Books().CreateBook(context.Background(), CreateBookParams{
 			Title:           "Starlight",
-			Premise:         &premise,
+			StorySoFar:      &premise,
 			Lore:            &lore,
 			Characters:      &chars,
 			TargetWordCount: &target,
@@ -246,7 +246,7 @@ func TestUpdateBook(t *testing.T) {
 
 	book, err := cli.Books().UpdateBook(context.Background(), 1, UpdateBookParams{
 		Title:           &newTitle,
-		Premise:         &newPremise,
+		StorySoFar:      &newPremise,
 		TargetWordCount: &target,
 	})
 	if err != nil {

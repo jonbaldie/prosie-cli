@@ -164,9 +164,9 @@ func TestCreateCodexEntry(t *testing.T) {
 
 	cli := New(server.URL, "test-token", server.Client())
 	entry, err := cli.Codex().CreateCodexEntry(context.Background(), 1, CreateCodexParams{
-		Name:    "Lyra Vance",
-		Type:    "character",
-		Details: "Lead engineer and pilot.",
+		Name:     "Lyra Vance",
+		Category: "character",
+		Content:  "Lead engineer and pilot.",
 	})
 	if err != nil {
 		t.Fatalf("CreateCodexEntry returned error: %v", err)
