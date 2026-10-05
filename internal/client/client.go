@@ -165,23 +165,13 @@ func validationErrors(value any) map[string][]string {
 
 // GetUser fetches the authenticated user profile from GET /api/user.
 func (c *Client) GetUser(ctx context.Context) (*User, error) {
-	req, err := c.NewRequest(ctx, http.MethodGet, "/api/user", nil)
+	bodyBytes, err := c.request(ctx, http.MethodGet, "/api/user", nil)
 	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to /api/user failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
 		return nil, err
 	}
 
 	var user User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+	if err := json.Unmarshal(bodyBytes, &user); err != nil {
 		return nil, fmt.Errorf("failed to decode user response: %w", err)
 	}
 

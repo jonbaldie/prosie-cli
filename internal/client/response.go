@@ -32,3 +32,18 @@ func (c *Client) readResponse(req *http.Request, path string) ([]byte, error) {
 	}
 	return body, nil
 }
+
+// execute sends a request whose response carries only a status, and owns the
+// response body lifetime. Status-only actions such as deletes and cancels use it.
+func (c *Client) execute(ctx context.Context, method, path string, body any) error {
+	req, err := c.NewRequest(ctx, method, path, body)
+	if err != nil {
+		return err
+	}
+	resp, err := c.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to %s failed: %w", path, err)
+	}
+	defer resp.Body.Close()
+	return CheckResponse(resp)
+}

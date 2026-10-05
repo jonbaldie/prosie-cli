@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -139,18 +138,7 @@ func (c *Conversations) DeleteConversation(ctx context.Context, id string) error
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s", url.PathEscape(id))
-	req, err := c.transport.NewRequest(ctx, http.MethodDelete, path, nil)
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	return CheckResponse(resp)
+	return c.transport.execute(ctx, http.MethodDelete, path, nil)
 }
 
 // ExportConversation downloads the raw JSON conversation export.
@@ -161,22 +149,7 @@ func (c *Conversations) ExportConversation(ctx context.Context, id string) ([]by
 	}
 
 	path := fmt.Sprintf("/api/conversations/%s/export", url.PathEscape(id))
-	req, err := c.transport.NewRequest(ctx, http.MethodGet, path, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := c.transport.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("request to %s failed: %w", path, err)
-	}
-	defer resp.Body.Close()
-
-	if err := CheckResponse(resp); err != nil {
-		return nil, err
-	}
-
-	return io.ReadAll(resp.Body)
+	return c.transport.request(ctx, http.MethodGet, path, nil)
 }
 
 // ImportConversation uploads a JSON conversation export stream to rebuild a chat thread in a book.
