@@ -71,23 +71,20 @@ func (e *CodexEntry) normalize() {
 	}
 }
 
-// CreateCodexParams holds input parameters for creating a codex entry.
+// CreateCodexParams is the request body for creating a codex entry.
 type CreateCodexParams struct {
 	Name     string  `json:"name"`
-	Type     string  `json:"type,omitempty"`
 	Category string  `json:"category,omitempty"`
-	Details  string  `json:"details,omitempty"`
 	Content  string  `json:"content,omitempty"`
 	Aliases  *string `json:"aliases,omitempty"`
 	Order    *int    `json:"order,omitempty"`
 }
 
-// UpdateCodexParams holds input parameters for updating a codex entry.
+// UpdateCodexParams is the request body for updating a codex entry. Nil
+// fields are omitted, so the server keeps their current values.
 type UpdateCodexParams struct {
 	Name     *string `json:"name,omitempty"`
-	Type     *string `json:"type,omitempty"`
 	Category *string `json:"category,omitempty"`
-	Details  *string `json:"details,omitempty"`
 	Content  *string `json:"content,omitempty"`
 	Aliases  *string `json:"aliases,omitempty"`
 	Order    *int    `json:"order,omitempty"`
@@ -163,35 +160,8 @@ func (c *CodexCollection) GetCodexEntry(ctx context.Context, id int) (*CodexEntr
 
 // CreateCodexEntry creates a new codex entry for a book.
 func (c *CodexCollection) CreateCodexEntry(ctx context.Context, bookID int, params CreateCodexParams) (*CodexEntry, error) {
-	category := params.Category
-	if category == "" {
-		category = params.Type
-	}
-	if category == "" {
-		category = "lore"
-	}
-
-	content := params.Content
-	if content == "" {
-		content = params.Details
-	}
-
-	body := map[string]any{
-		"name":     params.Name,
-		"category": category,
-		"type":     category,
-		"content":  content,
-		"details":  content,
-	}
-	if params.Aliases != nil {
-		body["aliases"] = *params.Aliases
-	}
-	if params.Order != nil {
-		body["order"] = *params.Order
-	}
-
 	path := fmt.Sprintf("/api/stories/%d/codex-entries", bookID)
-	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -208,10 +178,8 @@ func (c *CodexCollection) CreateCodexEntry(ctx context.Context, bookID int, para
 
 // UpdateCodexEntry updates an existing codex entry.
 func (c *CodexCollection) UpdateCodexEntry(ctx context.Context, id int, params UpdateCodexParams) (*CodexEntry, error) {
-	body := codexUpdateBody(params)
-
 	path := fmt.Sprintf("/api/codex-entries/%d", id)
-	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -242,36 +210,6 @@ func decodeCodexEntry(data []byte) (CodexEntry, error) {
 	var resource CodexEntry
 	err := json.Unmarshal(data, &resource)
 	return resource, err
-}
-
-func codexUpdateBody(params UpdateCodexParams) map[string]any {
-	body := map[string]any{}
-
-	if params.Name != nil {
-		body["name"] = *params.Name
-	}
-	if params.Category != nil {
-		body["category"] = *params.Category
-		body["type"] = *params.Category
-	} else if params.Type != nil {
-		body["category"] = *params.Type
-		body["type"] = *params.Type
-	}
-	if params.Content != nil {
-		body["content"] = *params.Content
-		body["details"] = *params.Content
-	} else if params.Details != nil {
-		body["content"] = *params.Details
-		body["details"] = *params.Details
-	}
-	if params.Aliases != nil {
-		body["aliases"] = *params.Aliases
-	}
-	if params.Order != nil {
-		body["order"] = *params.Order
-	}
-
-	return body
 }
 
 // CodexCollection owns codex operations over the shared authenticated transport.

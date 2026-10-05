@@ -38,7 +38,7 @@ func WordTarget(value int) *int {
 func ChapterInput(fs *flag.FlagSet, title, content, summary, filePath *string) (client.UpdateChapterParams, error) {
 	visited := VisitedFlags(fs)
 	params := client.UpdateChapterParams{
-		Title:   Provided(visited, "title", title),
+		Name:    Provided(visited, "title", title),
 		Summary: Provided(visited, "summary", summary),
 		Content: Provided(visited, "content", content),
 	}

@@ -344,7 +344,7 @@ func TestBookCreate(t *testing.T) {
 		if err := json.Unmarshal(out.Bytes(), &book); err != nil {
 			t.Fatal(err)
 		}
-		expected := map[string]any{"title": "The Iron Core", "premise": "Underground miners awaken something.", "story_so_far": "Underground miners awaken something.", "lore": "The crust has layers of forgotten tech.", "characters": "Dax, Cora", "target_word_count": float64(90000)}
+		expected := map[string]any{"title": "The Iron Core", "story_so_far": "Underground miners awaken something.", "lore": "The crust has layers of forgotten tech.", "characters": "Dax, Cora", "target_word_count": float64(90000)}
 		for field, want := range expected {
 			if book[field] != want {
 				t.Errorf("%s=%v; want=%v", field, book[field], want)

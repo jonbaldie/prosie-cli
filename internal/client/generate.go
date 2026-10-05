@@ -25,7 +25,8 @@ type ContinueResult struct {
 	EstimatedPromptTokens int    `json:"estimated_prompt_tokens,omitempty"`
 }
 
-// RewriteParams holds parameters for rewriting a selection of text.
+// RewriteParams is the request body for rewriting a selection of text.
+// Persist is always sent, as it is for ContinueParams.
 type RewriteParams struct {
 	Selection   string `json:"selection"`
 	Instruction string `json:"instruction,omitempty"`
@@ -177,19 +178,8 @@ func (c *Generation) postForChapter(ctx context.Context, path, action string) (*
 
 // Rewrite rewrites a selection of text using prompt instructions or an action key.
 func (c *Generation) Rewrite(ctx context.Context, chapterID string, params RewriteParams) (*RewriteResult, error) {
-	body := map[string]any{
-		"selection": params.Selection,
-		"persist":   params.Persist,
-	}
-	if params.Instruction != "" {
-		body["instruction"] = params.Instruction
-	}
-	if params.Action != "" {
-		body["action"] = params.Action
-	}
-
 	path := fmt.Sprintf("/api/scenes/%s/rewrite", url.PathEscape(chapterID))
-	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -215,19 +205,8 @@ func (c *Generation) Rewrite(ctx context.Context, chapterID string, params Rewri
 
 // StreamRewrite rewrites a selection of text and streams tokens in real time.
 func (c *Generation) StreamRewrite(ctx context.Context, chapterID string, params RewriteParams, onToken func(string)) (*RewriteResult, error) {
-	body := map[string]any{
-		"selection": params.Selection,
-		"persist":   params.Persist,
-	}
-	if params.Instruction != "" {
-		body["instruction"] = params.Instruction
-	}
-	if params.Action != "" {
-		body["action"] = params.Action
-	}
-
 	path := fmt.Sprintf("/api/scenes/%s/rewrite/stream", url.PathEscape(chapterID))
-	resp, err := c.transport.openSSEStream(ctx, path, body)
+	resp, err := c.transport.openSSEStream(ctx, path, params)
 	if err != nil {
 		return nil, err
 	}

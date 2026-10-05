@@ -155,7 +155,7 @@ func TestCreateChapter(t *testing.T) {
 	summary := "Signal received."
 
 	ch, err := cli.Chapters().CreateChapter(context.Background(), "1", CreateChapterParams{
-		Title:   &title,
+		Name:    &title,
 		Content: &content,
 		Summary: &summary,
 	})
@@ -201,7 +201,7 @@ func TestUpdateChapter(t *testing.T) {
 	newContent := "Updated prose content."
 
 	ch, err := cli.Chapters().UpdateChapter(context.Background(), "101", UpdateChapterParams{
-		Title:   &newTitle,
+		Name:    &newTitle,
 		Content: &newContent,
 	})
 	if err != nil {

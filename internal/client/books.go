@@ -65,20 +65,19 @@ func (b *Book) normalize() {
 	}
 }
 
-// CreateBookParams holds input fields for creating a book.
+// CreateBookParams is the request body for creating a book.
 type CreateBookParams struct {
 	Title           string  `json:"title"`
-	Premise         *string `json:"premise,omitempty"`
 	StorySoFar      *string `json:"story_so_far,omitempty"`
 	Lore            *string `json:"lore,omitempty"`
 	Characters      *string `json:"characters,omitempty"`
 	TargetWordCount *int    `json:"target_word_count,omitempty"`
 }
 
-// UpdateBookParams holds input fields for updating a book.
+// UpdateBookParams is the request body for updating a book. Nil fields are
+// omitted, so the server keeps their current values.
 type UpdateBookParams struct {
 	Title           *string `json:"title,omitempty"`
-	Premise         *string `json:"premise,omitempty"`
 	StorySoFar      *string `json:"story_so_far,omitempty"`
 	Lore            *string `json:"lore,omitempty"`
 	Characters      *string `json:"characters,omitempty"`
@@ -132,27 +131,7 @@ func (c *BookCollection) GetBook(ctx context.Context, id int) (*Book, error) {
 
 // CreateBook creates a new book manuscript.
 func (c *BookCollection) CreateBook(ctx context.Context, params CreateBookParams) (*Book, error) {
-	body := map[string]any{
-		"title": params.Title,
-	}
-	if params.Premise != nil {
-		body["premise"] = *params.Premise
-		body["story_so_far"] = *params.Premise
-	}
-	if params.StorySoFar != nil {
-		body["story_so_far"] = *params.StorySoFar
-	}
-	if params.Lore != nil {
-		body["lore"] = *params.Lore
-	}
-	if params.Characters != nil {
-		body["characters"] = *params.Characters
-	}
-	if params.TargetWordCount != nil {
-		body["target_word_count"] = *params.TargetWordCount
-	}
-
-	bodyBytes, err := c.transport.request(ctx, http.MethodPost, "/api/stories", body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, "/api/stories", params)
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +147,8 @@ func (c *BookCollection) CreateBook(ctx context.Context, params CreateBookParams
 
 // UpdateBook updates an existing book manuscript.
 func (c *BookCollection) UpdateBook(ctx context.Context, id int, params UpdateBookParams) (*Book, error) {
-	body := bookUpdateBody(params)
-
 	path := fmt.Sprintf("/api/stories/%d", id)
-	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, body)
+	bodyBytes, err := c.transport.request(ctx, http.MethodPatch, path, params)
 	if err != nil {
 		return nil, err
 	}
@@ -292,31 +269,6 @@ func (c *BookCollection) bookChapters(ctx context.Context, id int) []Chapter {
 		return nil
 	}
 	return chapters
-}
-
-func bookUpdateBody(params UpdateBookParams) map[string]any {
-	body := map[string]any{}
-	if params.Title != nil {
-		body["title"] = *params.Title
-	}
-	if params.Premise != nil {
-		body["premise"] = *params.Premise
-		body["story_so_far"] = *params.Premise
-	}
-	if params.StorySoFar != nil {
-		body["story_so_far"] = *params.StorySoFar
-	}
-	if params.Lore != nil {
-		body["lore"] = *params.Lore
-	}
-	if params.Characters != nil {
-		body["characters"] = *params.Characters
-	}
-	if params.TargetWordCount != nil {
-		body["target_word_count"] = *params.TargetWordCount
-	}
-
-	return body
 }
 
 // BookWritingSettings holds the writing choices used for prose generation.

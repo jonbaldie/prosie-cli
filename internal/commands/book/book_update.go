@@ -16,7 +16,7 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 
 	title := fs.String("title", "", "Book title")
-	premise := fs.String("premise", "", "Story premise and outline")
+	premise := fs.String("premise", "", "Story premise and outline (sent as story_so_far)")
 	lore := fs.String("lore", "", "Lore and worldbuilding details")
 	characters := fs.String("characters", "", "Characters description")
 	targetWords := fs.Int("target-words", 0, "Target word count")
@@ -41,7 +41,7 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 	visited := command.VisitedFlags(fs)
 	params := client.UpdateBookParams{
 		Title:           command.Provided(visited, "title", title),
-		Premise:         command.Provided(visited, "premise", premise),
+		StorySoFar:      command.Provided(visited, "premise", premise),
 		Lore:            command.Provided(visited, "lore", lore),
 		Characters:      command.Provided(visited, "characters", characters),
 		TargetWordCount: command.Provided(visited, "target-words", targetWords),
@@ -79,7 +79,7 @@ Flags:
   -h, --help                  Show help for command
       --json                  Format output as JSON
       --lore string           Lore and worldbuilding details
-      --premise string        Story premise and outline
+      --premise string        Story premise and outline (sent as story_so_far)
       --target-words int      Target word count
       --title string          Book title
 `

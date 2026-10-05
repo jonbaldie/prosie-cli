@@ -176,14 +176,14 @@ func TestCreateBook(t *testing.T) {
 	cli := New(server.URL, "token", server.Client())
 
 	t.Run("successful create", func(t *testing.T) {
-		premise := "Epic space adventure."
+		storySoFar := "Epic space adventure."
 		lore := "Deep space outpost."
 		chars := "Captain John."
 		target := 75000
 
 		book, err := cli.Books().CreateBook(context.Background(), CreateBookParams{
 			Title:           "Starlight",
-			Premise:         &premise,
+			StorySoFar:      &storySoFar,
 			Lore:            &lore,
 			Characters:      &chars,
 			TargetWordCount: &target,
@@ -194,7 +194,7 @@ func TestCreateBook(t *testing.T) {
 		if book.ID != 5 || book.Title != "Starlight" {
 			t.Fatalf("unexpected book: %+v", book)
 		}
-		if book.Display().Premise != premise {
+		if book.Display().Premise != storySoFar {
 			t.Fatalf("unexpected premise: %q", book.Display().Premise)
 		}
 	})
@@ -241,12 +241,12 @@ func TestUpdateBook(t *testing.T) {
 
 	cli := New(server.URL, "token", server.Client())
 	newTitle := "Updated Title"
-	newPremise := "Updated Premise"
+	newStorySoFar := "Updated Premise"
 	target := 60000
 
 	book, err := cli.Books().UpdateBook(context.Background(), 1, UpdateBookParams{
 		Title:           &newTitle,
-		Premise:         &newPremise,
+		StorySoFar:      &newStorySoFar,
 		TargetWordCount: &target,
 	})
 	if err != nil {
