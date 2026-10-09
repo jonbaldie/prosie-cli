@@ -47,3 +47,11 @@ func (c *Client) execute(ctx context.Context, method, path string, body any) err
 	defer resp.Body.Close()
 	return CheckResponse(resp)
 }
+
+// PostOAuth sends a JSON POST to an OAuth endpoint such as /oauth/device/code
+// and returns the response body. A client with an empty token sends no
+// Authorization header. A non-2xx response returns an *ApiError whose
+// ErrorCode carries the OAuth "error" field.
+func (c *Client) PostOAuth(ctx context.Context, path string, body any) ([]byte, error) {
+	return c.request(ctx, http.MethodPost, path, body)
+}
