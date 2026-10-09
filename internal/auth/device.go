@@ -1,18 +1,15 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/jonbaldie/prosie-cli/internal/version"
+	"github.com/jonbaldie/prosie-cli/internal/client"
 )
 
 // DefaultClientID is the registered public client ID for the Prosie CLI.
@@ -76,17 +73,8 @@ func (t *TokenResponse) Scopes() []string {
 	return strings.Fields(t.Scope)
 }
 
-// TokenErrorResponse represents an OAuth error response during token polling.
-type TokenErrorResponse struct {
-	Error            string `json:"error"`
-	ErrorDescription string `json:"error_description"`
-}
-
-// RequestDeviceCode sends a request to POST /oauth/device/code.
-func RequestDeviceCode(ctx context.Context, httpClient *http.Client, baseURL, clientID, scopes string) (*DeviceCodeResponse, error) {
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
-	}
+// RequestDeviceCode sends a request to POST /oauth/device/code through the unauthenticated client cli.
+func RequestDeviceCode(ctx context.Context, cli *client.Client, clientID, scopes string) (*DeviceCodeResponse, error) {
 	if clientID == "" {
 		clientID = DefaultClientID
 	}
@@ -98,45 +86,9 @@ func RequestDeviceCode(ctx context.Context, httpClient *http.Client, baseURL, cl
 		payload["scope"] = scopes
 	}
 
-	bodyBytes, err := json.Marshal(payload)
+	respBytes, err := cli.PostOAuth(ctx, "/oauth/device/code", payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode device code request: %w", err)
-	}
-
-	endpoint := strings.TrimRight(baseURL, "/") + "/oauth/device/code"
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "prosie-cli/"+version.Version)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send device authorization request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	respBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	return decodeDeviceCode(resp.StatusCode, respBytes)
-}
-
-func decodeDeviceCode(status int, respBytes []byte) (*DeviceCodeResponse, error) {
-	if status != http.StatusOK {
-		var errResp TokenErrorResponse
-		if json.Unmarshal(respBytes, &errResp) == nil && errResp.Error != "" {
-			if errResp.ErrorDescription != "" {
-				return nil, fmt.Errorf("device authorization failed: %s (%s)", errResp.Error, errResp.ErrorDescription)
-			}
-			return nil, fmt.Errorf("device authorization failed: %s", errResp.Error)
-		}
-		return nil, fmt.Errorf("device authorization failed with HTTP status %d: %s", status, string(respBytes))
+		return nil, oauthFailure(err, "device authorization failed:", "device authorization failed with HTTP status")
 	}
 
 	var dcr DeviceCodeResponse
@@ -154,11 +106,9 @@ func decodeDeviceCode(status int, respBytes []byte) (*DeviceCodeResponse, error)
 	return &dcr, nil
 }
 
-// PollForToken polls POST /oauth/token until authorization is granted, denied, expired, or timed out.
-func PollForToken(ctx context.Context, httpClient *http.Client, baseURL, clientID, deviceCode string, interval, expiresIn time.Duration) (*TokenResponse, error) {
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: 30 * time.Second}
-	}
+// PollForToken polls POST /oauth/token through the unauthenticated client cli until
+// authorization is granted, denied, expired, or timed out.
+func PollForToken(ctx context.Context, cli *client.Client, clientID, deviceCode string, interval, expiresIn time.Duration) (*TokenResponse, error) {
 	if clientID == "" {
 		clientID = DefaultClientID
 	}
@@ -169,12 +119,11 @@ func PollForToken(ctx context.Context, httpClient *http.Client, baseURL, clientI
 		expiresIn = 900 * time.Second
 	}
 
-	return pollUntilAuthorized(ctx, httpClient, baseURL, clientID, deviceCode, interval, expiresIn)
+	return pollUntilAuthorized(ctx, cli, clientID, deviceCode, interval, expiresIn)
 }
 
-func pollUntilAuthorized(ctx context.Context, httpClient *http.Client, baseURL, clientID, deviceCode string, interval, expiresIn time.Duration) (*TokenResponse, error) {
+func pollUntilAuthorized(ctx context.Context, cli *client.Client, clientID, deviceCode string, interval, expiresIn time.Duration) (*TokenResponse, error) {
 	deadline := time.Now().Add(expiresIn)
-	endpoint := strings.TrimRight(baseURL, "/") + "/oauth/token"
 
 	for {
 		if time.Now().After(deadline) {
@@ -187,7 +136,7 @@ func pollUntilAuthorized(ctx context.Context, httpClient *http.Client, baseURL, 
 		default:
 		}
 
-		token, backoff, err := pollTokenOnce(ctx, httpClient, endpoint, clientID, deviceCode)
+		token, backoff, err := pollTokenOnce(ctx, cli, clientID, deviceCode)
 		if err != nil || token != nil {
 			return token, err
 		}
@@ -201,54 +150,33 @@ func pollUntilAuthorized(ctx context.Context, httpClient *http.Client, baseURL, 
 	}
 }
 
-func pollTokenOnce(ctx context.Context, httpClient *http.Client, endpoint, clientID, deviceCode string) (*TokenResponse, time.Duration, error) {
+func pollTokenOnce(ctx context.Context, cli *client.Client, clientID, deviceCode string) (*TokenResponse, time.Duration, error) {
 	payload := map[string]string{
 		"grant_type":  GrantTypeDeviceCode,
 		"client_id":   clientID,
 		"device_code": deviceCode,
 	}
-	bodyBytes, err := json.Marshal(payload)
+
+	respBytes, err := cli.PostOAuth(ctx, "/oauth/token", payload)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to marshal token request: %w", err)
+		return tokenAttemptFailure(err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
-	if err != nil {
+	var tokenResp TokenResponse
+	if err := json.Unmarshal(respBytes, &tokenResp); err != nil {
+		return nil, 0, fmt.Errorf("failed to parse token response: %w", err)
+	}
+	return &tokenResp, 0, nil
+}
+
+// tokenAttemptFailure maps an RFC 8628 token error to the next polling step.
+func tokenAttemptFailure(err error) (*TokenResponse, time.Duration, error) {
+	var apiErr *client.ApiError
+	if !errors.As(err, &apiErr) {
 		return nil, 0, err
 	}
 
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "prosie-cli/"+version.Version)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, 0, fmt.Errorf("token request failed: %w", err)
-	}
-
-	respBytes, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to read token response: %w", err)
-	}
-
-	return decodeTokenAttempt(resp.StatusCode, respBytes)
-}
-
-func decodeTokenAttempt(status int, respBytes []byte) (*TokenResponse, time.Duration, error) {
-
-	if status == http.StatusOK {
-		var tokenResp TokenResponse
-		if err := json.Unmarshal(respBytes, &tokenResp); err != nil {
-			return nil, 0, fmt.Errorf("failed to parse token response: %w", err)
-		}
-		return &tokenResp, 0, nil
-	}
-
-	var errResp TokenErrorResponse
-	_ = json.Unmarshal(respBytes, &errResp)
-
-	switch errResp.Error {
+	switch apiErr.ErrorCode {
 	case "authorization_pending":
 		return nil, 0, nil
 	case "slow_down":
@@ -258,13 +186,25 @@ func decodeTokenAttempt(status int, respBytes []byte) (*TokenResponse, time.Dura
 	case "expired_token":
 		return nil, 0, ErrExpiredToken
 	default:
-		if errResp.ErrorDescription != "" {
-			return nil, 0, fmt.Errorf("oauth error: %s (%s)", errResp.Error, errResp.ErrorDescription)
-		}
-		if errResp.Error != "" {
-			return nil, 0, fmt.Errorf("oauth error: %s", errResp.Error)
-		}
-		return nil, 0, fmt.Errorf("unexpected status %d: %s", status, string(respBytes))
+		return nil, 0, oauthFailure(err, "oauth error:", "unexpected status")
 	}
+}
 
+// oauthFailure describes an OAuth endpoint failure. An OAuth error code follows
+// codePrefix; a response with no error code reports its status after statusPrefix.
+func oauthFailure(err error, codePrefix, statusPrefix string) error {
+	var apiErr *client.ApiError
+	if !errors.As(err, &apiErr) {
+		return err
+	}
+	switch {
+	case apiErr.ErrorCode != "" && apiErr.Message != "":
+		return fmt.Errorf("%s %s (%s)", codePrefix, apiErr.ErrorCode, apiErr.Message)
+	case apiErr.ErrorCode != "":
+		return fmt.Errorf("%s %s", codePrefix, apiErr.ErrorCode)
+	case apiErr.Message != "":
+		return fmt.Errorf("%s %d: %s", statusPrefix, apiErr.StatusCode, apiErr.Message)
+	default:
+		return fmt.Errorf("%s %d", statusPrefix, apiErr.StatusCode)
+	}
 }

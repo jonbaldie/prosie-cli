@@ -224,3 +224,29 @@ func TestDeviceLoginReportsAuthorizationFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestDeviceLoginSendsNoAuthorizationToOAuthEndpoints(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if strings.HasPrefix(r.URL.Path, "/oauth/") && r.Header.Get("Authorization") != "" {
+			t.Errorf("%s Authorization=%q; want none", r.URL.Path, r.Header.Get("Authorization"))
+		}
+		switch r.URL.Path {
+		case "/oauth/device/code":
+			fmt.Fprint(w, `{"device_code":"device-secret","user_code":"AB","verification_uri":"https://example.test/approve","interval":1,"expires_in":60}`)
+		case "/oauth/token":
+			fmt.Fprint(w, `{"access_token":"issued-token","token_type":"Bearer","scope":"read"}`)
+		default:
+			fmt.Fprint(w, `{"id":9,"name":"Device Writer","email":"device@example.test"}`)
+		}
+	}))
+	defer server.Close()
+	t.Setenv("PROSIE_API_URL", server.URL)
+	t.Setenv("PROSIE_API_TOKEN", "stale-token")
+	root := cmd.NewRootCmd()
+	out, errOut := &bytes.Buffer{}, &bytes.Buffer{}
+	root.Out, root.Err, root.ConfigPath, root.HTTPClient = out, errOut, filepath.Join(t.TempDir(), "config.json"), server.Client()
+	if code := root.Execute([]string{"auth", "login", "--no-browser", "--json"}); code != 0 || errOut.Len() != 0 {
+		t.Fatalf("code=%d stderr=%q", code, errOut.String())
+	}
+}

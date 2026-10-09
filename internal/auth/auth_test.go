@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/config"
 )
 
@@ -44,7 +45,7 @@ func TestRequestDeviceCode(t *testing.T) {
 	}))
 	defer server.Close()
 
-	dcr, err := RequestDeviceCode(context.Background(), server.Client(), server.URL, "prosie-cli", "read write")
+	dcr, err := RequestDeviceCode(context.Background(), client.New(server.URL, "", server.Client()), "prosie-cli", "read write")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -70,9 +71,9 @@ func TestPollForToken_PendingThenApproved(t *testing.T) {
 
 		if attempts < 2 {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = json.NewEncoder(w).Encode(TokenErrorResponse{
-				Error:            "authorization_pending",
-				ErrorDescription: "Waiting for user approval",
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"error":             "authorization_pending",
+				"error_description": "Waiting for user approval",
 			})
 			return
 		}
@@ -85,7 +86,7 @@ func TestPollForToken_PendingThenApproved(t *testing.T) {
 	}))
 	defer server.Close()
 
-	resp, err := PollForToken(context.Background(), server.Client(), server.URL, "prosie-cli", "dev-123", 10*time.Millisecond, 2*time.Second)
+	resp, err := PollForToken(context.Background(), client.New(server.URL, "", server.Client()), "prosie-cli", "dev-123", 10*time.Millisecond, 2*time.Second)
 	if err != nil {
 		t.Fatalf("unexpected polling error: %v", err)
 	}
@@ -102,14 +103,14 @@ func TestPollForToken_AccessDenied(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(TokenErrorResponse{
-			Error:            "access_denied",
-			ErrorDescription: "User denied the request",
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error":             "access_denied",
+			"error_description": "User denied the request",
 		})
 	}))
 	defer server.Close()
 
-	_, err := PollForToken(context.Background(), server.Client(), server.URL, "prosie-cli", "dev-123", 10*time.Millisecond, 1*time.Second)
+	_, err := PollForToken(context.Background(), client.New(server.URL, "", server.Client()), "prosie-cli", "dev-123", 10*time.Millisecond, 1*time.Second)
 	if err != ErrAccessDenied {
 		t.Fatalf("expected ErrAccessDenied, got %v", err)
 	}
@@ -119,13 +120,13 @@ func TestPollForToken_ExpiredToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		_ = json.NewEncoder(w).Encode(TokenErrorResponse{
-			Error: "expired_token",
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"error": "expired_token",
 		})
 	}))
 	defer server.Close()
 
-	_, err := PollForToken(context.Background(), server.Client(), server.URL, "prosie-cli", "dev-123", 10*time.Millisecond, 1*time.Second)
+	_, err := PollForToken(context.Background(), client.New(server.URL, "", server.Client()), "prosie-cli", "dev-123", 10*time.Millisecond, 1*time.Second)
 	if err != ErrExpiredToken {
 		t.Fatalf("expected ErrExpiredToken, got %v", err)
 	}

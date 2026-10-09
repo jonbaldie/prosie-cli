@@ -271,3 +271,43 @@ func TestExecuteSendsJSONBodyAndChecksStatus(t *testing.T) {
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+
+func TestPostOAuthSendsUnauthenticatedJSONAndReturnsBody(t *testing.T) {
+	var got *http.Request
+	var gotBody string
+	transport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		got = req
+		data, _ := io.ReadAll(req.Body)
+		gotBody = string(data)
+		return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(`{"device_code":"d"}`)), Request: req}, nil
+	})
+	cli := New("https://prosie.test/", "", &http.Client{Transport: transport})
+
+	body, err := cli.PostOAuth(context.Background(), "/oauth/device/code", map[string]string{"client_id": "prosie-cli"})
+	if err != nil || string(body) != `{"device_code":"d"}` {
+		t.Fatalf("body=%q err=%v", body, err)
+	}
+	if got.Method != http.MethodPost || got.URL.String() != "https://prosie.test/oauth/device/code" {
+		t.Fatalf("request=%s %s", got.Method, got.URL)
+	}
+	if gotBody != `{"client_id":"prosie-cli"}` || got.Header.Get("Content-Type") != "application/json" || got.Header.Get("Accept") != "application/json" {
+		t.Fatalf("body=%q headers=%v", gotBody, got.Header)
+	}
+	if got.Header.Get("User-Agent") != cli.UserAgent || got.Header.Get("Authorization") != "" {
+		t.Fatalf("headers=%v", got.Header)
+	}
+}
+
+func TestPostOAuthReturnsApiErrorWithOAuthErrorCode(t *testing.T) {
+	transport := &recordingTransport{status: http.StatusBadRequest, body: `{"error":"authorization_pending","error_description":"Waiting"}`}
+	cli := New("https://prosie.test", "", &http.Client{Transport: transport})
+
+	_, err := cli.PostOAuth(context.Background(), "/oauth/token", map[string]string{})
+	var apiErr *ApiError
+	if !errors.As(err, &apiErr) || apiErr.StatusCode != http.StatusBadRequest || apiErr.ErrorCode != "authorization_pending" || apiErr.Message != "Waiting" {
+		t.Fatalf("expected OAuth API error, got %#v", err)
+	}
+	if !transport.served.closed {
+		t.Fatal("response body was not closed")
+	}
+}

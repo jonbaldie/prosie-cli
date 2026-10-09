@@ -59,7 +59,8 @@ func loginWithToken(c *command.Environment, apiURL, token string, jsonOutput boo
 }
 
 func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes string, noBrowser, jsonOutput bool) int {
-	dcr, err := auth.RequestDeviceCode(context.Background(), c.HTTPClient, apiURL, auth.DefaultClientID, scopes)
+	oauth := client.New(apiURL, "", c.HTTPClient)
+	dcr, err := auth.RequestDeviceCode(context.Background(), oauth, auth.DefaultClientID, scopes)
 	if err != nil {
 		fmt.Fprintf(c.Err, "failed to initiate device authorization: %v\n", err)
 		return 1
@@ -68,7 +69,7 @@ func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes 
 	showDeviceAuthorization(c, dcr, noBrowser, jsonOutput)
 	interval, expiresIn := deviceTiming(dcr)
 
-	tokenResp, err := auth.PollForToken(context.Background(), c.HTTPClient, apiURL, auth.DefaultClientID, dcr.DeviceCode, interval, expiresIn)
+	tokenResp, err := auth.PollForToken(context.Background(), oauth, auth.DefaultClientID, dcr.DeviceCode, interval, expiresIn)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authorization failed: %v\n", err)
 		return 1
