@@ -1,0 +1,238 @@
+$ prosie codex create 101 --name Mara --details Lamplighter\,\ age\ 30. --type character --aliases The\ Lamplighter --json
+--- stdout
+{
+  "id": 104,
+  "story_id": 101,
+  "category": "character",
+  "type": "character",
+  "name": "Mara",
+  "aliases": "The Lamplighter",
+  "content": "Lamplighter, age 30.",
+  "details": "Lamplighter, age 30.",
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00"
+}
+--- stderr
+--- exit 0
+
+$ prosie codex create 101 --name The\ Well --content Old\ stone\ well.
+--- stdout
+Created codex entry "The Well" (ID: 105, type: lore).
+--- stderr
+--- exit 0
+
+$ prosie codex list 101
+--- stdout
+ID    TYPE        NAME       DETAILS                UPDATED
+104   character   Mara       Lamplighter, age 30.   2026-10-10 12:00
+105   lore        The Well   Old stone well.        2026-10-10 12:00
+--- stderr
+--- exit 0
+
+$ prosie codex update 104 --details Lamplighter\,\ age\ 31.
+--- stdout
+Updated codex entry 104 ("Mara").
+--- stderr
+--- exit 0
+
+$ prosie codex update 104 --type villain
+--- stdout
+--- stderr
+error updating codex entry: API error (422): The selected category is invalid. (category: The selected category is invalid.)
+--- exit 1
+
+$ prosie codex show 104 --json
+--- stdout
+{
+  "id": 104,
+  "story_id": 101,
+  "category": "character",
+  "type": "character",
+  "name": "Mara",
+  "aliases": "The Lamplighter",
+  "content": "Lamplighter, age 31.",
+  "details": "Lamplighter, age 31.",
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00"
+}
+--- stderr
+--- exit 0
+
+$ prosie codex create 101 --name NoDetails
+--- stdout
+--- stderr
+error: --details is required
+--- exit 1
+
+$ prosie codex delete 105
+--- stdout
+--- stderr
+Are you sure you want to delete codex entry 105? [y/N]: Deletion cancelled.
+--- exit 0
+
+$ prosie codex list 101 --json
+--- stdout
+[
+  {
+    "id": 104,
+    "story_id": 101,
+    "category": "character",
+    "type": "character",
+    "name": "Mara",
+    "aliases": "The Lamplighter",
+    "content": "Lamplighter, age 31.",
+    "details": "Lamplighter, age 31.",
+    "created_at": "2026-10-10T12:00:00+00:00",
+    "updated_at": "2026-10-10T12:00:00+00:00"
+  },
+  {
+    "id": 105,
+    "story_id": 101,
+    "category": "lore",
+    "type": "lore",
+    "name": "The Well",
+    "content": "Old stone well.",
+    "details": "Old stone well.",
+    "created_at": "2026-10-10T12:00:00+00:00",
+    "updated_at": "2026-10-10T12:00:00+00:00"
+  }
+]
+--- stderr
+--- exit 0
+
+$ prosie series create --title Lantern\ Cycle --description Two\ books. --json
+--- stdout
+{
+  "id": 106,
+  "name": "Lantern Cycle",
+  "title": "Lantern Cycle",
+  "description": "Two books.",
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00"
+}
+--- stderr
+--- exit 0
+
+$ prosie series attach 106 101
+--- stdout
+Attached book 101 ("Replay Book") to series 106.
+--- stderr
+--- exit 0
+
+$ prosie series show 106
+--- stdout
+Title:       Lantern Cycle
+ID:          106
+Description: Two books.
+Updated:     2026-10-10 12:00
+
+Books (1):
+  1. Replay Book (ID: 101, 0 words)
+
+Shared Codex Entries: (none)
+--- stderr
+--- exit 0
+
+$ prosie series update 106 --description Three\ books.
+--- stdout
+Updated series 106 ("Lantern Cycle").
+--- stderr
+--- exit 0
+
+$ prosie series detach 106 101
+--- stdout
+Detached book 101 from series 106.
+--- stderr
+--- exit 0
+
+$ prosie series show 106 --json
+--- stdout
+{
+  "id": 106,
+  "name": "Lantern Cycle",
+  "title": "Lantern Cycle",
+  "description": "Three books.",
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00"
+}
+--- stderr
+--- exit 0
+
+$ prosie series delete 106
+--- stdout
+--- stderr
+Are you sure you want to delete series 106? [y/N]: Deletion cancelled.
+--- exit 0
+
+$ prosie series list --json
+--- stdout
+[
+  {
+    "id": 106,
+    "name": "Lantern Cycle",
+    "title": "Lantern Cycle",
+    "description": "Three books.",
+    "created_at": "2026-10-10T12:00:00+00:00",
+    "updated_at": "2026-10-10T12:00:00+00:00"
+  }
+]
+--- stderr
+--- exit 0
+
+$ prosie codex delete 105 --json
+--- stdout
+--- stderr
+Are you sure you want to delete codex entry 105? [y/N]: Deletion cancelled.
+--- exit 0
+
+$ prosie codex delete 105 --json < no.txt
+--- stdout
+--- stderr
+Are you sure you want to delete codex entry 105? [y/N]: Deletion cancelled.
+--- exit 0
+
+$ prosie codex delete 105 --json < yes.txt
+--- stdout
+{
+  "deleted": true,
+  "id": 105
+}
+--- stderr
+Are you sure you want to delete codex entry 105? [y/N]: --- exit 0
+
+$ prosie codex delete 104 --yes --json
+--- stdout
+{
+  "deleted": true,
+  "id": 104
+}
+--- stderr
+--- exit 0
+
+$ prosie series delete 106 --force
+--- stdout
+--- stderr
+error parsing flags: flag provided but not defined: -force
+--- exit 1
+
+$ prosie codex list 101 --json
+--- stdout
+[]
+--- stderr
+--- exit 0
+
+$ prosie series list --json
+--- stdout
+[
+  {
+    "id": 106,
+    "name": "Lantern Cycle",
+    "title": "Lantern Cycle",
+    "description": "Three books.",
+    "created_at": "2026-10-10T12:00:00+00:00",
+    "updated_at": "2026-10-10T12:00:00+00:00"
+  }
+]
+--- stderr
+--- exit 0
+

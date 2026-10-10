@@ -1,0 +1,42 @@
+$ prosie generate continue 106
+--- stdout
+The lantern --- stderr
+error generating continuation: stream error: Upstream provider failed.
+--- exit 1
+
+$ prosie generate continue 106 --json --stream
+--- stdout
+{
+  "prose": "The lantern guttered. She stepped into the dark.",
+  "persisted": true,
+  "model": "fixture/model"
+}
+--- stderr
+--- exit 0
+
+$ prosie generate continue 106
+--- stdout
+The lantern guttered. 
+--- stderr
+--- exit 0
+
+$ prosie generate rewrite 106 --selection lantern --stream --persist --json
+--- stdout
+--- stderr
+error: --prompt or --action is required
+--- exit 1
+
+$ prosie chapter show 106 --json
+--- stdout
+{
+  "id": 106,
+  "story_id": 105,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "Imported prose here.\n\nThe lantern guttered. She stepped into the dark.\n\nThe lantern guttered. She stepped into the dark.\n\nThe lantern guttered. She stepped into the dark.",
+  "summary": "A test summary."
+}
+--- stderr
+--- exit 0
+
