@@ -520,6 +520,11 @@ func TestConversationIDsAreEscaped(t *testing.T) {
 		if r.URL.RawQuery != "" {
 			gotPath += "?" + r.URL.RawQuery
 		}
+		if strings.HasSuffix(r.URL.Path, "/messages/stream") {
+			w.Header().Set("Content-Type", "text/event-stream")
+			_, _ = w.Write([]byte("event: done\ndata: {\"message\":{\"role\":\"assistant\",\"content\":\"ok\"}}\n\n"))
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		if strings.HasSuffix(r.URL.Path, "/conversations") && r.Method == http.MethodGet {
 			_, _ = w.Write([]byte(`{"data":[]}`))
@@ -614,7 +619,7 @@ func TestSendTurn(t *testing.T) {
 			}})
 		case "/api/conversations/77/messages/stream":
 			w.Header().Set("Content-Type", "text/event-stream")
-			_, _ = io.WriteString(w, "event: delta\ndata: {\"delta\":\"Reply\"}\n\n")
+			_, _ = io.WriteString(w, "event: delta\ndata: {\"delta\":\"Reply\"}\n\nevent: done\ndata: {\"message\":{\"role\":\"assistant\",\"content\":\"Reply\"}}\n\n")
 		case "/api/conversations/13/messages":
 			w.WriteHeader(http.StatusBadGateway)
 			_ = json.NewEncoder(w).Encode(map[string]any{"message": "Upstream LLM error"})

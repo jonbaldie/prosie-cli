@@ -52,7 +52,6 @@ func readEvents(body io.Reader, consume func(string, string)) error {
 }
 
 type streamTokens struct {
-	content strings.Builder
 	onToken func(string)
 }
 
@@ -63,7 +62,6 @@ func (t *streamTokens) accept(data string) {
 	if json.Unmarshal([]byte(data), &payload) != nil || payload.Delta == "" {
 		return
 	}
-	t.content.WriteString(payload.Delta)
 	if t.onToken != nil {
 		t.onToken(payload.Delta)
 	}
@@ -101,17 +99,21 @@ func (s *streamEvents[T]) accept(event, data string) {
 }
 
 // streamSSE reads and decodes Server-Sent Events from an HTTP response stream.
-func streamSSE[T any](ctx context.Context, body io.Reader, onToken func(string)) (*T, string, error) {
+// A stream succeeds only when a done event supplies a decoded completion result.
+func streamSSE[T any](ctx context.Context, body io.Reader, onToken func(string)) (*T, error) {
 	state := streamEvents[T]{tokens: streamTokens{onToken: onToken}}
 	err := readEvents(body, state.accept)
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return nil, state.tokens.content.String(), ctxErr
+		return nil, ctxErr
 	}
 	if err != nil {
-		return nil, state.tokens.content.String(), err
+		return nil, err
 	}
 	if state.err != nil {
-		return nil, state.tokens.content.String(), state.err
+		return nil, state.err
 	}
-	return state.done, state.tokens.content.String(), nil
+	if state.done == nil {
+		return nil, fmt.Errorf("stream error: stream ended before completion")
+	}
+	return state.done, nil
 }
