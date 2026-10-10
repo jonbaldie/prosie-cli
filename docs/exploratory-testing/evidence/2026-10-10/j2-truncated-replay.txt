@@ -1,0 +1,78 @@
+$ prosie book create --title Replay\ Book --json
+--- stdout
+{
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "Replay Book",
+  "word_count": 0,
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "title": "Chapter 1"
+    }
+  ]
+}
+--- stderr
+--- exit 0
+
+$ prosie chapter create 101 --title Replay --content The\ door\ was\ shut\ and\ the\ hall\ was\ cold. --json
+--- stdout
+{
+  "id": 103,
+  "story_id": 101,
+  "order": 1,
+  "content": "The door was shut and the hall was cold."
+}
+--- stderr
+--- exit 0
+
+$ prosie generate continue 103
+--- stdout
+The lantern guttered. She 
+--- stderr
+--- exit 0
+
+$ prosie generate continue 103
+--- stdout
+The lantern guttered. She 
+--- stderr
+--- exit 0
+
+$ prosie generate rewrite 103 --selection The\ door\ was\ shut\ and\ the\ hall\ was\ cold. --prompt Tense. --stream --persist
+--- stdout
+REWRITTEN(The door was shut 
+--- stderr
+--- exit 0
+
+$ prosie chapter show 103 --json
+--- stdout
+{
+  "id": 103,
+  "story_id": 101,
+  "order": 1,
+  "content": "REWRITTEN(The door was shut and the hall was cold.)"
+}
+--- stderr
+--- exit 0
+
+$ prosie generate continue 103
+--- stdout
+The lantern guttered. She stepped into the dark.
+--- stderr
+--- exit 0
+
+$ prosie chapter show 103 --json
+--- stdout
+{
+  "id": 103,
+  "story_id": 101,
+  "order": 1,
+  "content": "REWRITTEN(The door was shut and the hall was cold.)\n\nThe lantern guttered. She stepped into the dark."
+}
+--- stderr
+--- exit 0
+

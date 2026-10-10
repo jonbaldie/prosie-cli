@@ -1,0 +1,168 @@
+$ prosie book import The\ Lantern\ Road.docx --json
+--- stdout
+{
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "The Lantern Road",
+  "word_count": 3,
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "title": "Chapter 1",
+      "content": "Imported prose here."
+    }
+  ]
+}
+--- stderr
+--- exit 0
+
+$ prosie book import The\ Lantern\ Road.docx --title Lantern\ \(renamed\)
+--- stdout
+Imported book "Lantern (renamed)" (ID: 103) with 1 chapters.
+--- stderr
+--- exit 0
+
+$ prosie book import - --json < The
+Lantern
+Road.docx
+--- stdout
+{
+  "filter_using_story_so_far": false,
+  "id": 105,
+  "title": "Imported Book",
+  "word_count": 3,
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 106,
+      "story_id": 105,
+      "order": 0,
+      "title": "Chapter 1",
+      "content": "Imported prose here."
+    }
+  ]
+}
+--- stderr
+--- exit 0
+
+$ prosie book import - --title From\ stdin < The
+Lantern
+Road.docx
+--- stdout
+Imported book "From stdin" (ID: 107) with 1 chapters.
+--- stderr
+--- exit 0
+
+$ prosie book import missing.docx
+--- stdout
+--- stderr
+error: file not found: missing.docx
+--- exit 1
+
+$ prosie book import somedir
+--- stdout
+--- stderr
+error importing book: failed to copy file data: read somedir: is a directory
+--- exit 1
+
+$ prosie book import conv.json
+--- stdout
+--- stderr
+error importing book: API error (422): The document field must be a file of type: docx. (document: The document field must be a file of type: docx.)
+--- exit 1
+
+$ prosie chat import 101 conv.json --json
+--- stdout
+{
+  "id": 109,
+  "story_id": 101,
+  "title": "Plot doctor",
+  "fidelity": "full",
+  "messages": [
+    {
+      "id": 110,
+      "role": "user",
+      "content": "Where does the lantern go?"
+    },
+    {
+      "id": 111,
+      "role": "assistant",
+      "content": "Into the well."
+    }
+  ],
+  "created_at": "2026-10-10T12:00:00+00:00",
+  "updated_at": "2026-10-10T12:00:00+00:00"
+}
+--- stderr
+--- exit 0
+
+$ prosie chat import 101 - < conv.json
+--- stdout
+Imported conversation 112 ("Plot doctor") into book 101.
+--- stderr
+--- exit 0
+
+$ prosie chat show 108 --json
+--- stdout
+--- stderr
+error showing conversation: API error (404): Not Found
+--- exit 1
+
+$ prosie chat import 101 bad.json
+--- stdout
+--- stderr
+error importing conversation: API error (422): The conversation export is not valid JSON. (file: The conversation export is not valid JSON.)
+--- exit 1
+
+$ prosie chat import 999 conv.json
+--- stdout
+--- stderr
+error importing conversation: API error (404): Not Found
+--- exit 1
+
+$ prosie chat import abc conv.json
+--- stdout
+--- stderr
+error importing conversation: API error (404): Not Found
+--- exit 1
+
+$ prosie chat import 101 -
+--- stdout
+--- stderr
+error importing conversation: API error (422): The conversation export is not valid JSON. (file: The conversation export is not valid JSON.)
+--- exit 1
+
+$ prosie chat list 101
+--- stdout
+ID    TITLE         FIDELITY   EXPIRES   UPDATED
+109   Plot doctor   full       -         2026-10-10 12:00
+112   Plot doctor   full       -         2026-10-10 12:00
+--- stderr
+--- exit 0
+
+$ prosie book show 107
+--- stdout
+Title:       From stdin
+ID:          107
+Words:       3
+Premise:     -
+Lore:        -
+Characters:  -
+Updated:     2026-10-10 12:00
+
+Chapters (1):
+  1. Chapter 1 (0 words)
+--- stderr
+--- exit 0
+
+$ prosie chat export 112
+--- stdout
+--- stderr
+error exporting conversation: API error (404): Not Found
+--- exit 1
+

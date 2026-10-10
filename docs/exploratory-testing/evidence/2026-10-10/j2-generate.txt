@@ -1,0 +1,82 @@
+$ prosie generate continue 106
+--- stdout
+The lantern guttered. She stepped into the dark.
+--- stderr
+--- exit 0
+
+$ prosie generate continue 106 --no-stream --instruction Close\ the\ scene. --words 900 --lines 12
+--- stdout
+The lantern guttered. She stepped into the dark.
+--- stderr
+--- exit 0
+
+$ prosie generate continue 106 --json --no-persist
+--- stdout
+{
+  "prose": "The lantern guttered. She stepped into the dark.",
+  "persisted": false,
+  "model": "fixture/model"
+}
+--- stderr
+--- exit 0
+
+$ prosie chapter show 106 --json
+--- stdout
+{
+  "id": 106,
+  "story_id": 105,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "Imported prose here.\n\nThe lantern guttered. She stepped into the dark.\n\nThe lantern guttered. She stepped into the dark."
+}
+--- stderr
+--- exit 0
+
+$ prosie generate rewrite 106 --selection-file sel.txt --prompt Make\ it\ tense. --persist
+--- stdout
+REWRITTEN(Imported prose)
+--- stderr
+--- exit 0
+
+$ prosie chapter show 106 --json
+--- stdout
+{
+  "id": 106,
+  "story_id": 105,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "REWRITTEN(Imported prose) here.\n\nThe lantern guttered. She stepped into the dark.\n\nThe lantern guttered. She stepped into the dark."
+}
+--- stderr
+--- exit 0
+
+$ prosie generate undo 106
+--- stdout
+Undid latest rewrite for chapter 106.
+--- stderr
+--- exit 0
+
+$ prosie generate undo 106
+--- stdout
+--- stderr
+error undoing rewrite: API error (422): There is nothing to undo. (scene: There is nothing to undo.)
+--- exit 1
+
+$ prosie generate summarize 106 --json
+--- stdout
+{
+  "summary": "A test summary.",
+  "persisted": true,
+  "model": "fixture/model"
+}
+--- stderr
+--- exit 0
+
+$ prosie generate summarize 106 --no-persist
+--- stdout
+A test summary.
+--- stderr
+--- exit 0
+
