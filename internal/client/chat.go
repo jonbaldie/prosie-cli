@@ -225,14 +225,9 @@ func (c *Conversations) StreamChatMessage(ctx context.Context, conversationID st
 	}
 	defer resp.Body.Close()
 
-	result, accumulated, err := streamSSE[SendMessageResponse](ctx, resp.Body, onToken)
+	result, err := streamSSE[SendMessageResponse](ctx, resp.Body, onToken)
 	if err != nil {
 		return nil, err
-	}
-	if result == nil {
-		result = &SendMessageResponse{Message: &ChatMessage{
-			Role: "assistant", Content: accumulated,
-		}}
 	}
 	return result, nil
 }

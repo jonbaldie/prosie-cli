@@ -123,17 +123,10 @@ func (c *Generation) StreamContinue(ctx context.Context, chapterID string, param
 	}
 	defer resp.Body.Close()
 
-	res, accumulated, err := streamSSE[ContinueResult](ctx, resp.Body, onToken)
+	res, err := streamSSE[ContinueResult](ctx, resp.Body, onToken)
 	if err != nil {
 		return nil, err
 	}
-	if res == nil {
-		res = &ContinueResult{
-			Prose:     accumulated,
-			Persisted: params.Persist,
-		}
-	}
-
 	return res, nil
 }
 
@@ -212,17 +205,10 @@ func (c *Generation) StreamRewrite(ctx context.Context, chapterID string, params
 	}
 	defer resp.Body.Close()
 
-	res, accumulated, err := streamSSE[RewriteResult](ctx, resp.Body, onToken)
+	res, err := streamSSE[RewriteResult](ctx, resp.Body, onToken)
 	if err != nil {
 		return nil, err
 	}
-	if res == nil {
-		res = &RewriteResult{
-			Prose:     accumulated,
-			Persisted: params.Persist,
-		}
-	}
-
 	return res, nil
 }
 
