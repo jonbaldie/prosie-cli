@@ -27,7 +27,7 @@ func TestProseInputHelp(t *testing.T) {
 	}
 }
 
-func TestChapterContentPatch(t *testing.T) {
+func TestChapterContentPresence(t *testing.T) {
 	for _, action := range []string{"create", "update"} {
 		for _, tc := range []struct {
 			name, input, want string
@@ -57,6 +57,9 @@ func TestChapterContentPatch(t *testing.T) {
 				args := append([]string{"chapter", action, "1", "--json"}, tc.flags...)
 				if code := cmd.Execute(args); code != 0 || errOut.Len() != 0 {
 					t.Fatalf("code=%d stderr=%q", code, errOut.String())
+				}
+				if body == nil {
+					t.Fatal("expected a chapter request")
 				}
 				got, present := body["content"]
 				if present != tc.present || (present && got != tc.want) {
@@ -114,17 +117,25 @@ func TestProseConflictingInputs(t *testing.T) {
 		{"chapter", "update", "101", "--content", "Inline prose.", "--file", "-"},
 		{"generate", "rewrite", "101", "--selection", "Inline prose.", "--selection-file", "-", "--action", "tighten"},
 	} {
-		t.Run(strings.Join(args[:2], " "), func(t *testing.T) {
-			cmd, out, errOut := newTestRootCmd("", nil)
-			cmd.In = iotest.ErrReader(errors.New("must not read input"))
-			args = append(args, "--json")
-			if code := cmd.Execute(args); code != 1 || out.Len() != 0 {
-				t.Fatalf("code=%d stdout=%q", code, out.String())
-			}
-			if !strings.Contains(errOut.String(), "not both") || strings.Contains(errOut.String(), "must not read input") {
-				t.Fatalf("unexpected stderr: %s", errOut.String())
-			}
-		})
+		for _, path := range []string{"-", "/nonexistent/prosie-content.txt"} {
+			t.Run(strings.Join(args[:2], " ")+"/"+path, func(t *testing.T) {
+				cmd, out, errOut := newTestRootCmd("", nil)
+				cmd.In = iotest.ErrReader(errors.New("must not read input"))
+				inputArgs := append([]string{}, args...)
+				for i, arg := range inputArgs {
+					if arg == "-" {
+						inputArgs[i] = path
+					}
+				}
+				inputArgs = append(inputArgs, "--json")
+				if code := cmd.Execute(inputArgs); code != 1 || out.Len() != 0 {
+					t.Fatalf("code=%d stdout=%q", code, out.String())
+				}
+				if !strings.Contains(errOut.String(), "not both") || strings.Contains(errOut.String(), "must not read input") {
+					t.Fatalf("unexpected stderr: %s", errOut.String())
+				}
+			})
+		}
 	}
 }
 
