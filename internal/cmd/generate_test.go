@@ -594,6 +594,7 @@ func TestGenerateUndo(t *testing.T) {
 }
 
 func TestGenerateRewrite(t *testing.T) {
+	var capturedBody map[string]any
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/api/scenes/101/rewrite/stream" && r.Method == http.MethodPost:
@@ -612,14 +613,13 @@ func TestGenerateRewrite(t *testing.T) {
 			flusher.Flush()
 
 		case r.URL.Path == "/api/scenes/101/rewrite" && r.Method == http.MethodPost:
-			var body map[string]any
-			_ = json.NewDecoder(r.Body).Decode(&body)
+			_ = json.NewDecoder(r.Body).Decode(&capturedBody)
 
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
 					"prose":           "She whispered.",
-					"persisted":       body["persist"] == true,
+					"persisted":       capturedBody["persist"] == true,
 					"model":           "test-model",
 					"applied_content": "<p>She whispered.</p>",
 				},
@@ -727,7 +727,9 @@ func TestGenerateRewrite(t *testing.T) {
 	t.Run("rewrite with selection file", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		selFile := filepath.Join(tmpDir, "selection.txt")
-		_ = os.WriteFile(selFile, []byte("She said quietly from file."), 0644)
+		if err := os.WriteFile(selFile, []byte("She said quietly from file."), 0644); err != nil {
+			t.Fatal(err)
+		}
 
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{
@@ -735,7 +737,10 @@ func TestGenerateRewrite(t *testing.T) {
 			"--selection-file", selFile,
 			"--action", "tighten",
 		})
-		if code != 0 {
+		if capturedBody["selection"] != "She said quietly from file." {
+			t.Fatalf("file selection not sent: %#v", capturedBody)
+		}
+		if code != 0 || errOut.Len() != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
 		}
 		if !strings.Contains(out.String(), "She whispered.") {

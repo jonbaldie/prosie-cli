@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/jonbaldie/prosie-cli/internal/client"
@@ -17,7 +16,7 @@ func executeGenerateRewrite(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 
 	selectionFlag := fs.String("selection", "", "Text selection to rewrite")
-	selectionFileFlag := fs.String("selection-file", "", "File containing text selection to rewrite")
+	selectionFileFlag := fs.String("selection-file", "", "File containing text selection to rewrite ('-' for standard input)")
 	promptFlag := fs.String("prompt", "", "Custom rewrite instructions")
 	instructionFlag := fs.String("instruction", "", "Custom rewrite instructions (alias for --prompt)")
 	actionFlag := fs.String("action", "", "Preset rewrite action key: show, tighten, voice, or user-<id>")
@@ -37,7 +36,7 @@ func executeGenerateRewrite(c *command.Environment, args []string) int {
 
 	id := posArgs[0]
 
-	params, err := rewriteInput(*selectionFlag, *selectionFileFlag, *promptFlag, *instructionFlag, *actionFlag, *persistFlag)
+	params, err := rewriteInput(c, *selectionFlag, *selectionFileFlag, *promptFlag, *instructionFlag, *actionFlag, *persistFlag)
 	if err != nil {
 		fmt.Fprintln(c.Err, err)
 		return 1
@@ -80,20 +79,22 @@ Usage:
 Flags:
   -h, --help             Show help for command
       --selection        Text selection to rewrite
-      --selection-file   File containing text selection to rewrite
+      --selection-file   File containing text selection to rewrite ('-' for standard input)
       --prompt           Custom rewrite instructions
       --action           Preset action key: show, tighten, voice, or user-<id>
       --persist          Save rewritten prose to chapter
       --stream           Stream rewrite tokens in real time
       --json             Output in JSON format
+
+Use non-empty --selection or --selection-file, not both.
 `
 	fmt.Fprint(c.Out, help)
 }
 
-func rewriteInput(selection, filePath, prompt, instruction, action string, persist bool) (client.RewriteParams, error) {
+func rewriteInput(c *command.Environment, selection, filePath, prompt, instruction, action string, persist bool) (client.RewriteParams, error) {
 	params := client.RewriteParams{Action: action, Persist: persist}
 	var err error
-	params.Selection, err = rewriteSelection(selection, filePath)
+	params.Selection, err = rewriteSelection(c, selection, filePath)
 	if err != nil {
 		return params, err
 	}
@@ -107,13 +108,10 @@ func rewriteInput(selection, filePath, prompt, instruction, action string, persi
 	return params, nil
 }
 
-func rewriteSelection(selection, filePath string) (string, error) {
-	if selection == "" && filePath != "" {
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			return "", fmt.Errorf("error reading selection file: %w", err)
-		}
-		selection = string(data)
+func rewriteSelection(c *command.Environment, selection, filePath string) (string, error) {
+	selection, err := command.ReadContent(c, selection, filePath, "selection")
+	if err != nil {
+		return "", err
 	}
 	if strings.TrimSpace(selection) == "" {
 		return "", fmt.Errorf("error: --selection or --selection-file is required")
