@@ -2,7 +2,6 @@ package command
 
 import (
 	"flag"
-	"os"
 
 	"github.com/jonbaldie/prosie-cli/internal/client"
 )
@@ -35,7 +34,7 @@ func WordTarget(value int) *int {
 	return &value
 }
 
-func ChapterInput(fs *flag.FlagSet, title, content, summary, filePath *string) (client.UpdateChapterParams, error) {
+func ChapterInput(c *Environment, fs *flag.FlagSet, title, content, summary, filePath *string) (client.UpdateChapterParams, error) {
 	visited := VisitedFlags(fs)
 	params := client.UpdateChapterParams{
 		Name:    Provided(visited, "title", title),
@@ -43,11 +42,10 @@ func ChapterInput(fs *flag.FlagSet, title, content, summary, filePath *string) (
 		Content: Provided(visited, "content", content),
 	}
 	if visited["file"] && *filePath != "" {
-		data, err := os.ReadFile(*filePath)
+		text, err := ReadContent(c, *content, *filePath, "content")
 		if err != nil {
 			return params, err
 		}
-		text := string(data)
 		params.Content = &text
 	}
 	return params, nil

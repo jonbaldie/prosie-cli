@@ -373,11 +373,16 @@ func TestChapterCreate(t *testing.T) {
 			"chapter", "create", "1",
 			"--title", "From File",
 			"--file", filePath,
+			"--json",
 		})
-		if code != 0 {
+		if code != 0 || errOut.Len() != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
 		}
-		if !strings.Contains(out.String(), "Created chapter \"From File\" (ID: 105).") {
+		var chapter client.Chapter
+		if err := json.Unmarshal(out.Bytes(), &chapter); err != nil || chapter.Content != "Content from file." {
+			t.Fatalf("chapter content not read: %s, error: %v", out.String(), err)
+		}
+		if chapter.Display().Title != "From File" || chapter.ID != 105 {
 			t.Fatalf("unexpected stdout: %s", out.String())
 		}
 	})
@@ -391,7 +396,7 @@ func TestChapterCreate(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("expected code 1, got %d", code)
 		}
-		if !strings.Contains(errOut.String(), "error reading file") {
+		if !strings.Contains(errOut.String(), "error reading content file") {
 			t.Fatalf("unexpected stderr: %s", errOut.String())
 		}
 	})
@@ -478,11 +483,16 @@ func TestChapterUpdate(t *testing.T) {
 			"chapter", "update", "101",
 			"--title", "File Update",
 			"--file", filePath,
+			"--json",
 		})
-		if code != 0 {
+		if code != 0 || errOut.Len() != 0 {
 			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
 		}
-		if !strings.Contains(out.String(), "Updated chapter 101 (\"File Update\").") {
+		var chapter client.Chapter
+		if err := json.Unmarshal(out.Bytes(), &chapter); err != nil || chapter.Content != "Fresh prose from file." {
+			t.Fatalf("chapter content not read: %s, error: %v", out.String(), err)
+		}
+		if chapter.Display().Title != "File Update" || chapter.ID != 101 {
 			t.Fatalf("unexpected stdout: %s", out.String())
 		}
 	})

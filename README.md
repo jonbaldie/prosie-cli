@@ -95,6 +95,8 @@ constraints in `--instruction` rather than in chapter metadata.
 
 `chapter reorder <book-id> <id1,id2,...>` puts the selected chapters first. Omitted chapters follow in their existing order. Repeated IDs and IDs from other books are ignored.
 
-`chapter create --content` and `chapter update --file` accept prose. Book and chapter Markdown exports keep paragraph boundaries from plain text and HTML.
+`chapter create` and `chapter update` accept prose through `--content` or `--file`. Use `--file -` to read standard input. `generate rewrite` accepts `--selection` or `--selection-file`; use `--selection-file -` to read standard input. Do not combine non-empty inline prose with a file path. Text from each source keeps its spaces and line breaks.
+
+Book and chapter Markdown exports keep paragraph boundaries from plain text and HTML.
 
 Use `prosie auth login --help`, `prosie auth status --help`, or `prosie auth logout --help` to see authentication options without starting an authentication action.

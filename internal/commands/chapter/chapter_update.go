@@ -15,7 +15,7 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 	title := fs.String("title", "", "Chapter title (sent as name)")
 	content := fs.String("content", "", "Chapter prose content")
 	summary := fs.String("summary", "", "Chapter summary")
-	filePath := fs.String("file", "", "Path to file containing chapter prose")
+	filePath := fs.String("file", "", "Path to file containing chapter prose ('-' for standard input)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args)
@@ -30,9 +30,9 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 
 	id := posArgs[0]
 
-	params, err := command.ChapterInput(fs, title, content, summary, filePath)
+	params, err := command.ChapterInput(c, fs, title, content, summary, filePath)
 	if err != nil {
-		fmt.Fprintf(c.Err, "error reading file: %v\n", err)
+		fmt.Fprintln(c.Err, err)
 		return 1
 	}
 
@@ -65,11 +65,13 @@ Usage:
 
 Flags:
       --content string   Chapter prose content
-      --file string      Path to file containing chapter prose
+      --file string      Path to file containing chapter prose ('-' for standard input)
   -h, --help             Show help for command
       --json             Format output as JSON
       --summary string   Chapter summary
       --title string     Chapter title (sent as name)
+
+Use non-empty --content or --file, not both.
 `
 	fmt.Fprint(c.Out, help)
 }
