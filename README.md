@@ -89,6 +89,10 @@ generated lines. Note that the book premise and the current chapter's summary
 are not currently part of the continuation prompt, so put final-scene
 constraints in `--instruction` rather than in chapter metadata.
 
+## Generation conflicts
+
+If another session changes a chapter during generation, the API can reject the save. The command exits with code 1 and writes the error and unsaved generated text to standard error. JSON and non-streaming commands leave standard output empty. Streaming commands may already have printed provisional tokens; those tokens do not confirm a save. Copy any text you want to keep before retrying.
+
 ## Saved books and exports
 
 `book create --json` includes the saved book defaults and initial chapters. A new book starts with Chapter 1. `book show <id> --json` reports the same saved state.
