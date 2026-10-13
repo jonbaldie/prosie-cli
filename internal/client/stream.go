@@ -68,10 +68,11 @@ func (t *streamTokens) accept(data string) {
 }
 
 func streamError(data string) string {
-	var payload struct {
-		Message string `json:"message"`
-	}
+	var payload ApiError
 	if json.Unmarshal([]byte(data), &payload) == nil && payload.Message != "" {
+		if payload.GeneratedContent != "" {
+			return payload.Message + "\nGenerated text was not saved. Copy it before retrying.\n" + payload.GeneratedContent
+		}
 		return payload.Message
 	}
 	return data

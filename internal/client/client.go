@@ -22,13 +22,17 @@ type User struct {
 
 // ApiError represents an error response from the Prosie API.
 type ApiError struct {
-	StatusCode int                 `json:"status_code"`
-	ErrorCode  string              `json:"error,omitempty"`
-	Message    string              `json:"message,omitempty"`
-	Errors     map[string][]string `json:"errors,omitempty"`
+	StatusCode       int                 `json:"status_code"`
+	ErrorCode        string              `json:"error,omitempty"`
+	Message          string              `json:"message,omitempty"`
+	Errors           map[string][]string `json:"errors,omitempty"`
+	GeneratedContent string              `json:"generated_content,omitempty"`
 }
 
 func (e *ApiError) Error() string {
+	if e.GeneratedContent != "" {
+		return fmt.Sprintf("API error (%d): %s\nGenerated text was not saved. Copy it before retrying.\n%s", e.StatusCode, e.Message, e.GeneratedContent)
+	}
 	if e.Message != "" {
 		if len(e.Errors) > 0 {
 			var details []string
@@ -140,6 +144,7 @@ func (e *ApiError) decode(body []byte) {
 	}
 	e.Message, _ = raw["message"].(string)
 	e.ErrorCode, _ = raw["error"].(string)
+	e.GeneratedContent, _ = raw["generated_content"].(string)
 	if e.Message == "" {
 		e.Message, _ = raw["error_description"].(string)
 	}
