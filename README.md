@@ -91,7 +91,7 @@ constraints in `--instruction` rather than in chapter metadata.
 
 ## Generation conflicts
 
-If another session changes a chapter during generation, the API can reject the save. The command exits with code 1 and writes the error and unsaved generated text to standard error. Standard output stays empty, including with `--json`. Copy any text you want to keep before retrying.
+If another session changes a chapter during generation, the API can reject the save. The command exits with code 1 and writes the error and unsaved generated text to standard error. JSON and non-streaming commands leave standard output empty. Streaming commands may already have printed provisional tokens; those tokens do not confirm a save. Copy any text you want to keep before retrying.
 
 ## Saved books and exports
 

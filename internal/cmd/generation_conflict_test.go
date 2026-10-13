@@ -26,6 +26,7 @@ func TestGenerationConflictKeepsCandidateInErrorOutput(t *testing.T) {
 					payload := map[string]string{"message": "This chapter changed. Nothing was saved.", "error": "conflict", "generated_content": "Generated candidate."}
 					if tc.stream && !jsonOutput {
 						w.Header().Set("Content-Type", "text/event-stream")
+						_, _ = w.Write([]byte("event: delta\ndata: {\"delta\":\"Generated \"}\n\n"))
 						_, _ = w.Write([]byte("event: error\ndata: "))
 						_ = json.NewEncoder(w).Encode(payload)
 						_, _ = w.Write([]byte("\n"))
@@ -44,8 +45,12 @@ func TestGenerationConflictKeepsCandidateInErrorOutput(t *testing.T) {
 				if code := command.Execute(args); code != 1 {
 					t.Fatalf("exit code %d, want 1", code)
 				}
-				if stdout.Len() != 0 {
-					t.Fatalf("unexpected stdout %q", stdout.String())
+				wantOutput := ""
+				if tc.stream && !jsonOutput {
+					wantOutput = "Generated "
+				}
+				if stdout.String() != wantOutput {
+					t.Fatalf("stdout %q, want provisional tokens %q", stdout.String(), wantOutput)
 				}
 				if !strings.Contains(stderr.String(), "Generated candidate.") || !strings.Contains(stderr.String(), "Nothing was saved.") {
 					t.Fatalf("missing conflict or candidate in stderr %q", stderr.String())

@@ -48,6 +48,7 @@ func TestHTTPErrorDecodingPreservesConflictAndValidationDetails(t *testing.T) {
 func TestStreamConflictReturnsCandidateWithoutSuccessfulResult(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
+		_, _ = w.Write([]byte("event: delta\ndata: {\"delta\":\"Generated \"}\n\n"))
 		_, _ = w.Write([]byte("event: error\ndata: {\"message\":\"Nothing was saved.\",\"error\":\"conflict\",\"generated_content\":\"Candidate.\"}\n\n"))
 	}))
 	defer server.Close()
