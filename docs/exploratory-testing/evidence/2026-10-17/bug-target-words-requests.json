@@ -1,0 +1,39 @@
+[
+  {
+    "method": "POST",
+    "path": "/api/stories",
+    "authorization": "Bearer test-token",
+    "content_type": "application/json",
+    "body": {
+      "title": "Negative Target"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories",
+    "authorization": "Bearer test-token",
+    "content_type": "application/json",
+    "body": {
+      "title": "Zero Target"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories",
+    "authorization": "Bearer test-token",
+    "content_type": "application/json",
+    "body": {
+      "title": "Valid Target",
+      "target_word_count": 1000
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories",
+    "authorization": "Bearer test-token",
+    "content_type": "application/json",
+    "body": {
+      "title": "Negative Target Again"
+    }
+  }
+]

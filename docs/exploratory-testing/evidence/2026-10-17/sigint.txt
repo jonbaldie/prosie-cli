@@ -1,0 +1,11 @@
+COMMAND: prosie generate continue 102  # SIGINT during delayed stream
+EXIT:1
+STDOUT:
+STDERR:
+Generation cancelled.
+---
+REPLAY
+EXIT:1
+STDOUT:
+STDERR:
+Generation cancelled.

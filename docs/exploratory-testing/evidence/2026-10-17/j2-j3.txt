@@ -1,0 +1,691 @@
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book create --title The Cold Hall --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "The Cold Hall",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter update 102 --content The door was shut and the hall was cold.
+EXIT:0
+STDOUT:
+Updated chapter 102 ("Chapter 1").
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --no-stream --instruction Write the closing scene. --words 40 --lines 2
+EXIT:0
+STDOUT:
+She ended the story as asked.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "word_count": 15,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --no-persist --no-stream
+EXIT:0
+STDOUT:
+The lantern guttered. She opened the door.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "word_count": 15,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --json --words 0
+EXIT:1
+STDOUT:
+STDERR:
+error: --words must be a positive integer
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --lines -1
+EXIT:1
+STDOUT:
+STDERR:
+error: --lines must be a positive integer
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate rewrite 102 --selection-file - --prompt Make it tense. --no-stream
+EXIT:1
+STDOUT:
+STDERR:
+error parsing flags: flag provided but not defined: -no-stream
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate rewrite 102 --selection The door was shut and the hall was cold. --action tighten --persist
+EXIT:0
+STDOUT:
+Tighter: The door was shut and the hall was cold.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "Tighter: The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "word_count": 16,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate undo 102
+EXIT:0
+STDOUT:
+Undid latest rewrite for chapter 102.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate undo 102
+EXIT:1
+STDOUT:
+STDERR:
+error undoing rewrite: API error (422): No rewrite to undo.
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate summarize 102
+EXIT:0
+STDOUT:
+A cold hall and a closed door.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "summary": "A cold hall and a closed door.",
+  "word_count": 15,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate summarize 102 --no-persist --json
+EXIT:0
+STDOUT:
+{
+  "summary": "A cold hall and a closed door.",
+  "persisted": false,
+  "model": "fixture"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --no-stream
+EXIT:1
+STDOUT:
+STDERR:
+error generating continuation: API error (409): This chapter changed. Nothing was saved.
+Generated text was not saved. Copy it before retrying.
+The unsaved ending.
+
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102 --json
+EXIT:1
+STDOUT:
+STDERR:
+error generating continuation: API error (409): This chapter changed. Nothing was saved.
+Generated text was not saved. Copy it before retrying.
+The unsaved ending.
+
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102
+EXIT:1
+STDOUT:
+The unsaved STDERR:
+error generating continuation: stream error: This chapter changed. Nothing was saved.
+Generated text was not saved. Copy it before retrying.
+The unsaved ending.
+
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate rewrite 102 --selection cold. --prompt Sharpen. --persist --stream
+EXIT:1
+STDOUT:
+The unsaved STDERR:
+error rewriting text: stream error: This chapter changed. Nothing was saved.
+Generated text was not saved. Copy it before retrying.
+The unsaved ending.
+
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate summarize 102
+EXIT:1
+STDOUT:
+STDERR:
+error generating summary: API error (409): This chapter changed. Nothing was saved.
+Generated text was not saved. Copy it before retrying.
+The unsaved ending.
+
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "summary": "A cold hall and a closed door.",
+  "word_count": 15,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102
+EXIT:1
+STDOUT:
+The lantern guttered.STDERR:
+error generating continuation: stream error: stream ended before completion
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate rewrite 102 --selection cold. --prompt Sharpen. --stream
+EXIT:1
+STDOUT:
+TighterSTDERR:
+error rewriting text: stream error: stream ended before completion
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat stream 101 Will she leave?
+EXIT:1
+STDOUT:
+The door 
+STDERR:
+error sending message: stream error: stream ended before completion
+conversation 103 was created; continue with --conversation 103
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102
+EXIT:1
+STDOUT:
+Partial STDERR:
+error generating continuation: stream error: Upstream provider failed.
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate continue 102
+EXIT:0
+STDOUT:
+The lantern guttered. She opened the door.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102
+EXIT:0
+STDOUT:
+The door was shut and the hall was cold.<p class="llm-generated">She ended the story as asked.</p><p class="llm-generated">The lantern guttered. She opened the door.</p>
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate reject 102
+EXIT:0
+STDOUT:
+Reverted latest continuation for chapter 102.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "The door was shut and the hall was cold.\u003cp class=\"llm-generated\"\u003eShe ended the story as asked.\u003c/p\u003e",
+  "summary": "A cold hall and a closed door.",
+  "word_count": 15,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth status
+EXIT:1
+STDOUT:
+STDERR:
+You are not logged in. Run 'prosie auth login' or set PROSIE_API_TOKEN.
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth status --json
+EXIT:1
+STDOUT:
+{
+  "authenticated": false,
+  "api_url": "http://127.0.0.1:59334",
+  "token_source": "none"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book list
+EXIT:1
+STDOUT:
+STDERR:
+authentication error: you are not logged in. Run 'prosie auth login' or set PROSIE_API_TOKEN
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth login --help
+EXIT:0
+STDOUT:
+Log in through OAuth device flow or a personal access token.
+
+Usage:
+  prosie auth login [flags]
+
+Flags:
+  -h, --help            Show help for command
+      --json            Format output as JSON
+      --token string    Authenticate with a personal access token
+      --no-browser      Do not open the browser automatically
+      --scopes string   Requested scopes (default "read write generate")
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth login --token test-token
+EXIT:0
+STDOUT:
+Successfully authenticated to http://127.0.0.1:59334!
+Logged in as Ada Writer (ada@example.com)
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth status
+EXIT:0
+STDOUT:
+Logged in to http://127.0.0.1:59334 as Ada Writer (ada@example.com)
+Token source: config
+Token scopes: read, write, generate
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth logout
+EXIT:0
+STDOUT:
+Logged out from Prosie.
+Note: PROSIE_API_TOKEN is set in your environment and will continue to authenticate requests.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth status
+EXIT:0
+STDOUT:
+Logged in to http://127.0.0.1:59334 as Ada Writer (ada@example.com)
+Token source: environment
+Token scopes: read, write, generate
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth status
+EXIT:1
+STDOUT:
+STDERR:
+You are not logged in. Run 'prosie auth login' or set PROSIE_API_TOKEN.
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth login --token test-token --json
+EXIT:0
+STDOUT:
+{
+  "status": "authenticated",
+  "api_url": "http://127.0.0.1:59334",
+  "user": {
+    "id": 7,
+    "name": "Ada Writer",
+    "email": "ada@example.com"
+  },
+  "scopes": [
+    "read",
+    "write",
+    "generate"
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book list
+EXIT:1
+STDOUT:
+STDERR:
+authentication error: error reading config.json at /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/config.json: invalid character 'n' looking for beginning of object key string
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie auth login --no-browser --json
+EXIT:0
+STDOUT:
+{
+  "expires_in": 30,
+  "user_code": "ABCD-EFGH",
+  "verification_url": "https://prosie.test/activate?user_code=ABCD-EFGH"
+}
+{
+  "status": "authenticated",
+  "api_url": "http://127.0.0.1:59334",
+  "user": {
+    "id": 7,
+    "name": "Ada Writer",
+    "email": "ada@example.com"
+  },
+  "scopes": [
+    "read",
+    "write",
+    "generate"
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book create --title The Cold Hall --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "The Cold Hall",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 Why is the door shut? --title Door
+EXIT:0
+STDOUT:
+The door stays shut until chapter three.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat show 102
+EXIT:1
+STDOUT:
+STDERR:
+error showing conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat list 101 --json
+EXIT:0
+STDOUT:
+[
+  {
+    "id": 103,
+    "story_id": 101,
+    "title": "Door",
+    "model": "openai/gpt-test",
+    "fidelity": "manuscript",
+    "expires_in_days": 14,
+    "created_at": "2026-10-17T12:00:00+00:00",
+    "updated_at": "2026-10-17T12:00:00+00:00"
+  }
+]
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat stream --conversation 102 What happens next?
+EXIT:1
+STDOUT:
+STDERR:
+error sending message: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat stream 101 A second thread --json --title Other
+EXIT:0
+STDOUT:
+{
+  "conversation_id": 106,
+  "message": {
+    "id": 108,
+    "conversation_id": 106,
+    "role": "assistant",
+    "content": "The door stays shut until chapter three.",
+    "created_at": "2026-10-17T12:00:00+00:00"
+  },
+  "model": "fixture",
+  "usage": {
+    "prompt_tokens": 3,
+    "completion_tokens": 8,
+    "total_tokens": 11
+  }
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat export 102 -o /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json
+EXIT:1
+STDOUT:
+STDERR:
+error exporting conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat export 102 --json
+EXIT:1
+STDOUT:
+STDERR:
+error exporting conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat import 101 /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json
+EXIT:1
+STDOUT:
+STDERR:
+error: file not found: /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat import 101 -
+EXIT:0
+STDOUT:
+Imported conversation 109 ("Piped chat") into book 101.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat import 101 -
+EXIT:1
+STDOUT:
+STDERR:
+error importing conversation: API error (422): The conversation file is not valid JSON. (file: The conversation file is not valid JSON.)
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101
+EXIT:1
+STDOUT:
+STDERR:
+error: message is required. Usage: prosie chat send <book-id> <message> [flags]
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 --why
+EXIT:1
+STDOUT:
+STDERR:
+error parsing flags: flag provided but not defined: -why
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat delete 102 --json
+EXIT:0
+STDOUT:
+STDERR:
+Are you sure you want to delete conversation 102? [y/N]: Deletion cancelled.
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat show 102 --json
+EXIT:1
+STDOUT:
+STDERR:
+error showing conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 This will fail --title Failed turn
+EXIT:1
+STDOUT:
+STDERR:
+error sending message: API error (502): The assistant did not answer.
+conversation 111 was created; continue with --conversation 111
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm show
+EXIT:0
+STDOUT:
+Provider:       openrouter
+Model:          openai/gpt-test
+OpenAI key:     not configured
+Anthropic key:  not configured
+OpenRouter key: not configured
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm models --json
+EXIT:0
+STDOUT:
+{
+  "providers": {
+    "openai": {
+      "gpt-test": "GPT Test"
+    },
+    "openrouter": {
+      "openai/gpt-test": "GPT Test"
+    }
+  },
+  "configured": []
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm update --provider openrouter --model openai/gpt-test --json
+EXIT:0
+STDOUT:
+{
+  "provider": "openrouter",
+  "model": "openai/gpt-test",
+  "has_openai_key": false,
+  "has_anthropic_key": false,
+  "has_openrouter_key": true
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm show
+EXIT:0
+STDOUT:
+Provider:       openrouter
+Model:          openai/gpt-test
+OpenAI key:     not configured
+Anthropic key:  not configured
+OpenRouter key: configured
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm update
+EXIT:0
+STDOUT:
+Updated LLM configuration.
+Provider:       openrouter
+Model:          openai/gpt-test
+OpenAI key:     not configured
+Anthropic key:  not configured
+OpenRouter key: configured
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter update 103 --content <p>The door was shut.</p><p>The hall was cold.</p>
+EXIT:1
+STDOUT:
+STDERR:
+error updating chapter: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 103
+EXIT:1
+STDOUT:
+STDERR:
+error fetching chapter: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter export 103
+EXIT:1
+STDOUT:
+STDERR:
+error exporting chapter: API error (404): Not Found
+
+---

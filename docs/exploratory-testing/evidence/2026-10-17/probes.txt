@@ -1,0 +1,249 @@
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book create --title Negative Target --target-words -5 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "Negative Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book create --title Zero Target --target-words 0 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 103,
+  "title": "Zero Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 104,
+      "story_id": 103,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book update 101 --target-words 0
+EXIT:0
+STDOUT:
+Updated book 101 ("Negative Target").
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book update 101 --target-words -1
+EXIT:0
+STDOUT:
+Updated book 101 ("Negative Target").
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book update 101 --premise 
+EXIT:0
+STDOUT:
+Updated book 101 ("Negative Target").
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book show 101 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "target_word_count": -1,
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "Negative Target",
+  "story_so_far": "",
+  "premise": "",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter update 102 --content <p>The door was shut.</p><p>The hall was cold.</p>
+EXIT:0
+STDOUT:
+Updated chapter 102 ("Chapter 1").
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102
+EXIT:0
+STDOUT:
+<p>The door was shut.</p><p>The hall was cold.</p>
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter export 102
+EXIT:0
+STDOUT:
+# Chapter 1
+
+The door was shut.
+
+The hall was cold.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "Chapter 1",
+  "title": "Chapter 1",
+  "content": "\u003cp\u003eThe door was shut.\u003c/p\u003e\u003cp\u003eThe hall was cold.\u003c/p\u003e",
+  "word_count": 8,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie generate rewrite 102 --selection-file - --prompt Keep spaces.
+EXIT:0
+STDOUT:
+Tighter: keep spaces
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 Why is the door shut? --title Door
+EXIT:0
+STDOUT:
+The door stays shut until chapter three.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat show 103
+EXIT:1
+STDOUT:
+STDERR:
+error showing conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat export 103 --json
+EXIT:1
+STDOUT:
+STDERR:
+error exporting conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat export 103 -o /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json
+EXIT:1
+STDOUT:
+STDERR:
+error exporting conversation: API error (404): Not Found
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat import 101 /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json --json
+EXIT:1
+STDOUT:
+STDERR:
+error: file not found: /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chat.json
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 -- --why
+EXIT:0
+STDOUT:
+The door stays shut until chapter three.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send 101 This will fail --title Failed turn
+EXIT:1
+STDOUT:
+STDERR:
+error sending message: API error (502): The assistant did not answer.
+conversation 111 was created; continue with --conversation 111
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie chat send --conversation 105 Try again
+EXIT:0
+STDOUT:
+The door stays shut until chapter three.
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie llm update
+EXIT:1
+STDOUT:
+STDERR:
+error: provide --provider, --model, or a PROSIE_*_API_KEY environment variable
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book export 101 --format DOCX -o /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/upper.docx
+EXIT:0
+STDOUT:
+Exported book 101 to /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/upper.docx (73 bytes).
+STDERR:
+
+---
+COMMAND: /Users/jonathanbaldie/Code-2/github.com/jonbaldie/prosie-cli/build/prosie book create --title Line
+Two --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 114,
+  "title": "Line\nTwo",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 115,
+      "story_id": 114,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---

@@ -1,0 +1,259 @@
+COMMAND: ./build/prosie book create --title The Cold Hall --premise A locked house. --target-words 1000 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "target_word_count": 1000,
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "The Cold Hall",
+  "story_so_far": "A locked house.",
+  "premise": "A locked house.",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie book list
+EXIT:0
+STDOUT:
+ID    TITLE           WORDS   TARGET   UPDATED
+101   The Cold Hall   0       1000     2026-10-17 12:00
+STDERR:
+
+---
+COMMAND: ./build/prosie book show 101
+EXIT:0
+STDOUT:
+Title:       The Cold Hall
+ID:          101
+Words:       0 / 1000
+Premise:     A locked house.
+Lore:        -
+Characters:  -
+Updated:     2026-10-17 12:00
+
+Chapters (1):
+  1. Chapter 1 (0 words)
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter create 101 --title The Stair --file -
+EXIT:0
+STDOUT:
+Created chapter "The Stair" (ID: 103).
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter update 102 --file /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chapter.txt --title The Door
+EXIT:0
+STDOUT:
+Updated chapter 102 ("The Door").
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter show 102 --json
+EXIT:0
+STDOUT:
+{
+  "id": 102,
+  "story_id": 101,
+  "order": 0,
+  "name": "The Door",
+  "title": "The Door",
+  "content": "  The door was shut.\n\n  The hall was cold.\n",
+  "word_count": 8,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00"
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter create 101 --content Keep this. --file /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/chapter.txt
+EXIT:1
+STDOUT:
+STDERR:
+error: use either inline content or a content file, not both
+
+---
+COMMAND: ./build/prosie chapter list 101
+EXIT:0
+STDOUT:
+INDEX   ID    TITLE       WORDS   SUMMARY
+1       102   The Door    8       -
+2       103   The Stair   6       -
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter reorder 101 103,102
+EXIT:0
+STDOUT:
+Reordered 2 chapters for book 101.
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter list 101 --json
+EXIT:0
+STDOUT:
+[
+  {
+    "id": 103,
+    "story_id": 101,
+    "order": 0,
+    "name": "The Stair",
+    "title": "The Stair",
+    "content": "Line with trailing spaces.  \n\nSecond line.\n",
+    "word_count": 6,
+    "created_at": "2026-10-17T12:00:00+00:00",
+    "updated_at": "2026-10-17T12:00:00+00:00"
+  },
+  {
+    "id": 102,
+    "story_id": 101,
+    "order": 1,
+    "name": "The Door",
+    "title": "The Door",
+    "content": "  The door was shut.\n\n  The hall was cold.\n",
+    "word_count": 8,
+    "created_at": "2026-10-17T12:00:00+00:00",
+    "updated_at": "2026-10-17T12:00:00+00:00"
+  }
+]
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter export 102
+EXIT:0
+STDOUT:
+# The Door
+
+  The door was shut.
+
+  The hall was cold.
+STDERR:
+
+---
+COMMAND: ./build/prosie book export 101 -o /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/book.md
+EXIT:0
+STDOUT:
+Exported book 101 to /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/book.md (133 bytes).
+STDERR:
+
+---
+COMMAND: ./build/prosie book duplicate 101
+EXIT:0
+STDOUT:
+Duplicated book 101 to "The Cold Hall copy" (ID: 104).
+STDERR:
+
+---
+COMMAND: ./build/prosie chapter update 102 --content Changed original.
+EXIT:0
+STDOUT:
+Updated chapter 102 ("The Door").
+STDERR:
+
+---
+COMMAND: ./build/prosie book show 105 --json
+EXIT:1
+STDOUT:
+STDERR:
+error fetching book: API error (404): Not Found
+
+---
+COMMAND: ./build/prosie book import /Users/jonathanbaldie/.fleet/events/scratch/48d8367c4261ed3812300fe27d4229655857c45a6ab01d3322f3c1dd4d2c4212/prosie-explore/sample.docx
+EXIT:0
+STDOUT:
+Imported book "sample" (ID: 107) with 1 chapters.
+STDERR:
+
+---
+COMMAND: ./build/prosie book import - --title From Pipe
+EXIT:0
+STDOUT:
+Imported book "From Pipe" (ID: 109) with 1 chapters.
+STDERR:
+
+---
+COMMAND: ./build/prosie book import -
+EXIT:1
+STDOUT:
+STDERR:
+error importing book: API error (422): The document does not contain importable content. (document: The document does not contain importable content.)
+
+---
+COMMAND: ./build/prosie chapter delete 103 --json
+EXIT:0
+STDOUT:
+STDERR:
+Are you sure you want to delete chapter 103? [y/N]: Deletion cancelled.
+
+---
+COMMAND: ./build/prosie chapter delete 103
+EXIT:0
+STDOUT:
+Deleted chapter 103.
+STDERR:
+Are you sure you want to delete chapter 103? [y/N]: 
+---
+COMMAND: ./build/prosie chapter delete 102 -y
+EXIT:1
+STDOUT:
+STDERR:
+error deleting chapter: API error (422): A book must keep at least one chapter.
+
+---
+COMMAND: ./build/prosie book show 104 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "target_word_count": 1000,
+  "filter_using_story_so_far": false,
+  "id": 104,
+  "title": "The Cold Hall copy",
+  "story_so_far": "A locked house.",
+  "premise": "A locked house.",
+  "word_count": 14,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 106,
+      "story_id": 104,
+      "order": 0,
+      "name": "The Stair",
+      "content": "Line with trailing spaces.  \n\nSecond line.\n",
+      "word_count": 6,
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    },
+    {
+      "id": 105,
+      "story_id": 104,
+      "order": 1,
+      "name": "The Door",
+      "content": "  The door was shut.\n\n  The hall was cold.\n",
+      "word_count": 8,
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
