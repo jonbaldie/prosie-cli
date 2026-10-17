@@ -1,0 +1,131 @@
+COMMAND: ./build/prosie book create --title Negative Target --target-words -5 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "Negative Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie book create --title Zero Target --target-words 0 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 103,
+  "title": "Zero Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 104,
+      "story_id": 103,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie book create --title Valid Target --target-words 1000 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "target_word_count": 1000,
+  "filter_using_story_so_far": false,
+  "id": 105,
+  "title": "Valid Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 106,
+      "story_id": 105,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie book show 101 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 101,
+  "title": "Negative Target",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 102,
+      "story_id": 101,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
+COMMAND: ./build/prosie book create --title Negative Target Again --target-words -5 --json
+EXIT:0
+STDOUT:
+{
+  "pov": "third",
+  "tense": "past",
+  "filter_using_story_so_far": false,
+  "id": 107,
+  "title": "Negative Target Again",
+  "word_count": 0,
+  "created_at": "2026-10-17T12:00:00+00:00",
+  "updated_at": "2026-10-17T12:00:00+00:00",
+  "chapters": [
+    {
+      "id": 108,
+      "story_id": 107,
+      "order": 0,
+      "name": "Chapter 1",
+      "created_at": "2026-10-17T12:00:00+00:00",
+      "updated_at": "2026-10-17T12:00:00+00:00"
+    }
+  ]
+}
+STDERR:
+
+---
