@@ -908,3 +908,43 @@ func (r *closeTrackingReader) Close() error {
 	r.closed = true
 	return nil
 }
+
+func TestBookCreateRejectsNonPositiveTargetWords(t *testing.T) {
+	var bodies []string
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		bodies = append(bodies, string(raw))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"data":{"id":42,"title":"Target"}}`))
+	}
+	_, cfgPath, httpClient := setupTestBookEnv(t, handler)
+
+	for _, value := range []string{"0", "-5"} {
+		t.Run(value, func(t *testing.T) {
+			bodies = nil
+			cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+			code := cmd.Execute([]string{"book", "create", "--title", "Target", "--target-words", value, "--json"})
+			if code != 1 {
+				t.Fatalf("expected code 1, got %d. stdout: %s", code, out.String())
+			}
+			if !strings.Contains(errOut.String(), "error: --target-words must be a positive integer") {
+				t.Fatalf("unexpected stderr: %q", errOut.String())
+			}
+			if out.Len() != 0 || len(bodies) != 0 {
+				t.Fatalf("no book may be created: stdout=%q requests=%v", out.String(), bodies)
+			}
+		})
+	}
+
+	t.Run("omitted target stays omitted", func(t *testing.T) {
+		bodies = nil
+		cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
+		if code := cmd.Execute([]string{"book", "create", "--title", "Target", "--json"}); code != 0 {
+			t.Fatalf("expected code 0, got %d. stderr: %s", code, errOut.String())
+		}
+		if len(bodies) != 1 || strings.TrimSpace(bodies[0]) != `{"title":"Target"}` {
+			t.Fatalf("unexpected request bodies: %q", bodies)
+		}
+	})
+}

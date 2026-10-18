@@ -30,6 +30,11 @@ func executeBookCreate(c *command.Environment, args []string) int {
 		return 1
 	}
 
+	if command.VisitedFlags(fs)["target-words"] && *targetWords <= 0 {
+		fmt.Fprintln(c.Err, "error: --target-words must be a positive integer")
+		return 1
+	}
+
 	cli, err := command.Client(c)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
