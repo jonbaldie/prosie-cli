@@ -23,7 +23,7 @@ func TestGenerationConflictKeepsCandidateInErrorOutput(t *testing.T) {
 		for _, jsonOutput := range []bool{false, true} {
 			t.Run(tc.name+map[bool]string{false: " text", true: " json"}[jsonOutput], func(t *testing.T) {
 				handler := func(w http.ResponseWriter, r *http.Request) {
-					payload := map[string]string{"message": "This chapter changed. Nothing was saved.", "error": "conflict", "generated_content": "Generated candidate."}
+					payload := map[string]any{"message": "This chapter changed. Nothing was saved.", "error": "conflict", "generated_content": "Generated candidate.", "errors": []string{}}
 					if tc.stream && !jsonOutput {
 						w.Header().Set("Content-Type", "text/event-stream")
 						_, _ = w.Write([]byte("event: delta\ndata: {\"delta\":\"Generated \"}\n\n"))
@@ -52,7 +52,7 @@ func TestGenerationConflictKeepsCandidateInErrorOutput(t *testing.T) {
 				if stdout.String() != wantOutput {
 					t.Fatalf("stdout %q, want provisional tokens %q", stdout.String(), wantOutput)
 				}
-				if !strings.Contains(stderr.String(), "Generated candidate.") || !strings.Contains(stderr.String(), "Nothing was saved.") {
+				if !strings.Contains(stderr.String(), "Generated candidate.") || !strings.Contains(stderr.String(), "Nothing was saved.") || !strings.Contains(stderr.String(), "Generated text was not saved. Copy it before retrying.") {
 					t.Fatalf("missing conflict or candidate in stderr %q", stderr.String())
 				}
 			})

@@ -67,15 +67,13 @@ func (t *streamTokens) accept(data string) {
 	}
 }
 
-func streamError(data string) string {
-	var payload ApiError
-	if json.Unmarshal([]byte(data), &payload) == nil && payload.Message != "" {
-		if payload.GeneratedContent != "" {
-			return payload.Message + "\nGenerated text was not saved. Copy it before retrying.\n" + payload.GeneratedContent
-		}
-		return payload.Message
+func streamError(data string) error {
+	payload := &ApiError{}
+	payload.decode([]byte(data))
+	if payload.Error() == "" {
+		payload.Message = data
 	}
-	return data
+	return fmt.Errorf("stream error: %w", payload)
 }
 
 type streamEvents[T any] struct {
@@ -95,7 +93,7 @@ func (s *streamEvents[T]) accept(event, data string) {
 			s.done = &result
 		}
 	case "error":
-		s.err = fmt.Errorf("stream error: %s", streamError(data))
+		s.err = streamError(data)
 	}
 }
 

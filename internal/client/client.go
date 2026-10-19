@@ -21,6 +21,7 @@ type User struct {
 }
 
 // ApiError represents an error response from the Prosie API.
+// StatusCode is zero for SSE error events, which have no HTTP error status.
 type ApiError struct {
 	StatusCode       int                 `json:"status_code"`
 	ErrorCode        string              `json:"error,omitempty"`
@@ -30,8 +31,19 @@ type ApiError struct {
 }
 
 func (e *ApiError) Error() string {
+	message := e.message()
+	if e.StatusCode == 0 {
+		return message
+	}
+	if message == "" {
+		return fmt.Sprintf("API request failed with status code %d", e.StatusCode)
+	}
+	return fmt.Sprintf("API error (%d): %s", e.StatusCode, message)
+}
+
+func (e *ApiError) message() string {
 	if e.GeneratedContent != "" {
-		return fmt.Sprintf("API error (%d): %s\nGenerated text was not saved. Copy it before retrying.\n%s", e.StatusCode, e.Message, e.GeneratedContent)
+		return fmt.Sprintf("%s\nGenerated text was not saved. Copy it before retrying.\n%s", e.Message, e.GeneratedContent)
 	}
 	if e.Message != "" {
 		if len(e.Errors) > 0 {
@@ -39,14 +51,11 @@ func (e *ApiError) Error() string {
 			for field, msgs := range e.Errors {
 				details = append(details, fmt.Sprintf("%s: %s", field, strings.Join(msgs, ", ")))
 			}
-			return fmt.Sprintf("API error (%d): %s (%s)", e.StatusCode, e.Message, strings.Join(details, "; "))
+			return fmt.Sprintf("%s (%s)", e.Message, strings.Join(details, "; "))
 		}
-		return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.Message)
+		return e.Message
 	}
-	if e.ErrorCode != "" {
-		return fmt.Sprintf("API error (%d): %s", e.StatusCode, e.ErrorCode)
-	}
-	return fmt.Sprintf("API request failed with status code %d", e.StatusCode)
+	return e.ErrorCode
 }
 
 // Client provides authenticated HTTP communication with the Prosie API.
