@@ -137,6 +137,10 @@ func TestStreamEndpointsUseTheSameStreamError(t *testing.T) {
 	}{
 		{name: "message payload", data: `{"message":"Quota exceeded"}`, want: "stream error: Quota exceeded"},
 		{name: "raw payload", data: "Rate limit exceeded", want: "stream error: Rate limit exceeded"},
+		{name: "unknown JSON", data: `{"detail":"Try again."}`, want: `stream error: {"detail":"Try again."}`},
+		{name: "empty JSON", data: `{}`, want: "stream error: {}"},
+		{name: "null JSON", data: `null`, want: "stream error: null"},
+		{name: "empty payload", data: "", want: "stream error: "},
 	}
 	for _, operation := range streamTestOperations() {
 		operation := operation
