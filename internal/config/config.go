@@ -77,6 +77,16 @@ func Load(path string) (*Config, error) {
 }
 
 // Save writes the configuration to disk with restricted permissions (0600).
+//
+// Save writes a complete replacement file in the destination directory, then
+// renames it over the old file. The replacement has mode 0600 before any
+// credential bytes go into it, so an existing file with a permissive mode is
+// replaced by a private file. If a step fails, Save removes the replacement
+// and the previous configuration stays unchanged.
+//
+// If path is a symbolic link, Save replaces the link target. The link stays
+// a link. Save syncs the replacement before the rename. It does not sync the
+// directory, so the rename is not guaranteed to survive a power loss.
 func Save(path string, cfg *Config) error {
 	if path == "" {
 		var err error
@@ -86,8 +96,7 @@ func Save(path string, cfg *Config) error {
 		}
 	}
 
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
 
@@ -97,7 +106,78 @@ func Save(path string, cfg *Config) error {
 	}
 	data = append(data, '\n')
 
-	return os.WriteFile(path, data, 0600)
+	target, err := resolveLinks(path)
+	if err != nil {
+		return err
+	}
+	return replaceFile(target, data)
+}
+
+// maxLinks limits how many symbolic links resolveLinks follows.
+const maxLinks = 40
+
+// resolveLinks follows symbolic links at path. The final target can be absent.
+func resolveLinks(path string) (string, error) {
+	for range maxLinks {
+		info, err := os.Lstat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			return path, nil
+		}
+		if err != nil {
+			return "", err
+		}
+		if info.Mode()&os.ModeSymlink == 0 {
+			return path, nil
+		}
+		link, err := os.Readlink(path)
+		if err != nil {
+			return "", err
+		}
+		if !filepath.IsAbs(link) {
+			link = filepath.Join(filepath.Dir(path), link)
+		}
+		path = link
+	}
+	return "", fmt.Errorf("too many symbolic links at %s", path)
+}
+
+// tempFile is the part of *os.File that replaceFile uses.
+type tempFile interface {
+	Write(p []byte) (int, error)
+	Sync() error
+	Close() error
+	Name() string
+}
+
+// createTemp and rename are replaced in tests to inject failures.
+var (
+	createTemp = func(dir, pattern string) (tempFile, error) { return os.CreateTemp(dir, pattern) }
+	rename     = os.Rename
+)
+
+// replaceFile writes data to a private file next to path, then renames it over path.
+func replaceFile(path string, data []byte) error {
+	tmp, err := createTemp(filepath.Dir(path), "."+filepath.Base(path)+".tmp-*")
+	if err != nil {
+		return err
+	}
+	if err := writeAndPublish(tmp, path, data); err != nil {
+		_ = os.Remove(tmp.Name())
+		return err
+	}
+	return nil
+}
+
+func writeAndPublish(tmp tempFile, path string, data []byte) error {
+	_, writeErr := tmp.Write(data)
+	if writeErr == nil {
+		writeErr = tmp.Sync()
+	}
+	closeErr := tmp.Close()
+	if err := errors.Join(writeErr, closeErr); err != nil {
+		return err
+	}
+	return rename(tmp.Name(), path)
 }
 
 // Clear removes the configuration file from disk.
