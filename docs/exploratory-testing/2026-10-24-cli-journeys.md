@@ -1,7 +1,9 @@
 # Exploratory testing: sign-in, document backup, and chat
 
-**Date:** 2026-10-24  
-**Source:** remote `main`, `4710664d789b0e325cffdbae4edd36e35c07e867`  
+**Date:** 2026-10-24
+
+**Source:** remote `main`, `4710664d789b0e325cffdbae4edd36e35c07e867`
+
 **Result:** Three tasks completed. One confirmed bug: [#103](https://github.com/jonbaldie/prosie-cli/issues/103). No product changes.
 
 ## Setup
