@@ -1,0 +1,220 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/user"
+  },
+  {
+    "method": "GET",
+    "path": "/api/user"
+  },
+  {
+    "method": "GET",
+    "path": "/api/user"
+  },
+  {
+    "method": "POST",
+    "path": "/oauth/device/code",
+    "content_type": "application/json",
+    "body": {
+      "client_id": "prosie-cli",
+      "scope": "read write generate"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/oauth/token",
+    "content_type": "application/json",
+    "body": {
+      "client_id": "prosie-cli",
+      "device_code": "device-1",
+      "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/oauth/token",
+    "content_type": "application/json",
+    "body": {
+      "client_id": "prosie-cli",
+      "device_code": "device-1",
+      "grant_type": "urn:ietf:params:oauth:grant-type:device_code"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/user"
+  },
+  {
+    "method": "GET",
+    "path": "/api/user"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories",
+    "content_type": "application/json",
+    "body": {
+      "title": "The Winter Door",
+      "target_word_count": 1000
+    }
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/scenes/102",
+    "content_type": "application/json",
+    "body": {
+      "content": "  Paragraph one.\n\nParagraph two.\n"
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/stories/101/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=markdown"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=docx"
+  },
+  {
+    "method": "GET",
+    "path": "/api/scenes/102/export?format=docx"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories/101/conversations",
+    "content_type": "application/json",
+    "body": {
+      "title": "Door notes"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/conversations/103/messages",
+    "content_type": "application/json",
+    "body": {
+      "content": "When does the door open?"
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/conversations/103/messages",
+    "content_type": "application/json",
+    "body": {
+      "content": "Keep the first word."
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/103"
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/103/export"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories/101/conversations/import",
+    "content_type": "multipart/form-data; boundary=cb7530314013d79d229b1928af5461364d893cffae9b1d3bb75d5b73572b",
+    "body": {
+      "fields": {},
+      "files": {
+        "file": {
+          "filename": "thread.json",
+          "size": 991
+        }
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/108"
+  },
+  {
+    "method": "POST",
+    "path": "/api/stories/101/conversations/import",
+    "content_type": "multipart/form-data; boundary=54c90907ad217fe3e5da34cb151d96d5f8febca3a108036e1871435bd29b",
+    "body": {
+      "fields": {},
+      "files": {
+        "file": {
+          "filename": "bad.json",
+          "size": 7
+        }
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/conversations/103/messages",
+    "content_type": "application/json",
+    "body": {
+      "content": "Retry this question."
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/conversations/103/messages",
+    "content_type": "application/json",
+    "body": {
+      "content": "Retry this question."
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/api/conversations/103/messages/stream",
+    "content_type": "application/json",
+    "body": {
+      "content": "One more question."
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/api/conversations/103"
+  }
+]
