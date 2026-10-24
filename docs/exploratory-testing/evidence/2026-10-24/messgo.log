@@ -1,0 +1,3 @@
+messgo . text quality-gates/messgo-ruleset.xml --ignore-tests
+
+make messgo exit=0

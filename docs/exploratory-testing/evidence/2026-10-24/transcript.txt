@@ -1,0 +1,171 @@
+Source: 4710664d789b0e325cffdbae4edd36e35c07e867
+Go: go version go1.26.3 darwin/arm64
+All tokens and identities in this evidence are synthetic.
+JOURNEY 1: sign in, reopen, and sign out
+$ prosie auth status --json
+exit=1
+stdout='{\n  "authenticated": false,\n  "api_url": "http://127.0.0.1:63556",\n  "token_source": "none"\n}\n'
+stderr=''
+$ prosie auth login --token fixture-token --json
+exit=0
+stdout='{\n  "status": "authenticated",\n  "api_url": "http://127.0.0.1:63556",\n  "user": {\n    "id": 7,\n    "name": "Ada Writer",\n    "email": "ada@example.com"\n  },\n  "scopes": [\n    "read",\n    "write",\n    "generate"\n  ]\n}\n'
+stderr=''
+new credential file mode=600
+$ prosie auth status --json
+exit=0
+stdout='{\n  "authenticated": true,\n  "api_url": "http://127.0.0.1:63556",\n  "token_source": "config",\n  "scopes": [\n    "read",\n    "write",\n    "generate"\n  ],\n  "user": {\n    "id": 7,\n    "name": "Ada Writer",\n    "email": "ada@example.com"\n  }\n}\n'
+stderr=''
+$ prosie auth login --token replacement-fixture-token --json
+exit=0
+stdout='{\n  "status": "authenticated",\n  "api_url": "http://127.0.0.1:63556",\n  "user": {\n    "id": 7,\n    "name": "Ada Writer",\n    "email": "ada@example.com"\n  },\n  "scopes": [\n    "read",\n    "write",\n    "generate"\n  ]\n}\n'
+stderr=''
+replaced credential file mode=600
+$ prosie auth logout --json
+exit=0
+stdout='{\n  "env_token_override": false,\n  "message": "Logged out successfully",\n  "status": "logged_out"\n}\n'
+stderr=''
+$ prosie auth status --json
+exit=1
+stdout='{\n  "authenticated": false,\n  "api_url": "http://127.0.0.1:63556",\n  "token_source": "none"\n}\n'
+stderr=''
+$ prosie auth login --no-browser --json
+exit=0
+stdout='{\n  "expires_in": 30,\n  "user_code": "ABCD-EFGH",\n  "verification_url": "https://prosie.test/activate?user_code=ABCD-EFGH"\n}\n{\n  "status": "authenticated",\n  "api_url": "http://127.0.0.1:63556",\n  "user": {\n    "id": 7,\n    "name": "Ada Writer",\n    "email": "ada@example.com"\n  },\n  "scopes": [\n    "read",\n    "write",\n    "generate"\n  ]\n}\n'
+stderr=''
+$ prosie auth status --json
+exit=0
+stdout='{\n  "authenticated": true,\n  "api_url": "http://127.0.0.1:63556",\n  "token_source": "config",\n  "scopes": [\n    "read",\n    "write",\n    "generate"\n  ],\n  "user": {\n    "id": 7,\n    "name": "Ada Writer",\n    "email": "ada@example.com"\n  }\n}\n'
+stderr=''
+JOURNEY 2: save prose and export it for backup
+$ prosie book create --title 'The Winter Door' --target-words 1000 --json
+exit=0
+stdout='{\n  "pov": "third",\n  "tense": "past",\n  "target_word_count": 1000,\n  "filter_using_story_so_far": false,\n  "id": 101,\n  "title": "The Winter Door",\n  "word_count": 0,\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00",\n  "chapters": [\n    {\n      "id": 102,\n      "story_id": 101,\n      "order": 0,\n      "name": "Chapter 1",\n      "created_at": "2026-10-17T12:00:00+00:00",\n      "updated_at": "2026-10-17T12:00:00+00:00"\n    }\n  ]\n}\n'
+stderr=''
+$ prosie chapter update 102 --file - --json
+exit=0
+stdout='{\n  "id": 102,\n  "story_id": 101,\n  "order": 0,\n  "name": "Chapter 1",\n  "title": "Chapter 1",\n  "content": "  Paragraph one.\\n\\nParagraph two.\\n",\n  "word_count": 4,\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie chapter show 102 --json
+exit=0
+stdout='{\n  "id": 102,\n  "story_id": 101,\n  "order": 0,\n  "name": "Chapter 1",\n  "title": "Chapter 1",\n  "content": "  Paragraph one.\\n\\nParagraph two.\\n",\n  "word_count": 4,\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie book create --title 'Bad target' --target-words 0 --json
+exit=1
+stdout=''
+stderr='error: --target-words must be a positive integer\n'
+$ prosie book export 101
+exit=0
+stdout='# The Winter Door\n\n## Chapter 1\n\n  Paragraph one.\n\nParagraph two.\n\n'
+stderr=''
+$ prosie book export 101 --json
+exit=0
+stdout='{\n  "bytes": 67,\n  "content": "# The Winter Door\\n\\n## Chapter 1\\n\\n  Paragraph one.\\n\\nParagraph two.\\n\\n",\n  "id": 101\n}\n'
+stderr=''
+$ prosie book export 101 --format docx -o book.docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "id": 101,\n  "output": "book.docx"\n}\n'
+stderr=''
+$ prosie book export 101 --format docx
+exit=0
+stdout="PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]t$\\x9cS\\xbb\x00\x00\x00>\x01\x00\x00\x13\x00\x00\x00[Content_Types].xml\\x95\\x90\\xb9\x0e\\xc20\x0c\\x86_\\xa5ʊ\\xa8\x11\x03\x03j\\xbb\x00+0\\xf0\x02V\\xea\\xb6\x11\\xb9\x14\\xbb\x1coO\\xca5\\xb01\\xda\\xff\\xf1Y\\xaeN\\xf7H\\ܜ\\xf5\\\\xabA$\\xae\x01X\x0f\\xe4\\x90\\xcb\x10\\xc9g\\xa5\x0bɡ\\xe41\\xf5\x10Q\\x9f\\xb1'X.\x16+\\xd0\\xc1\x0by\\x99\\xcbԡ\\x9ajK\x1d\\x8eV\\x8a\\xdd-\\xaf\\xd9\x04_\\xabD\\x96U\\xb1y\x19'V\\xad0Fk4J\\xd6\\xe1\\xe2\\xdb\x1f\\xca\\xfcM(s\\xf2\\xe9\\xe1\\xc1D\\x9ee\\x83\\x82\\xa6:\\(%\\xd3Rq\\xc4${t\\xb9\x0e\\xae!\\xb5\\xd0\x06=\\xba\\x8c('\\xe3_\\xbc\\xd0uF\\xd37?\\xb5\\xc5\x1441\x1b\\xdf;[~\x15\\x87\\xc6\x7f\\xee\\x80\\xe7ۚ\x07PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]a{/C\\x89\x00\x00\x00\\xf2\x00\x00\x00\x0b\x00\x00\x00_rels/.rels\\x8d\\xcf;\x0e\x02!\x10\x06\\xe0\\xab\x10\x0e\\xb0\\xb3ZX\x18\\xa0\\xb2\\xd9\\xd6x\x01\x02\\xc3#.\\x8f\x0c\x18\\xf5\\xf6RX\\xac\\xc6\\xc2r\\xe6\\x9f|\x7fF\\x9cq\\xd5=\\x96\\xdcB\\xac\\x8d=Қ\\x9b\\xe4\\xa1\\xf7z\x04h&`\\xd2m*\x15\\xf3H\\\\xa1\\xa4\\xfb\x18\\xc9C\\xd5\\xe6\\xaa=\\xc2~\\x9e\x0f@[\\x83+\\xb15\\xd9b%\\xa7\\xc5\\xee8\\xbb<+\\xfec\x17\\xe7\\xa2\\xc1S1\\xb7\\x84\\xb9\\xff\\xa8\\xf8\\xba\x18\\xb2&\\x8f]\\xf2{!\x0b\\xf6\\xbd\\x9e\x06\\xcbA\t\\xf8xQ\\xbd\x00PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]\\xc4'uW\\x80\x00\x00\x00\\xcf\x00\x00\x00\x11\x00\x00\x00word/document.xmlu\\x8fQ\n\\xc20\x0c\\x86\\xaf2v\\x80e\\xf8\\xe0C\\xa9=\\x83W\\x88km\x07k\x13\\xd2H\\xe7\\xed]\x05\\xf1E_\\xbe\\x90\\xff\\xff \\xc46\\xe3iy\\xe4Pt\\xd8\\xf3V\\xaai\\x971\\xa9\\xb2\x01\\xa8K\n\x19\\xebD\x1c\\xca\\xd1\\xddI2\\xea\\xb1J\\x84F\\xe2Yh\t\\xb5\\xae%\\xe6\rN\\xf3|\\x86\\x8ck\x19\\x9dm\\xe6F\\xfe\\xd9'wH\\x87\\xba+\nFAN\x03\\x950Y\\xe8Y\\xa7\\xbc\\xc9\\xffum\\xf4K\\x87\\xcf\x19\\xf8\\xbe\\xe0^PK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]t$\\x9cS\\xbb\x00\x00\x00>\x01\x00\x00\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\x00\x00\x00\x00[Content_Types].xmlPK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]a{/C\\x89\x00\x00\x00\\xf2\x00\x00\x00\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\\xec\x00\x00\x00_rels/.relsPK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]\\xc4'uW\\x80\x00\x00\x00\\xcf\x00\x00\x00\x11\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\\x9e\x01\x00\x00word/document.xmlPK\x05\x06\x00\x00\x00\x00\x03\x00\x03\x00\\xb9\x00\x00\x00M\x02\x00\x00\x00\x00"
+stderr=''
+book DOCX file: bytes=796 sha256=64ea5c5d6aeb0aab50ed938ec49c82f3c7bdb2678eabc51d0a6aafc7da008256 zip=valid
+$ prosie book export 101 -o missing/backup.md --json
+exit=1
+stdout=''
+stderr='error writing to file: open missing/backup.md: no such file or directory\n'
+$ prosie book export 101 --format docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "content": "PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000[Content_Types].xml\\ufffd\\ufffd\\ufffd\\u000e\\ufffd0\\f\\ufffd_\\ufffdʊ\\ufffd\\u0011\\u0003\\u0003j\\ufffd\\u0000+0\\ufffd\\u0002V\\ufffd\\ufffd\\u0011\\ufffd\\u0014\\ufffd\\u001coO\\ufffd5\\ufffd1\\ufffd\\ufffd\\ufffdY\\ufffdN\\ufffdH\\\\ܜ\\ufffd\\\\\\ufffdA$\\ufffd\\u0001X\\u000f\\ufffd\\ufffd\\ufffd\\u0010\\ufffdg\\ufffd\\u000bɡ\\ufffd1\\ufffd\\u0010Q\\ufffd\\ufffd\'X.\\u0016+\\ufffd\\ufffd\\u000by\\ufffd\\ufffdԡ\\ufffdjK\\u001d\\ufffdV\\ufffd\\ufffd-\\ufffd\\ufffd\\u0004_\\ufffdD\\ufffdU\\ufffdy\\u0019\'V\\ufffd0Fk4J\\ufffd\\ufffd\\ufffd\\ufffd\\u001f\\ufffd\\ufffdM(s\\ufffd\\ufffd\\ufffd\\ufffdD\\ufffde\\ufffd\\ufffd\\ufffd:\\\\(%\\ufffdRq\\ufffd${t\\ufffd\\u000e\\ufffd!\\ufffd\\ufffd\\u0006=\\ufffd\\ufffd(\'\\ufffd_\\ufffd\\ufffduF\\ufffd7?\\ufffd\\ufffd\\u001441\\u001b\\ufffd;[~\\u0015\\ufffd\\ufffd\x7f\\ufffd\\ufffd\\ufffdۚ\\u0007PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000_rels/.rels\\ufffd\\ufffd;\\u000e\\u0002!\\u0010\\u0006\\ufffd\\ufffd\\u0010\\u000e\\ufffd\\ufffdZX\\u0018\\ufffd\\ufffd\\ufffd\\ufffdx\\u0001\\u0002\\ufffd#.\\ufffd\\f\\u0018\\ufffd\\ufffdRX\\ufffd\\ufffd\\ufffdr\\ufffd\\ufffd|\x7fF\\ufffdq\\ufffd=\\ufffd\\ufffdB\\ufffd\\ufffd=Қ\\ufffd\\ufffd\\ufffd\\ufffdz\\u0004h\\u0026`\\ufffdm*\\u0015\\ufffdH\\\\\\ufffd\\ufffd\\ufffd\\u0018\\ufffdC\\ufffd\\ufffd\\ufffd=\\ufffd~\\ufffd\\u000f@[\\ufffd+\\ufffd5\\ufffdb%\\ufffd\\ufffd\\ufffd8\\ufffd\\u003c+\\ufffdc\\u0017\\ufffd\\ufffd\\ufffdS1\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\u0018\\ufffd\\u0026\\ufffd]\\ufffd{!\\u000b\\ufffd\\ufffd\\ufffd\\u0006\\ufffdA\\t\\ufffdxQ\\ufffd\\u0000PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000word/document.xmlu\\ufffdQ\\n\\ufffd0\\f\\ufffd\\ufffd2v\\ufffde\\ufffd\\ufffdC\\ufffd=\\ufffdW\\ufffdkm\\u0007k\\u0013\\ufffdH\\ufffd\\ufffd]\\u0005\\ufffdE_\\ufffd\\ufffd\\ufffd\\ufffd \\ufffd6\\ufffdiy\\ufffdPt\\ufffd\\ufffdV\\ufffdi\\ufffd1\\ufffd\\ufffd\\u0001\\ufffdK\\n\\u0019\\ufffdD\\u001c\\ufffd\\ufffd\\ufffdI2\\ufffd\\ufffdJ\\ufffdF\\ufffdYh\\t\\ufffd\\ufffd%\\ufffd\\rN\\ufffd|\\ufffd\\ufffdk\\u0019\\ufffdm\\ufffdF\\ufffd\\ufffd\'wH\\ufffd\\ufffd+\\nFAN\\u0003\\ufffd0Y\\ufffdY\\ufffd\\ufffd\\ufffd\\ufffdum\\ufffdK\\ufffd\\ufffd\\u0019\\ufffd\\ufffd\\ufffd^PK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\u0000\\u0000\\u0000\\u0000[Content_Types].xmlPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0000\\u0000\\u0000_rels/.relsPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0001\\u0000\\u0000word/document.xmlPK\\u0005\\u0006\\u0000\\u0000\\u0000\\u0000\\u0003\\u0000\\u0003\\u0000\\ufffd\\u0000\\u0000\\u0000M\\u0002\\u0000\\u0000\\u0000\\u0000",\n  "id": 101\n}\n'
+stderr=''
+book replay 1: archive error=Bad offset for central directory
+book replay 1: reported_bytes=796 reconstructed_bytes=1250 sha256=36e1e9858dcda9924a312708596380f655e2cf24f793068c0c7a3e7b1cc1a265 equal_to_download=False zip_valid=False replacement_characters=227
+$ prosie book export 101 --format docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "content": "PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000[Content_Types].xml\\ufffd\\ufffd\\ufffd\\u000e\\ufffd0\\f\\ufffd_\\ufffdʊ\\ufffd\\u0011\\u0003\\u0003j\\ufffd\\u0000+0\\ufffd\\u0002V\\ufffd\\ufffd\\u0011\\ufffd\\u0014\\ufffd\\u001coO\\ufffd5\\ufffd1\\ufffd\\ufffd\\ufffdY\\ufffdN\\ufffdH\\\\ܜ\\ufffd\\\\\\ufffdA$\\ufffd\\u0001X\\u000f\\ufffd\\ufffd\\ufffd\\u0010\\ufffdg\\ufffd\\u000bɡ\\ufffd1\\ufffd\\u0010Q\\ufffd\\ufffd\'X.\\u0016+\\ufffd\\ufffd\\u000by\\ufffd\\ufffdԡ\\ufffdjK\\u001d\\ufffdV\\ufffd\\ufffd-\\ufffd\\ufffd\\u0004_\\ufffdD\\ufffdU\\ufffdy\\u0019\'V\\ufffd0Fk4J\\ufffd\\ufffd\\ufffd\\ufffd\\u001f\\ufffd\\ufffdM(s\\ufffd\\ufffd\\ufffd\\ufffdD\\ufffde\\ufffd\\ufffd\\ufffd:\\\\(%\\ufffdRq\\ufffd${t\\ufffd\\u000e\\ufffd!\\ufffd\\ufffd\\u0006=\\ufffd\\ufffd(\'\\ufffd_\\ufffd\\ufffduF\\ufffd7?\\ufffd\\ufffd\\u001441\\u001b\\ufffd;[~\\u0015\\ufffd\\ufffd\x7f\\ufffd\\ufffd\\ufffdۚ\\u0007PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000_rels/.rels\\ufffd\\ufffd;\\u000e\\u0002!\\u0010\\u0006\\ufffd\\ufffd\\u0010\\u000e\\ufffd\\ufffdZX\\u0018\\ufffd\\ufffd\\ufffd\\ufffdx\\u0001\\u0002\\ufffd#.\\ufffd\\f\\u0018\\ufffd\\ufffdRX\\ufffd\\ufffd\\ufffdr\\ufffd\\ufffd|\x7fF\\ufffdq\\ufffd=\\ufffd\\ufffdB\\ufffd\\ufffd=Қ\\ufffd\\ufffd\\ufffd\\ufffdz\\u0004h\\u0026`\\ufffdm*\\u0015\\ufffdH\\\\\\ufffd\\ufffd\\ufffd\\u0018\\ufffdC\\ufffd\\ufffd\\ufffd=\\ufffd~\\ufffd\\u000f@[\\ufffd+\\ufffd5\\ufffdb%\\ufffd\\ufffd\\ufffd8\\ufffd\\u003c+\\ufffdc\\u0017\\ufffd\\ufffd\\ufffdS1\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\u0018\\ufffd\\u0026\\ufffd]\\ufffd{!\\u000b\\ufffd\\ufffd\\ufffd\\u0006\\ufffdA\\t\\ufffdxQ\\ufffd\\u0000PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000word/document.xmlu\\ufffdQ\\n\\ufffd0\\f\\ufffd\\ufffd2v\\ufffde\\ufffd\\ufffdC\\ufffd=\\ufffdW\\ufffdkm\\u0007k\\u0013\\ufffdH\\ufffd\\ufffd]\\u0005\\ufffdE_\\ufffd\\ufffd\\ufffd\\ufffd \\ufffd6\\ufffdiy\\ufffdPt\\ufffd\\ufffdV\\ufffdi\\ufffd1\\ufffd\\ufffd\\u0001\\ufffdK\\n\\u0019\\ufffdD\\u001c\\ufffd\\ufffd\\ufffdI2\\ufffd\\ufffdJ\\ufffdF\\ufffdYh\\t\\ufffd\\ufffd%\\ufffd\\rN\\ufffd|\\ufffd\\ufffdk\\u0019\\ufffdm\\ufffdF\\ufffd\\ufffd\'wH\\ufffd\\ufffd+\\nFAN\\u0003\\ufffd0Y\\ufffdY\\ufffd\\ufffd\\ufffd\\ufffdum\\ufffdK\\ufffd\\ufffd\\u0019\\ufffd\\ufffd\\ufffd^PK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\u0000\\u0000\\u0000\\u0000[Content_Types].xmlPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0000\\u0000\\u0000_rels/.relsPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0001\\u0000\\u0000word/document.xmlPK\\u0005\\u0006\\u0000\\u0000\\u0000\\u0000\\u0003\\u0000\\u0003\\u0000\\ufffd\\u0000\\u0000\\u0000M\\u0002\\u0000\\u0000\\u0000\\u0000",\n  "id": 101\n}\n'
+stderr=''
+book replay 2: archive error=Bad offset for central directory
+book replay 2: reported_bytes=796 reconstructed_bytes=1250 sha256=36e1e9858dcda9924a312708596380f655e2cf24f793068c0c7a3e7b1cc1a265 equal_to_download=False zip_valid=False replacement_characters=227
+$ prosie chapter export 102
+exit=0
+stdout='# Chapter 1\n\n  Paragraph one.\n\nParagraph two.\n'
+stderr=''
+$ prosie chapter export 102 --json
+exit=0
+stdout='{\n  "bytes": 46,\n  "content": "# Chapter 1\\n\\n  Paragraph one.\\n\\nParagraph two.\\n",\n  "id": 102\n}\n'
+stderr=''
+$ prosie chapter export 102 --format docx -o chapter.docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "id": 102,\n  "output": "chapter.docx"\n}\n'
+stderr=''
+$ prosie chapter export 102 --format docx
+exit=0
+stdout="PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]t$\\x9cS\\xbb\x00\x00\x00>\x01\x00\x00\x13\x00\x00\x00[Content_Types].xml\\x95\\x90\\xb9\x0e\\xc20\x0c\\x86_\\xa5ʊ\\xa8\x11\x03\x03j\\xbb\x00+0\\xf0\x02V\\xea\\xb6\x11\\xb9\x14\\xbb\x1coO\\xca5\\xb01\\xda\\xff\\xf1Y\\xaeN\\xf7H\\ܜ\\xf5\\\\xabA$\\xae\x01X\x0f\\xe4\\x90\\xcb\x10\\xc9g\\xa5\x0bɡ\\xe41\\xf5\x10Q\\x9f\\xb1'X.\x16+\\xd0\\xc1\x0by\\x99\\xcbԡ\\x9ajK\x1d\\x8eV\\x8a\\xdd-\\xaf\\xd9\x04_\\xabD\\x96U\\xb1y\x19'V\\xad0Fk4J\\xd6\\xe1\\xe2\\xdb\x1f\\xca\\xfcM(s\\xf2\\xe9\\xe1\\xc1D\\x9ee\\x83\\x82\\xa6:\\(%\\xd3Rq\\xc4${t\\xb9\x0e\\xae!\\xb5\\xd0\x06=\\xba\\x8c('\\xe3_\\xbc\\xd0uF\\xd37?\\xb5\\xc5\x1441\x1b\\xdf;[~\x15\\x87\\xc6\x7f\\xee\\x80\\xe7ۚ\x07PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]a{/C\\x89\x00\x00\x00\\xf2\x00\x00\x00\x0b\x00\x00\x00_rels/.rels\\x8d\\xcf;\x0e\x02!\x10\x06\\xe0\\xab\x10\x0e\\xb0\\xb3ZX\x18\\xa0\\xb2\\xd9\\xd6x\x01\x02\\xc3#.\\x8f\x0c\x18\\xf5\\xf6RX\\xac\\xc6\\xc2r\\xe6\\x9f|\x7fF\\x9cq\\xd5=\\x96\\xdcB\\xac\\x8d=Қ\\x9b\\xe4\\xa1\\xf7z\x04h&`\\xd2m*\x15\\xf3H\\\\xa1\\xa4\\xfb\x18\\xc9C\\xd5\\xe6\\xaa=\\xc2~\\x9e\x0f@[\\x83+\\xb15\\xd9b%\\xa7\\xc5\\xee8\\xbb<+\\xfec\x17\\xe7\\xa2\\xc1S1\\xb7\\x84\\xb9\\xff\\xa8\\xf8\\xba\x18\\xb2&\\x8f]\\xf2{!\x0b\\xf6\\xbd\\x9e\x06\\xcbA\t\\xf8xQ\\xbd\x00PK\x03\x04\x14\x00\x00\x00\x08\x00\x00\x00X]\\xc4'uW\\x80\x00\x00\x00\\xcf\x00\x00\x00\x11\x00\x00\x00word/document.xmlu\\x8fQ\n\\xc20\x0c\\x86\\xaf2v\\x80e\\xf8\\xe0C\\xa9=\\x83W\\x88km\x07k\x13\\xd2H\\xe7\\xed]\x05\\xf1E_\\xbe\\x90\\xff\\xff \\xc46\\xe3iy\\xe4Pt\\xd8\\xf3V\\xaai\\x971\\xa9\\xb2\x01\\xa8K\n\x19\\xebD\x1c\\xca\\xd1\\xddI2\\xea\\xb1J\\x84F\\xe2Yh\t\\xb5\\xae%\\xe6\rN\\xf3|\\x86\\x8ck\x19\\x9dm\\xe6F\\xfe\\xd9'wH\\x87\\xba+\nFAN\x03\\x950Y\\xe8Y\\xa7\\xbc\\xc9\\xffum\\xf4K\\x87\\xcf\x19\\xf8\\xbe\\xe0^PK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]t$\\x9cS\\xbb\x00\x00\x00>\x01\x00\x00\x13\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\x00\x00\x00\x00[Content_Types].xmlPK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]a{/C\\x89\x00\x00\x00\\xf2\x00\x00\x00\x0b\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\\xec\x00\x00\x00_rels/.relsPK\x01\x02\x14\x03\x14\x00\x00\x00\x08\x00\x00\x00X]\\xc4'uW\\x80\x00\x00\x00\\xcf\x00\x00\x00\x11\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\\x80\x01\\x9e\x01\x00\x00word/document.xmlPK\x05\x06\x00\x00\x00\x00\x03\x00\x03\x00\\xb9\x00\x00\x00M\x02\x00\x00\x00\x00"
+stderr=''
+chapter DOCX file: bytes=796 sha256=64ea5c5d6aeb0aab50ed938ec49c82f3c7bdb2678eabc51d0a6aafc7da008256 zip=valid
+$ prosie chapter export 102 -o missing/backup.md --json
+exit=1
+stdout=''
+stderr='error writing to file: open missing/backup.md: no such file or directory\n'
+$ prosie chapter export 102 --format docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "content": "PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000[Content_Types].xml\\ufffd\\ufffd\\ufffd\\u000e\\ufffd0\\f\\ufffd_\\ufffdʊ\\ufffd\\u0011\\u0003\\u0003j\\ufffd\\u0000+0\\ufffd\\u0002V\\ufffd\\ufffd\\u0011\\ufffd\\u0014\\ufffd\\u001coO\\ufffd5\\ufffd1\\ufffd\\ufffd\\ufffdY\\ufffdN\\ufffdH\\\\ܜ\\ufffd\\\\\\ufffdA$\\ufffd\\u0001X\\u000f\\ufffd\\ufffd\\ufffd\\u0010\\ufffdg\\ufffd\\u000bɡ\\ufffd1\\ufffd\\u0010Q\\ufffd\\ufffd\'X.\\u0016+\\ufffd\\ufffd\\u000by\\ufffd\\ufffdԡ\\ufffdjK\\u001d\\ufffdV\\ufffd\\ufffd-\\ufffd\\ufffd\\u0004_\\ufffdD\\ufffdU\\ufffdy\\u0019\'V\\ufffd0Fk4J\\ufffd\\ufffd\\ufffd\\ufffd\\u001f\\ufffd\\ufffdM(s\\ufffd\\ufffd\\ufffd\\ufffdD\\ufffde\\ufffd\\ufffd\\ufffd:\\\\(%\\ufffdRq\\ufffd${t\\ufffd\\u000e\\ufffd!\\ufffd\\ufffd\\u0006=\\ufffd\\ufffd(\'\\ufffd_\\ufffd\\ufffduF\\ufffd7?\\ufffd\\ufffd\\u001441\\u001b\\ufffd;[~\\u0015\\ufffd\\ufffd\x7f\\ufffd\\ufffd\\ufffdۚ\\u0007PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000_rels/.rels\\ufffd\\ufffd;\\u000e\\u0002!\\u0010\\u0006\\ufffd\\ufffd\\u0010\\u000e\\ufffd\\ufffdZX\\u0018\\ufffd\\ufffd\\ufffd\\ufffdx\\u0001\\u0002\\ufffd#.\\ufffd\\f\\u0018\\ufffd\\ufffdRX\\ufffd\\ufffd\\ufffdr\\ufffd\\ufffd|\x7fF\\ufffdq\\ufffd=\\ufffd\\ufffdB\\ufffd\\ufffd=Қ\\ufffd\\ufffd\\ufffd\\ufffdz\\u0004h\\u0026`\\ufffdm*\\u0015\\ufffdH\\\\\\ufffd\\ufffd\\ufffd\\u0018\\ufffdC\\ufffd\\ufffd\\ufffd=\\ufffd~\\ufffd\\u000f@[\\ufffd+\\ufffd5\\ufffdb%\\ufffd\\ufffd\\ufffd8\\ufffd\\u003c+\\ufffdc\\u0017\\ufffd\\ufffd\\ufffdS1\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\u0018\\ufffd\\u0026\\ufffd]\\ufffd{!\\u000b\\ufffd\\ufffd\\ufffd\\u0006\\ufffdA\\t\\ufffdxQ\\ufffd\\u0000PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000word/document.xmlu\\ufffdQ\\n\\ufffd0\\f\\ufffd\\ufffd2v\\ufffde\\ufffd\\ufffdC\\ufffd=\\ufffdW\\ufffdkm\\u0007k\\u0013\\ufffdH\\ufffd\\ufffd]\\u0005\\ufffdE_\\ufffd\\ufffd\\ufffd\\ufffd \\ufffd6\\ufffdiy\\ufffdPt\\ufffd\\ufffdV\\ufffdi\\ufffd1\\ufffd\\ufffd\\u0001\\ufffdK\\n\\u0019\\ufffdD\\u001c\\ufffd\\ufffd\\ufffdI2\\ufffd\\ufffdJ\\ufffdF\\ufffdYh\\t\\ufffd\\ufffd%\\ufffd\\rN\\ufffd|\\ufffd\\ufffdk\\u0019\\ufffdm\\ufffdF\\ufffd\\ufffd\'wH\\ufffd\\ufffd+\\nFAN\\u0003\\ufffd0Y\\ufffdY\\ufffd\\ufffd\\ufffd\\ufffdum\\ufffdK\\ufffd\\ufffd\\u0019\\ufffd\\ufffd\\ufffd^PK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\u0000\\u0000\\u0000\\u0000[Content_Types].xmlPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0000\\u0000\\u0000_rels/.relsPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0001\\u0000\\u0000word/document.xmlPK\\u0005\\u0006\\u0000\\u0000\\u0000\\u0000\\u0003\\u0000\\u0003\\u0000\\ufffd\\u0000\\u0000\\u0000M\\u0002\\u0000\\u0000\\u0000\\u0000",\n  "id": 102\n}\n'
+stderr=''
+chapter replay 1: archive error=Bad offset for central directory
+chapter replay 1: reported_bytes=796 reconstructed_bytes=1250 sha256=36e1e9858dcda9924a312708596380f655e2cf24f793068c0c7a3e7b1cc1a265 equal_to_download=False zip_valid=False replacement_characters=227
+$ prosie chapter export 102 --format docx --json
+exit=0
+stdout='{\n  "bytes": 796,\n  "content": "PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000[Content_Types].xml\\ufffd\\ufffd\\ufffd\\u000e\\ufffd0\\f\\ufffd_\\ufffdʊ\\ufffd\\u0011\\u0003\\u0003j\\ufffd\\u0000+0\\ufffd\\u0002V\\ufffd\\ufffd\\u0011\\ufffd\\u0014\\ufffd\\u001coO\\ufffd5\\ufffd1\\ufffd\\ufffd\\ufffdY\\ufffdN\\ufffdH\\\\ܜ\\ufffd\\\\\\ufffdA$\\ufffd\\u0001X\\u000f\\ufffd\\ufffd\\ufffd\\u0010\\ufffdg\\ufffd\\u000bɡ\\ufffd1\\ufffd\\u0010Q\\ufffd\\ufffd\'X.\\u0016+\\ufffd\\ufffd\\u000by\\ufffd\\ufffdԡ\\ufffdjK\\u001d\\ufffdV\\ufffd\\ufffd-\\ufffd\\ufffd\\u0004_\\ufffdD\\ufffdU\\ufffdy\\u0019\'V\\ufffd0Fk4J\\ufffd\\ufffd\\ufffd\\ufffd\\u001f\\ufffd\\ufffdM(s\\ufffd\\ufffd\\ufffd\\ufffdD\\ufffde\\ufffd\\ufffd\\ufffd:\\\\(%\\ufffdRq\\ufffd${t\\ufffd\\u000e\\ufffd!\\ufffd\\ufffd\\u0006=\\ufffd\\ufffd(\'\\ufffd_\\ufffd\\ufffduF\\ufffd7?\\ufffd\\ufffd\\u001441\\u001b\\ufffd;[~\\u0015\\ufffd\\ufffd\x7f\\ufffd\\ufffd\\ufffdۚ\\u0007PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000_rels/.rels\\ufffd\\ufffd;\\u000e\\u0002!\\u0010\\u0006\\ufffd\\ufffd\\u0010\\u000e\\ufffd\\ufffdZX\\u0018\\ufffd\\ufffd\\ufffd\\ufffdx\\u0001\\u0002\\ufffd#.\\ufffd\\f\\u0018\\ufffd\\ufffdRX\\ufffd\\ufffd\\ufffdr\\ufffd\\ufffd|\x7fF\\ufffdq\\ufffd=\\ufffd\\ufffdB\\ufffd\\ufffd=Қ\\ufffd\\ufffd\\ufffd\\ufffdz\\u0004h\\u0026`\\ufffdm*\\u0015\\ufffdH\\\\\\ufffd\\ufffd\\ufffd\\u0018\\ufffdC\\ufffd\\ufffd\\ufffd=\\ufffd~\\ufffd\\u000f@[\\ufffd+\\ufffd5\\ufffdb%\\ufffd\\ufffd\\ufffd8\\ufffd\\u003c+\\ufffdc\\u0017\\ufffd\\ufffd\\ufffdS1\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\ufffd\\u0018\\ufffd\\u0026\\ufffd]\\ufffd{!\\u000b\\ufffd\\ufffd\\ufffd\\u0006\\ufffdA\\t\\ufffdxQ\\ufffd\\u0000PK\\u0003\\u0004\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000word/document.xmlu\\ufffdQ\\n\\ufffd0\\f\\ufffd\\ufffd2v\\ufffde\\ufffd\\ufffdC\\ufffd=\\ufffdW\\ufffdkm\\u0007k\\u0013\\ufffdH\\ufffd\\ufffd]\\u0005\\ufffdE_\\ufffd\\ufffd\\ufffd\\ufffd \\ufffd6\\ufffdiy\\ufffdPt\\ufffd\\ufffdV\\ufffdi\\ufffd1\\ufffd\\ufffd\\u0001\\ufffdK\\n\\u0019\\ufffdD\\u001c\\ufffd\\ufffd\\ufffdI2\\ufffd\\ufffdJ\\ufffdF\\ufffdYh\\t\\ufffd\\ufffd%\\ufffd\\rN\\ufffd|\\ufffd\\ufffdk\\u0019\\ufffdm\\ufffdF\\ufffd\\ufffd\'wH\\ufffd\\ufffd+\\nFAN\\u0003\\ufffd0Y\\ufffdY\\ufffd\\ufffd\\ufffd\\ufffdum\\ufffdK\\ufffd\\ufffd\\u0019\\ufffd\\ufffd\\ufffd^PK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]t$\\ufffdS\\ufffd\\u0000\\u0000\\u0000\\u003e\\u0001\\u0000\\u0000\\u0013\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\u0000\\u0000\\u0000\\u0000[Content_Types].xmlPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]a{/C\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u000b\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0000\\u0000\\u0000_rels/.relsPK\\u0001\\u0002\\u0014\\u0003\\u0014\\u0000\\u0000\\u0000\\b\\u0000\\u0000\\u0000X]\\ufffd\'uW\\ufffd\\u0000\\u0000\\u0000\\ufffd\\u0000\\u0000\\u0000\\u0011\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\ufffd\\u0001\\ufffd\\u0001\\u0000\\u0000word/document.xmlPK\\u0005\\u0006\\u0000\\u0000\\u0000\\u0000\\u0003\\u0000\\u0003\\u0000\\ufffd\\u0000\\u0000\\u0000M\\u0002\\u0000\\u0000\\u0000\\u0000",\n  "id": 102\n}\n'
+stderr=''
+chapter replay 2: archive error=Bad offset for central directory
+chapter replay 2: reported_bytes=796 reconstructed_bytes=1250 sha256=36e1e9858dcda9924a312708596380f655e2cf24f793068c0c7a3e7b1cc1a265 equal_to_download=False zip_valid=False replacement_characters=227
+JOURNEY 3: ask a question, keep the thread, and recover after a failed send
+$ prosie chat send 101 'When does the door open?' --title 'Door notes' --json
+exit=0
+stdout='{\n  "conversation_id": 103,\n  "message": {\n    "id": 105,\n    "conversation_id": 103,\n    "role": "assistant",\n    "content": "The door stays shut until chapter three.",\n    "created_at": "2026-10-17T12:00:00+00:00"\n  },\n  "model": "fixture",\n  "usage": {\n    "prompt_tokens": 3,\n    "completion_tokens": 8,\n    "total_tokens": 11\n  }\n}\n'
+stderr=''
+$ prosie chat send --conversation 103 'Keep the first word.' --json
+exit=0
+stdout='{\n  "conversation_id": 103,\n  "message": {\n    "id": 107,\n    "conversation_id": 103,\n    "role": "assistant",\n    "content": "The door stays shut until chapter three.",\n    "created_at": "2026-10-17T12:00:00+00:00"\n  },\n  "model": "fixture",\n  "usage": {\n    "prompt_tokens": 3,\n    "completion_tokens": 8,\n    "total_tokens": 11\n  }\n}\n'
+stderr=''
+$ prosie chat show 103 --json
+exit=0
+stdout='{\n  "id": 103,\n  "story_id": 101,\n  "title": "Door notes",\n  "model": "openai/gpt-test",\n  "fidelity": "manuscript",\n  "expires_in_days": 14,\n  "messages": [\n    {\n      "id": 104,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "When does the door open?",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 105,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 106,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "Keep the first word.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 107,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    }\n  ],\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie chat export 103 -o thread.json --json
+exit=0
+stdout='{\n  "bytes": 991,\n  "id": "103",\n  "output": "thread.json"\n}\n'
+stderr=''
+$ prosie chat import 101 thread.json --json
+exit=0
+stdout='{\n  "id": 108,\n  "story_id": 101,\n  "title": "Door notes",\n  "model": "fixture",\n  "fidelity": "manuscript",\n  "expires_in_days": 14,\n  "messages": [\n    {\n      "id": 109,\n      "conversation_id": 108,\n      "role": "user",\n      "content": "When does the door open?",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 110,\n      "conversation_id": 108,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 111,\n      "conversation_id": 108,\n      "role": "user",\n      "content": "Keep the first word.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 112,\n      "conversation_id": 108,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    }\n  ],\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie chat show 108 --json
+exit=0
+stdout='{\n  "id": 108,\n  "story_id": 101,\n  "title": "Door notes",\n  "model": "fixture",\n  "fidelity": "manuscript",\n  "expires_in_days": 14,\n  "messages": [\n    {\n      "id": 109,\n      "conversation_id": 108,\n      "role": "user",\n      "content": "When does the door open?",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 110,\n      "conversation_id": 108,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 111,\n      "conversation_id": 108,\n      "role": "user",\n      "content": "Keep the first word.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 112,\n      "conversation_id": 108,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    }\n  ],\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie chat import 101 bad.json --json
+exit=1
+stdout=''
+stderr='error importing conversation: API error (422): The conversation file is not valid JSON. (file: The conversation file is not valid JSON.)\n'
+$ prosie chat send --conversation 103 'Retry this question.' --json
+exit=1
+stdout=''
+stderr='error sending message: API error (502): The assistant did not answer.\n'
+$ prosie chat send --conversation 103 'Retry this question.' --json
+exit=0
+stdout='{\n  "conversation_id": 103,\n  "message": {\n    "id": 114,\n    "conversation_id": 103,\n    "role": "assistant",\n    "content": "The door stays shut until chapter three.",\n    "created_at": "2026-10-17T12:00:00+00:00"\n  },\n  "model": "fixture",\n  "usage": {\n    "prompt_tokens": 3,\n    "completion_tokens": 8,\n    "total_tokens": 11\n  }\n}\n'
+stderr=''
+$ prosie chat stream --conversation 103 'One more question.' --json
+exit=0
+stdout='{\n  "conversation_id": 103,\n  "message": {\n    "id": 116,\n    "conversation_id": 103,\n    "role": "assistant",\n    "content": "The door stays shut until chapter three.",\n    "created_at": "2026-10-17T12:00:00+00:00"\n  },\n  "model": "fixture",\n  "usage": {\n    "prompt_tokens": 3,\n    "completion_tokens": 8,\n    "total_tokens": 11\n  }\n}\n'
+stderr=''
+$ prosie chat show 103 --json
+exit=0
+stdout='{\n  "id": 103,\n  "story_id": 101,\n  "title": "Door notes",\n  "model": "openai/gpt-test",\n  "fidelity": "manuscript",\n  "expires_in_days": 14,\n  "messages": [\n    {\n      "id": 104,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "When does the door open?",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 105,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 106,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "Keep the first word.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 107,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 113,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "Retry this question.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 114,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 115,\n      "conversation_id": 103,\n      "role": "user",\n      "content": "One more question.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    },\n    {\n      "id": 116,\n      "conversation_id": 103,\n      "role": "assistant",\n      "content": "The door stays shut until chapter three.",\n      "created_at": "2026-10-17T12:00:00+00:00"\n    }\n  ],\n  "created_at": "2026-10-17T12:00:00+00:00",\n  "updated_at": "2026-10-17T12:00:00+00:00"\n}\n'
+stderr=''
+$ prosie auth logout --json
+exit=0
+stdout='{\n  "env_token_override": false,\n  "message": "Logged out successfully",\n  "status": "logged_out"\n}\n'
+stderr=''
+Scratch data removed on driver exit. HTTP server stopped in finally. No Docker resources used.
