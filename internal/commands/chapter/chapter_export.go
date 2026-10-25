@@ -47,7 +47,7 @@ func executeChapterExport(c *command.Environment, args []string) int {
 		idVal = intVal
 	}
 
-	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), idVal, *output, data, *jsonFlag)
+	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), idVal, *output, *format, data, *jsonFlag)
 }
 
 func printChapterExportHelp(c *command.Environment) {
@@ -59,7 +59,7 @@ Usage:
 Flags:
       --format string   Export format (markdown, docx) (default "markdown")
   -h, --help            Show help for command
-      --json            Format output as JSON
+      --json            Format output as JSON (DOCX content is base64, with "encoding": "base64")
   -o, --output string   Write output to a file instead of stdout
 `
 	fmt.Fprint(c.Out, help)
