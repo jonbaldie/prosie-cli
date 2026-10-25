@@ -103,4 +103,6 @@ If another session changes a chapter during generation, the API can reject the s
 
 Book and chapter Markdown exports keep paragraph boundaries from plain text and HTML.
 
+DOCX is binary. When you use `--format docx --json` without `--output`, `content` is standard base64 and the object includes `"encoding": "base64"`. Decode `content` to get the exact document bytes. `bytes` is the length of the decoded document. Markdown JSON output has no `encoding` field.
+
 Use `prosie auth login --help`, `prosie auth status --help`, or `prosie auth logout --help` to see authentication options without starting an authentication action.

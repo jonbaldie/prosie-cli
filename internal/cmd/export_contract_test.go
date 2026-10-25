@@ -2,6 +2,7 @@ package cmd_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -76,5 +77,44 @@ func TestProseExportPreservesBytesAndReportsTheSavedFile(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestDocxExportAsJSONCarriesTheExactBytesAsBase64(t *testing.T) {
+	docx := []byte("PK\x03\x04\xff\xfe\x00\x80")
+	for _, resource := range []struct{ name, path string }{{"book", "/api/stories/41/export"}, {"chapter", "/api/scenes/41/export"}} {
+		t.Run(resource.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "GET" || r.URL.Path != resource.path || r.URL.Query().Get("format") != "docx" {
+					t.Errorf("unexpected export request: %s %s", r.Method, r.URL)
+				}
+				_, _ = w.Write(docx)
+			}))
+			defer server.Close()
+			t.Setenv("PROSIE_API_URL", server.URL)
+			t.Setenv("PROSIE_API_TOKEN", "fixture-token")
+			root := cmd.NewRootCmd()
+			out, errOut := &bytes.Buffer{}, &bytes.Buffer{}
+			root.Out, root.Err, root.ConfigPath, root.HTTPClient = out, errOut, filepath.Join(t.TempDir(), "config.json"), server.Client()
+			if code := root.Execute([]string{resource.name, "export", "41", "--format", "docx", "--json"}); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("code=%d stderr=%q", code, errOut.String())
+			}
+			var got struct {
+				ID       int    `json:"id"`
+				Content  string `json:"content"`
+				Encoding string `json:"encoding"`
+				Bytes    int    `json:"bytes"`
+			}
+			if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			decoded, err := base64.StdEncoding.DecodeString(got.Content)
+			if err != nil {
+				t.Fatalf("content %q is not base64: %v", got.Content, err)
+			}
+			if got.ID != 41 || got.Encoding != "base64" || got.Bytes != len(docx) || !bytes.Equal(decoded, docx) {
+				t.Fatalf("export=%+v decoded=%q; want encoding=base64 bytes=%d content=%q", got, decoded, len(docx), docx)
+			}
+		})
 	}
 }

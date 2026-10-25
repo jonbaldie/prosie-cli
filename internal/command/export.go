@@ -1,8 +1,10 @@
 package command
 
 import (
+	"encoding/base64"
 	"fmt"
 	"os"
+	"strings"
 )
 
 func WriteExportFile(c *Environment, label string, id any, output string, data []byte, jsonOutput bool) int {
@@ -18,12 +20,19 @@ func WriteExportFile(c *Environment, label string, id any, output string, data [
 	return 0
 }
 
-func ExportProse(c *Environment, label string, id any, output string, data []byte, jsonOutput bool) int {
+// ExportProse writes exported prose. DOCX is binary, so JSON output carries
+// it as standard base64 with "encoding": "base64"; Markdown stays as text.
+func ExportProse(c *Environment, label string, id any, output, format string, data []byte, jsonOutput bool) int {
 	if output != "" {
 		return WriteExportFile(c, label, id, output, data, jsonOutput)
 	}
 	if jsonOutput {
-		_ = WriteJSON(c, map[string]any{"id": id, "content": string(data), "bytes": len(data)})
+		result := map[string]any{"id": id, "content": string(data), "bytes": len(data)}
+		if strings.EqualFold(format, "docx") {
+			result["content"] = base64.StdEncoding.EncodeToString(data)
+			result["encoding"] = "base64"
+		}
+		_ = WriteJSON(c, result)
 		return 0
 	}
 	_, _ = c.Out.Write(data)
