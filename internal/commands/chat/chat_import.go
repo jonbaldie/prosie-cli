@@ -14,14 +14,11 @@ func executeChatImport(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 2, Max: 2, Usage: "prosie chat import <book-id> <file.json> [flags]", Missing: "book ID and file path are required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printChatImportHelp)
-	}
-
-	if len(posArgs) < 2 {
-		fmt.Fprintln(c.Err, "error: book ID and file path are required. Usage: prosie chat import <book-id> <file.json> [flags]")
-		return 1
 	}
 
 	bookID := posArgs[0]

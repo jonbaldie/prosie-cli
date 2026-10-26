@@ -20,6 +20,9 @@ func executeAuthStatus(c *command.Environment, args []string) int {
 	if err := fs.Parse(args); err != nil {
 		return command.FlagError(c, err, printAuthStatusHelp)
 	}
+	if err := (command.Args{Max: 0, Usage: "prosie auth status [flags]"}).Validate(fs.Args()); err != nil {
+		return command.FlagError(c, err, printAuthStatusHelp)
+	}
 
 	status, err := auth.InspectStatus(context.Background(), c.ConfigPath, c.HTTPClient)
 	if err != nil {

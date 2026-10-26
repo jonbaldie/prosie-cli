@@ -46,8 +46,8 @@ func executeLlmShow(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if ok, code := parseLlmFlags(c, fs, args, printLlmShowHelp); !ok {
-		return code
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm show [flags]", RedactUnexpected: true}); err != nil {
+		return command.FlagError(c, err, printLlmShowHelp)
 	}
 
 	cli, err := command.Client(c)
@@ -86,8 +86,8 @@ func executeLlmModels(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if ok, code := parseLlmFlags(c, fs, args, printLlmModelsHelp); !ok {
-		return code
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm models [flags]", RedactUnexpected: true}); err != nil {
+		return command.FlagError(c, err, printLlmModelsHelp)
 	}
 
 	cli, err := command.Client(c)
@@ -157,8 +157,8 @@ func executeLlmUpdate(c *command.Environment, args []string) int {
 	model := fs.String("model", "", "Preferred LLM model")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if ok, code := parseLlmFlags(c, fs, args, printLlmUpdateHelp); !ok {
-		return code
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm update [flags]", RedactUnexpected: true}); err != nil {
+		return command.FlagError(c, err, printLlmUpdateHelp)
 	}
 
 	visited := command.VisitedFlags(fs)
@@ -231,18 +231,6 @@ func llmConfigText(config *client.LlmConfig) string {
 		keyStatus(config.HasAnthropicKey),
 		keyStatus(config.HasOpenRouterKey),
 	)
-}
-
-func parseLlmFlags(c *command.Environment, fs *flag.FlagSet, args []string, help func(*command.Environment)) (bool, int) {
-	positional, err := command.ParseFlagsAndArgs(fs, args)
-	if err != nil {
-		return false, command.FlagError(c, err, help)
-	}
-	if len(positional) > 0 {
-		fmt.Fprintln(c.Err, "error: this command does not accept positional arguments")
-		return false, 1
-	}
-	return true, 0
 }
 
 func writeLlmJSON(c *command.Environment, value any) int {

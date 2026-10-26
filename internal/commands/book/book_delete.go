@@ -17,14 +17,11 @@ func executeBookDelete(c *command.Environment, args []string) int {
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie book delete <id> [flags]", Missing: "book ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printBookDeleteHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: book ID is required. Usage: prosie book delete <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])

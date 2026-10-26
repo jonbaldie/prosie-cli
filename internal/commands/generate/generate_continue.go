@@ -38,12 +38,11 @@ func parseContinueArgs(args []string) (continueRequest, string, error) {
 	wordsFlag := fs.Int("words", 0, "Target length in words (soft hint)")
 	linesFlag := fs.Int("lines", 0, "Hard cap on generated lines")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie generate continue <chapter-id> [flags]", Missing: "chapter ID is required",
+	})
 	if err != nil {
 		return continueRequest{}, "", err
-	}
-	if len(posArgs) == 0 {
-		return continueRequest{}, "error: chapter ID is required. Usage: prosie generate continue <chapter-id> [flags]", nil
 	}
 	if msg := validateLengthFlags(command.VisitedFlags(fs), *wordsFlag, *linesFlag); msg != "" {
 		return continueRequest{}, msg, nil

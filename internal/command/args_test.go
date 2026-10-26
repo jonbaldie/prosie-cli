@@ -13,7 +13,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		title := fs.String("title", "", "")
 		jsonFlag := fs.Bool("json", false, "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"--title", "Hello", "--json", "arg1", "arg2"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"--title", "Hello", "--json", "arg1", "arg2"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -31,7 +31,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		title := fs.String("title", "", "")
 		jsonFlag := fs.Bool("json", false, "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"arg1", "--title", "Hello", "--json"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"arg1", "--title", "Hello", "--json"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -48,7 +48,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs.SetOutput(io.Discard)
 		title := fs.String("title", "", "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"123", "--title=Hello World"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"123", "--title=Hello World"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -65,7 +65,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs.SetOutput(io.Discard)
 		jsonFlag := fs.Bool("json", false, "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"--json", "--", "--not-a-flag"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"--json", "--", "--not-a-flag"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -82,7 +82,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs.SetOutput(io.Discard)
 		jsonFlag := fs.Bool("json", false, "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"7", "-", "1,2"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"7", "-", "1,2"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -128,7 +128,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 				fs := flag.NewFlagSet("test", flag.ContinueOnError)
 				fs.SetOutput(io.Discard)
 
-				pos, err := ParseFlagsAndArgs(fs, tc.args)
+				pos, err := ParseFlagsAndArgs(fs, tc.args, Args{Max: -1})
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
@@ -150,7 +150,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 			fs.SetOutput(io.Discard)
 			title := fs.String("title", "", "")
 
-			pos, err := ParseFlagsAndArgs(fs, []string{"--title", "-", "pos1"})
+			pos, err := ParseFlagsAndArgs(fs, []string{"--title", "-", "pos1"}, Args{Max: -1})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -167,7 +167,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 			fs.SetOutput(io.Discard)
 			title := fs.String("title", "", "")
 
-			pos, err := ParseFlagsAndArgs(fs, []string{"pos1", "--title", "-"})
+			pos, err := ParseFlagsAndArgs(fs, []string{"pos1", "--title", "-"}, Args{Max: -1})
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -198,7 +198,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 				fs.SetOutput(io.Discard)
 				title := fs.String("title", "", "")
 
-				pos, err := ParseFlagsAndArgs(fs, tc.args)
+				pos, err := ParseFlagsAndArgs(fs, tc.args, Args{Max: -1})
 				if err == nil {
 					t.Fatalf("expected an error, got title=%q pos=%v", *title, pos)
 				}
@@ -217,7 +217,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs.SetOutput(io.Discard)
 		targetWords := fs.Int("target-words", 0, "")
 
-		_, err := ParseFlagsAndArgs(fs, []string{"pos1", "--target-words"})
+		_, err := ParseFlagsAndArgs(fs, []string{"pos1", "--target-words"}, Args{Max: -1})
 		if err == nil {
 			t.Fatalf("expected an error, got target-words=%d", *targetWords)
 		}
@@ -231,7 +231,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs.SetOutput(io.Discard)
 		jsonFlag := fs.Bool("json", false, "")
 
-		pos, err := ParseFlagsAndArgs(fs, []string{"123", "--json"})
+		pos, err := ParseFlagsAndArgs(fs, []string{"123", "--json"}, Args{Max: -1})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -247,7 +247,7 @@ func TestParseFlagsAndArgs(t *testing.T) {
 		fs := flag.NewFlagSet("test", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
 
-		_, err := ParseFlagsAndArgs(fs, []string{"--help"})
+		_, err := ParseFlagsAndArgs(fs, []string{"--help"}, Args{Max: -1})
 		if err != flag.ErrHelp {
 			t.Fatalf("expected flag.ErrHelp, got %v", err)
 		}

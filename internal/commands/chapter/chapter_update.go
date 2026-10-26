@@ -18,14 +18,11 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 	filePath := fs.String("file", "", "Path to file containing chapter prose ('-' for standard input)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie chapter update <id> [flags]", Missing: "chapter ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printChapterUpdateHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: chapter ID is required. Usage: prosie chapter update <id> [flags]")
-		return 1
 	}
 
 	id := posArgs[0]

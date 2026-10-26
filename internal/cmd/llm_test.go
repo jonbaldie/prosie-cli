@@ -299,7 +299,7 @@ func TestLlmCommandsRejectPositionalArguments(t *testing.T) {
 		if code != 1 {
 			t.Fatalf("expected code 1 for %v, got %d", args, code)
 		}
-		if !strings.Contains(errOut.String(), "does not accept positional arguments") {
+		if !strings.Contains(errOut.String(), "unexpected argument. Usage: prosie llm ") {
 			t.Fatalf("unexpected stderr for %v: %s", args, errOut.String())
 		}
 		if strings.Contains(errOut.String(), "secret-value") {
