@@ -25,6 +25,9 @@ func executeAuthLogin(c *command.Environment, args []string) int {
 	if err := fs.Parse(args); err != nil {
 		return command.FlagError(c, err, printAuthLoginHelp)
 	}
+	if err := (command.Args{Max: 0, Usage: "prosie auth login [flags]"}).Validate(fs.Args()); err != nil {
+		return command.FlagError(c, err, printAuthLoginHelp)
+	}
 
 	cfg, err := config.Load(c.ConfigPath)
 	if err != nil {

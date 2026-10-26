@@ -22,14 +22,11 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 	targetWords := fs.Int("target-words", 0, "Target word count")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie book update <id> [flags]", Missing: "book ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printBookUpdateHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: book ID is required. Usage: prosie book update <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])

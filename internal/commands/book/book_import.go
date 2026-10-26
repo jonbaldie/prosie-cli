@@ -15,14 +15,11 @@ func executeBookImport(c *command.Environment, args []string) int {
 	title := fs.String("title", "", "Book title (defaults to filename, or \"Imported Book\" for standard input)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie book import <file.docx> [flags]", Missing: "DOCX file path is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printBookImportHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: DOCX file path is required. Usage: prosie book import <file.docx> [flags]")
-		return 1
 	}
 
 	filePath := posArgs[0]

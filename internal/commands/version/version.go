@@ -14,7 +14,7 @@ func Execute(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if _, err := command.ParseFlagsAndArgs(fs, args); err != nil {
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie version [flags]"}); err != nil {
 		return command.FlagError(c, err, printVersionHelp)
 	}
 

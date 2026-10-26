@@ -17,14 +17,11 @@ func executeGenerateSummarize(c *command.Environment, args []string) int {
 	persistFlag := fs.Bool("persist", true, "Save generated summary to chapter")
 	noPersistFlag := fs.Bool("no-persist", false, "Do not save changes to chapter")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie generate summarize <chapter-id> [flags]", Missing: "chapter ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printGenerateSummarizeHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: chapter ID is required. Usage: prosie generate summarize <chapter-id> [flags]")
-		return 1
 	}
 
 	id := posArgs[0]

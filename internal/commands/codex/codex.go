@@ -51,14 +51,11 @@ func executeCodexList(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie codex list <book-id> [flags]", Missing: "book ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexListHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: book ID is required. Usage: prosie codex list <book-id> [flags]")
-		return 1
 	}
 
 	bookID, err := strconv.Atoi(posArgs[0])
@@ -108,14 +105,11 @@ func executeCodexShow(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie codex show <id> [flags]", Missing: "codex entry ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexShowHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: codex entry ID is required. Usage: prosie codex show <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -171,14 +165,11 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie codex create <book-id> [flags]", Missing: "book ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexCreateHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: book ID is required. Usage: prosie codex create <book-id> [flags]")
-		return 1
 	}
 
 	bookID, err := strconv.Atoi(posArgs[0])
@@ -252,14 +243,11 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie codex update <id> [flags]", Missing: "codex entry ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexUpdateHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: codex entry ID is required. Usage: prosie codex update <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -324,14 +312,11 @@ func executeCodexDelete(c *command.Environment, args []string) int {
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie codex delete <id> [flags]", Missing: "codex entry ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexDeleteHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: codex entry ID is required. Usage: prosie codex delete <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])

@@ -55,7 +55,7 @@ func executeSeriesList(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if _, err := command.ParseFlagsAndArgs(fs, args); err != nil {
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie series list [flags]"}); err != nil {
 		return command.FlagError(c, err, printSeriesListHelp)
 	}
 
@@ -98,14 +98,11 @@ func executeSeriesShow(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie series show <id> [flags]", Missing: "series ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printSeriesShowHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: series ID is required. Usage: prosie series show <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -156,7 +153,7 @@ func executeSeriesCreate(c *command.Environment, args []string) int {
 	description := fs.String("description", "", "Series description and premise")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	if _, err := command.ParseFlagsAndArgs(fs, args); err != nil {
+	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie series create --title <title> [flags]"}); err != nil {
 		return command.FlagError(c, err, printSeriesCreateHelp)
 	}
 
@@ -224,14 +221,11 @@ func executeSeriesUpdate(c *command.Environment, args []string) int {
 	description := fs.String("description", "", "Series description")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie series update <id> [flags]", Missing: "series ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printSeriesUpdateHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: series ID is required. Usage: prosie series update <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -300,14 +294,11 @@ func executeSeriesDelete(c *command.Environment, args []string) int {
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie series delete <id> [flags]", Missing: "series ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printSeriesDeleteHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: series ID is required. Usage: prosie series delete <id> [flags]")
-		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -363,14 +354,11 @@ func executeSeriesAttach(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 2, Max: 2, Usage: "prosie series attach <series-id> <book-id> [flags]", Missing: "series ID and book ID are required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printSeriesAttachHelp)
-	}
-
-	if len(posArgs) < 2 {
-		fmt.Fprintln(c.Err, "error: series ID and book ID are required. Usage: prosie series attach <series-id> <book-id> [flags]")
-		return 1
 	}
 
 	seriesID, err := strconv.Atoi(posArgs[0])
@@ -425,14 +413,11 @@ func executeSeriesDetach(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 2, Max: 2, Usage: "prosie series detach <series-id> <book-id> [flags]", Missing: "series ID and book ID are required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printSeriesDetachHelp)
-	}
-
-	if len(posArgs) < 2 {
-		fmt.Fprintln(c.Err, "error: series ID and book ID are required. Usage: prosie series detach <series-id> <book-id> [flags]")
-		return 1
 	}
 
 	seriesID, err := strconv.Atoi(posArgs[0])

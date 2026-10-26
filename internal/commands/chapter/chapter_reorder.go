@@ -15,14 +15,11 @@ func executeChapterReorder(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 2, Max: -1, Usage: "prosie chapter reorder <book-id> <id1,id2,...> [flags]", Missing: "book ID and chapter order are required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printChapterReorderHelp)
-	}
-
-	if len(posArgs) < 2 {
-		fmt.Fprintln(c.Err, "error: book ID and chapter order are required. Usage: prosie chapter reorder <book-id> <id1,id2,...> [flags]")
-		return 1
 	}
 
 	bookID := posArgs[0]

@@ -38,6 +38,8 @@ export PROSIE_API_TOKEN="your_personal_access_token"
 
 ## Usage
 
+Commands reject extra positional arguments with exit code 1 before they send an API request. For example, `prosie book delete 1 2 3` does not delete any books. Use one command for each book. `chapter reorder`, `chat send`, and `chat stream` still accept variable argument counts. See [release notes](docs/release-notes.md).
+
 ```bash
 # Books
 prosie book list

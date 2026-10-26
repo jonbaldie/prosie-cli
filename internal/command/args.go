@@ -12,13 +12,46 @@ func FlagError(c *Environment, err error, help func(*Environment)) int {
 		help(c)
 		return 0
 	}
+	if _, ok := err.(argumentCountError); ok {
+		fmt.Fprintf(c.Err, "error: %v\n", err)
+		return 1
+	}
 	fmt.Fprintf(c.Err, "error parsing flags: %v\n", err)
 	return 1
 }
 
+// Args declares the positional limits and the usage for a command.
+// Max is -1 for an unbounded number of arguments.
+type Args struct {
+	Min     int
+	Max     int
+	Usage   string
+	Missing string
+	// RedactUnexpected keeps possible credentials out of error output.
+	RedactUnexpected bool
+}
+
+type argumentCountError string
+
+func (e argumentCountError) Error() string { return string(e) }
+
+// Validate checks the positional count after flags have been parsed.
+func (a Args) Validate(args []string) error {
+	if len(args) < a.Min {
+		return argumentCountError(fmt.Sprintf("%s. Usage: %s", a.Missing, a.Usage))
+	}
+	if a.Max >= 0 && len(args) > a.Max {
+		if a.RedactUnexpected {
+			return argumentCountError(fmt.Sprintf("unexpected argument. Usage: %s", a.Usage))
+		}
+		return argumentCountError(fmt.Sprintf("unexpected argument %q. Usage: %s", args[a.Max], a.Usage))
+	}
+	return nil
+}
+
 // ParseFlagsAndArgs reorders arguments so flags precede positional arguments,
 // enabling users to place flags before or after positional arguments.
-func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
+func ParseFlagsAndArgs(fs *flag.FlagSet, args []string, limits Args) ([]string, error) {
 	flagArgs, posArgs, valueMissing := splitArgs(fs, args)
 
 	var reordered []string
@@ -34,6 +67,9 @@ func ParseFlagsAndArgs(fs *flag.FlagSet, args []string) ([]string, error) {
 		return nil, err
 	}
 
+	if err := limits.Validate(posArgs); err != nil {
+		return nil, err
+	}
 	return posArgs, nil
 }
 

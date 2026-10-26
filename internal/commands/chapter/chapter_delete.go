@@ -17,14 +17,11 @@ func executeChapterDelete(c *command.Environment, args []string) int {
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie chapter delete <id> [flags]", Missing: "chapter ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printChapterDeleteHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: chapter ID is required. Usage: prosie chapter delete <id> [flags]")
-		return 1
 	}
 
 	id := posArgs[0]

@@ -17,14 +17,11 @@ func executeChatDelete(c *command.Environment, args []string) int {
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie chat delete <conversation-id> [flags]", Missing: "conversation ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printChatDeleteHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: conversation ID is required. Usage: prosie chat delete <conversation-id> [flags]")
-		return 1
 	}
 
 	convID := posArgs[0]

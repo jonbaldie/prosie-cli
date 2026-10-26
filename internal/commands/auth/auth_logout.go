@@ -19,6 +19,9 @@ func executeAuthLogout(c *command.Environment, args []string) int {
 	if err := fs.Parse(args); err != nil {
 		return command.FlagError(c, err, printAuthLogoutHelp)
 	}
+	if err := (command.Args{Max: 0, Usage: "prosie auth logout [flags]"}).Validate(fs.Args()); err != nil {
+		return command.FlagError(c, err, printAuthLogoutHelp)
+	}
 
 	res, err := auth.Logout(c.ConfigPath)
 	if err != nil {

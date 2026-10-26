@@ -14,14 +14,11 @@ func executeGenerateReject(c *command.Environment, args []string) int {
 
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
-	posArgs, err := command.ParseFlagsAndArgs(fs, args)
+	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
+		Min: 1, Max: 1, Usage: "prosie generate reject <chapter-id> [flags]", Missing: "chapter ID is required",
+	})
 	if err != nil {
 		return command.FlagError(c, err, printGenerateRejectHelp)
-	}
-
-	if len(posArgs) == 0 {
-		fmt.Fprintln(c.Err, "error: chapter ID is required. Usage: prosie generate reject <chapter-id> [flags]")
-		return 1
 	}
 
 	id := posArgs[0]
