@@ -3,12 +3,13 @@ package command
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 	"strings"
+
+	"github.com/jonbaldie/prosie-cli/internal/filewrite"
 )
 
 func WriteExportFile(c *Environment, label string, id any, output string, data []byte, jsonOutput bool) int {
-	if err := os.WriteFile(output, data, 0644); err != nil {
+	if err := filewrite.Replace(output, data, 0644); err != nil {
 		fmt.Fprintf(c.Err, "error writing to file: %v\n", err)
 		return 1
 	}
