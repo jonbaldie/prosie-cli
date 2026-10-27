@@ -1,7 +1,6 @@
 package authcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -43,7 +42,7 @@ func executeAuthLogin(c *command.Environment, args []string) int {
 }
 
 func loginWithToken(c *command.Environment, apiURL, token string, jsonOutput bool) int {
-	res, err := auth.LoginWithToken(context.Background(), c.ConfigPath, apiURL, token, c.HTTPClient)
+	res, err := auth.LoginWithToken(c.Ctx(), c.ConfigPath, apiURL, token, c.HTTPClient)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authentication failed: %v\n", err)
 		return 1
@@ -63,7 +62,7 @@ func loginWithToken(c *command.Environment, apiURL, token string, jsonOutput boo
 
 func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes string, noBrowser, jsonOutput bool) int {
 	oauth := client.New(apiURL, "", c.HTTPClient)
-	dcr, err := auth.RequestDeviceCode(context.Background(), oauth, auth.DefaultClientID, scopes)
+	dcr, err := auth.RequestDeviceCode(c.Ctx(), oauth, auth.DefaultClientID, scopes)
 	if err != nil {
 		fmt.Fprintf(c.Err, "failed to initiate device authorization: %v\n", err)
 		return 1
@@ -72,7 +71,7 @@ func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes 
 	showDeviceAuthorization(c, dcr, noBrowser, jsonOutput)
 	interval, expiresIn := deviceTiming(dcr)
 
-	tokenResp, err := auth.PollForToken(context.Background(), oauth, auth.DefaultClientID, dcr.DeviceCode, interval, expiresIn)
+	tokenResp, err := auth.PollForToken(c.Ctx(), oauth, auth.DefaultClientID, dcr.DeviceCode, interval, expiresIn)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authorization failed: %v\n", err)
 		return 1
@@ -88,7 +87,7 @@ func loginWithDevice(c *command.Environment, cfg *config.Config, apiURL, scopes 
 	}
 
 	cli := client.New(apiURL, cfg.Token, c.HTTPClient)
-	user, err := cli.GetUser(context.Background())
+	user, err := cli.GetUser(c.Ctx())
 	if err != nil {
 		// Logged in successfully, but user info fetch had an issue
 		user = nil

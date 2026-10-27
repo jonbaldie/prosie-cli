@@ -87,7 +87,7 @@ func executeGenerateContinue(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	ctx := generationContext(c)
+	ctx := c.Ctx()
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

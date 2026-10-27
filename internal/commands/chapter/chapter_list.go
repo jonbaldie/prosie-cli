@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -30,7 +29,7 @@ func executeChapterList(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	chapters, err := cli.Chapters().ListChapters(context.Background(), bookID)
+	chapters, err := cli.Chapters().ListChapters(c.Ctx(), bookID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error listing chapters: %v\n", err)
 		return 1

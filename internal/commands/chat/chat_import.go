@@ -1,7 +1,6 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -36,7 +35,7 @@ func executeChatImport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	conv, err := cli.Conversations().ImportConversation(context.Background(), bookID, upload)
+	conv, err := cli.Conversations().ImportConversation(c.Ctx(), bookID, upload)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error importing conversation: %v\n", err)
 		return 1

@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -29,7 +28,7 @@ func executeChapterShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	chapter, err := cli.Chapters().GetChapter(context.Background(), id)
+	chapter, err := cli.Chapters().GetChapter(c.Ctx(), id)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching chapter: %v\n", err)
 		return 1

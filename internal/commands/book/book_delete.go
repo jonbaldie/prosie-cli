@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -40,7 +39,7 @@ func executeBookDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Books().DeleteBook(context.Background(), id); err != nil {
+	if err := cli.Books().DeleteBook(c.Ctx(), id); err != nil {
 		fmt.Fprintf(c.Err, "error deleting book: %v\n", err)
 		return 1
 	}

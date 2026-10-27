@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -35,7 +34,7 @@ func executeBookImport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	book, err := cli.Books().ImportDocx(context.Background(), upload, *title)
+	book, err := cli.Books().ImportDocx(c.Ctx(), upload, *title)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error importing book: %v\n", err)
 		return 1

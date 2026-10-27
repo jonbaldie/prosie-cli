@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -33,7 +32,7 @@ func executeChapterExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	data, err := cli.Chapters().ExportChapter(context.Background(), id, *format)
+	data, err := cli.Chapters().ExportChapter(c.Ctx(), id, *format)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting chapter: %v\n", err)
 		return 1

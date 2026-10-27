@@ -1,7 +1,6 @@
 package llmcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -56,7 +55,7 @@ func executeLlmShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	config, err := cli.LLM().GetConfig(context.Background())
+	config, err := cli.LLM().GetConfig(c.Ctx())
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching LLM configuration: %v\n", err)
 		return 1
@@ -98,7 +97,7 @@ func executeLlmModels(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	models, err := cli.LLM().GetModels(context.Background())
+	models, err := cli.LLM().GetModels(c.Ctx())
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching LLM models: %v\n", err)
 		return 1
@@ -184,7 +183,7 @@ func executeLlmUpdate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	config, err := cli.LLM().UpdateConfig(context.Background(), params)
+	config, err := cli.LLM().UpdateConfig(c.Ctx(), params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error updating LLM configuration: %v\n", err)
 		return 1

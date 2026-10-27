@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -37,7 +36,7 @@ func executeChapterReorder(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	chapters, err := cli.Chapters().ReorderChapters(context.Background(), bookID, order)
+	chapters, err := cli.Chapters().ReorderChapters(c.Ctx(), bookID, order)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error reordering chapters: %v\n", err)
 		return 1

@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -46,7 +45,7 @@ func executeBookCreate(c *command.Environment, args []string) int {
 		Characters: command.OptionalText(*characters), TargetWordCount: command.WordTarget(*targetWords),
 	}
 
-	book, err := cli.Books().CreateBook(context.Background(), params)
+	book, err := cli.Books().CreateBook(c.Ctx(), params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error creating book: %v\n", err)
 		return 1

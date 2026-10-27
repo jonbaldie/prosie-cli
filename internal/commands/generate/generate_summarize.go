@@ -1,7 +1,6 @@
 package generatecmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/client"
@@ -32,10 +31,7 @@ func executeGenerateSummarize(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	ctx := c.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx := c.Ctx()
 
 	params := client.SummarizeParams{Persist: *persistFlag && !*noPersistFlag}
 	res, err := cli.Generation().Summarize(ctx, id, params)

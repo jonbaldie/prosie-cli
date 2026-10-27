@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -50,7 +49,7 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	book, err := cli.Books().UpdateBook(context.Background(), id, params)
+	book, err := cli.Books().UpdateBook(c.Ctx(), id, params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error updating book: %v\n", err)
 		return 1

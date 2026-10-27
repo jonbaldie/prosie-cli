@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -36,7 +35,7 @@ func executeChapterDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Chapters().DeleteChapter(context.Background(), id); err != nil {
+	if err := cli.Chapters().DeleteChapter(c.Ctx(), id); err != nil {
 		fmt.Fprintf(c.Err, "error deleting chapter: %v\n", err)
 		return 1
 	}

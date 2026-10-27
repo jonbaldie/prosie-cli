@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -34,7 +33,7 @@ func executeBookDuplicate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	book, err := cli.Books().DuplicateBook(context.Background(), id)
+	book, err := cli.Books().DuplicateBook(c.Ctx(), id)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error duplicating book: %v\n", err)
 		return 1

@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -39,7 +38,7 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	chapter, err := cli.Chapters().UpdateChapter(context.Background(), id, params)
+	chapter, err := cli.Chapters().UpdateChapter(c.Ctx(), id, params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error updating chapter: %v\n", err)
 		return 1

@@ -1,7 +1,6 @@
 package chaptercmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -41,7 +40,7 @@ func executeChapterCreate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	chapter, err := cli.Chapters().CreateChapter(context.Background(), bookID, client.CreateChapterParams(params))
+	chapter, err := cli.Chapters().CreateChapter(c.Ctx(), bookID, client.CreateChapterParams(params))
 	if err != nil {
 		fmt.Fprintf(c.Err, "error creating chapter: %v\n", err)
 		return 1

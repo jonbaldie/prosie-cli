@@ -1,7 +1,6 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -36,7 +35,7 @@ func executeChatDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Conversations().DeleteConversation(context.Background(), convID); err != nil {
+	if err := cli.Conversations().DeleteConversation(c.Ctx(), convID); err != nil {
 		fmt.Fprintf(c.Err, "error deleting conversation: %v\n", err)
 		return 1
 	}

@@ -1,7 +1,6 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -30,7 +29,7 @@ func executeChatList(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	conversations, err := cli.Conversations().ListConversations(context.Background(), bookID)
+	conversations, err := cli.Conversations().ListConversations(c.Ctx(), bookID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error listing conversations: %v\n", err)
 		return 1
