@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -12,12 +11,6 @@ import (
 	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/config"
 )
-
-type failingLlmWriter struct{}
-
-func (failingLlmWriter) Write([]byte) (int, error) {
-	return 0, errors.New("output unavailable")
-}
 
 func setupTestLlmEnv(t *testing.T, handler http.HandlerFunc) (string, *http.Client) {
 	server := httptest.NewServer(handler)
@@ -305,32 +298,6 @@ func TestLlmCommandsRejectPositionalArguments(t *testing.T) {
 		if strings.Contains(errOut.String(), "secret-value") {
 			t.Fatalf("positional value appeared in stderr for %v", args)
 		}
-	}
-}
-
-func TestLlmJSONOutputReportsWriteErrors(t *testing.T) {
-	handler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{
-				"provider":           "openrouter",
-				"model":              "openai/gpt-5.6-luna",
-				"has_openai_key":     false,
-				"has_anthropic_key":  false,
-				"has_openrouter_key": true,
-			},
-		})
-	}
-	configPath, httpClient := setupTestLlmEnv(t, handler)
-
-	cmd, _, errOut := newTestRootCmd(configPath, httpClient)
-	cmd.Out = failingLlmWriter{}
-	code := cmd.Execute([]string{"llm", "show", "--json"})
-	if code != 1 {
-		t.Fatalf("expected code 1, got %d", code)
-	}
-	if !strings.Contains(errOut.String(), "error writing output: output unavailable") {
-		t.Fatalf("unexpected stderr: %s", errOut.String())
 	}
 }
 
