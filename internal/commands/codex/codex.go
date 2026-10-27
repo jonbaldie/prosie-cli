@@ -162,6 +162,7 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 	details := fs.String("details", "", "Entry description and facts (required)")
 	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
+	order := fs.Int("order", 0, "Display order (0 or greater)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
@@ -169,6 +170,10 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexCreateHelp)
+	}
+	if *order < 0 {
+		fmt.Fprintln(c.Err, "error: --order must be greater than or equal to 0")
+		return 1
 	}
 
 	bookID, err := strconv.Atoi(posArgs[0])
@@ -194,6 +199,7 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 		Category: firstText(*entryType, *category, "lore"),
 		Content:  finalDetails,
 		Aliases:  optionalAliases(aliases),
+		Order:    command.Provided(command.VisitedFlags(fs), "order", order),
 	}
 
 	entry, err := cli.Codex().CreateCodexEntry(c.Ctx(), bookID, params)
@@ -225,6 +231,7 @@ Flags:
   -h, --help              Show help for command
       --json              Format output as JSON
       --name string       Entry name (required)
+      --order int         Display order (0 or greater; omitted by default)
       --type string       Entry type: lore or character (default: lore)
 `
 	fmt.Fprint(c.Out, help)
@@ -240,6 +247,7 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 	details := fs.String("details", "", "Entry description and facts")
 	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
+	order := fs.Int("order", 0, "Display order (0 or greater)")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
@@ -247,6 +255,10 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 	})
 	if err != nil {
 		return command.FlagError(c, err, printCodexUpdateHelp)
+	}
+	if *order < 0 {
+		fmt.Fprintln(c.Err, "error: --order must be greater than or equal to 0")
+		return 1
 	}
 
 	id, err := strconv.Atoi(posArgs[0])
@@ -261,6 +273,7 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 		Category: providedAlias(visited, "type", entryType, "category", category),
 		Content:  providedAlias(visited, "details", details, "content", content),
 		Aliases:  command.Provided(visited, "aliases", aliases),
+		Order:    command.Provided(visited, "order", order),
 	}
 
 	cli, err := command.Client(c)
@@ -298,6 +311,7 @@ Flags:
   -h, --help              Show help for command
       --json              Format output as JSON
       --name string       Entry name
+      --order int         Display order (0 or greater; omitted by default)
       --type string       Entry type: lore or character
 `
 	fmt.Fprint(c.Out, help)
