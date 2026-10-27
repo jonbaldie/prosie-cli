@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"unicode/utf8"
 
@@ -376,6 +378,116 @@ func TestCodexUpdate(t *testing.T) {
 			t.Fatalf("unexpected entry json: %+v", entry)
 		}
 	})
+}
+
+func TestCodexOrder(t *testing.T) {
+	for _, command := range []struct {
+		name    string
+		args    []string
+		method  string
+		path    string
+		payload string
+	}{
+		{"create", []string{"codex", "create", "1", "--name", "The Citadel", "--details", "Ancient fortress."}, http.MethodPost, "/api/stories/1/codex-entries", `{"name":"The Citadel","category":"lore","content":"Ancient fortress."}`},
+		{"update", []string{"codex", "update", "100", "--name", "The Citadel"}, http.MethodPatch, "/api/codex-entries/100", `{"name":"The Citadel"}`},
+	} {
+		t.Run(command.name, func(t *testing.T) {
+			for _, tc := range []struct {
+				name  string
+				flags []string
+				order any
+			}{
+				{"positive", []string{"--order", "2"}, float64(2)},
+				{"zero", []string{"--order", "0"}, float64(0)},
+				{"omitted", nil, nil},
+				{"equals syntax", []string{"--order=5"}, float64(5)},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					var payload map[string]any
+					handler := func(w http.ResponseWriter, r *http.Request) {
+						if r.Method != command.method || r.URL.Path != command.path {
+							t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+						}
+						if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+							t.Errorf("invalid request JSON: %v", err)
+						}
+						w.Header().Set("Content-Type", "application/json")
+						_, _ = w.Write([]byte(`{"data":{"id":100,"name":"The Citadel","category":"lore"}}`))
+					}
+					_, cfgPath, httpClient := setupTestCodexEnv(t, handler)
+					cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+					args := append(append([]string{}, command.args...), tc.flags...)
+					code := cmd.Execute(append(args, "--json"))
+					if code != 0 || errOut.Len() != 0 {
+						t.Fatalf("expected exit 0 and empty stderr, got %d: %s", code, errOut.String())
+					}
+					var want map[string]any
+					if err := json.Unmarshal([]byte(command.payload), &want); err != nil {
+						t.Fatal(err)
+					}
+					if tc.order != nil {
+						want["order"] = tc.order
+					}
+					if !reflect.DeepEqual(payload, want) {
+						t.Fatalf("request body = %#v, want %#v", payload, want)
+					}
+					var entry client.CodexEntry
+					if err := json.Unmarshal(out.Bytes(), &entry); err != nil {
+						t.Fatalf("invalid output JSON: %v", err)
+					}
+					if entry.ID != 100 || entry.Name != "The Citadel" {
+						t.Fatalf("unexpected output: %+v", entry)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestCodexOrderRejectsInvalidValues(t *testing.T) {
+	for _, args := range [][]string{
+		{"codex", "create", "1", "--name", "The Citadel", "--details", "Ancient fortress."},
+		{"codex", "update", "100"},
+	} {
+		for _, tc := range []struct {
+			name  string
+			flags []string
+			error string
+		}{
+			{"negative", []string{"--order", "-1"}, "error: --order must be greater than or equal to 0\n"},
+			{"not integer", []string{"--order", "first"}, `invalid value "first" for flag -order`},
+			{"missing value", []string{"--order"}, "flag needs an argument: -order"},
+			{"overflow", []string{"--order", "999999999999999999999999"}, "value out of range"},
+		} {
+			t.Run(args[1]+"/"+tc.name, func(t *testing.T) {
+				var requests atomic.Int32
+				_, cfgPath, httpClient := setupTestCodexEnv(t, func(w http.ResponseWriter, r *http.Request) {
+					requests.Add(1)
+					http.Error(w, "unexpected request", http.StatusInternalServerError)
+				})
+				cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
+				code := cmd.Execute(append(append([]string{}, args...), tc.flags...))
+				if code != 1 || out.Len() != 0 || !strings.Contains(errOut.String(), tc.error) {
+					t.Fatalf("expected exit 1, empty stdout, and stderr %q; got %d, %q, %q", tc.error, code, out.String(), errOut.String())
+				}
+				if requests.Load() != 0 {
+					t.Fatalf("invalid order sent %d requests", requests.Load())
+				}
+			})
+		}
+	}
+}
+
+func TestCodexOrderHelp(t *testing.T) {
+	for _, subcommand := range []string{"create", "update"} {
+		t.Run(subcommand, func(t *testing.T) {
+			cmd, out, errOut := newTestRootCmd("", nil)
+			code := cmd.Execute([]string{"codex", subcommand, "--help"})
+			if code != 0 || errOut.Len() != 0 || !strings.Contains(out.String(), "--order int") {
+				t.Fatalf("expected order help with exit 0 and empty stderr; got %d, %q, %q", code, out.String(), errOut.String())
+			}
+		})
+	}
 }
 
 func TestCodexDelete(t *testing.T) {
