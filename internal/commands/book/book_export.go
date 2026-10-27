@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -37,7 +36,7 @@ func executeBookExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	data, err := cli.Books().ExportStory(context.Background(), id, *format)
+	data, err := cli.Books().ExportStory(c.Ctx(), id, *format)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting book: %v\n", err)
 		return 1

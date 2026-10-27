@@ -45,7 +45,7 @@ func executeGenerateRewrite(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	ctx := generationContext(c)
+	ctx := c.Ctx()
 
 	if *streamFlag && !*jsonFlag {
 		return streamRewrite(c, cli.Generation(), ctx, id, params)

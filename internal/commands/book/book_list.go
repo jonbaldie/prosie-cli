@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -25,7 +24,7 @@ func executeBookList(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	books, err := cli.Books().ListBooks(context.Background())
+	books, err := cli.Books().ListBooks(c.Ctx())
 	if err != nil {
 		fmt.Fprintf(c.Err, "error listing books: %v\n", err)
 		return 1

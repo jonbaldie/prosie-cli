@@ -1,7 +1,6 @@
 package chatcmd
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
@@ -18,7 +17,7 @@ func sendTurn(c *command.Environment, target client.TurnTarget, message string, 
 		return nil
 	}
 
-	result, err := cli.Conversations().SendTurn(context.Background(), target, message, onToken)
+	result, err := cli.Conversations().SendTurn(c.Ctx(), target, message, onToken)
 	if err == nil {
 		return &result
 	}

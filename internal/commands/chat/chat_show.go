@@ -1,7 +1,6 @@
 package chatcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/client"
@@ -31,7 +30,7 @@ func executeChatShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	conv, err := cli.Conversations().GetConversation(context.Background(), conversationID)
+	conv, err := cli.Conversations().GetConversation(c.Ctx(), conversationID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error showing conversation: %v\n", err)
 		return 1

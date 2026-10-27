@@ -1,7 +1,6 @@
 package seriescmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -65,7 +64,7 @@ func executeSeriesList(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	seriesList, err := cli.Series().ListSeries(context.Background())
+	seriesList, err := cli.Series().ListSeries(c.Ctx())
 	if err != nil {
 		fmt.Fprintf(c.Err, "error listing series: %v\n", err)
 		return 1
@@ -117,7 +116,7 @@ func executeSeriesShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	series, err := cli.Series().GetSeries(context.Background(), id)
+	series, err := cli.Series().GetSeries(c.Ctx(), id)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching series: %v\n", err)
 		return 1
@@ -181,7 +180,7 @@ func executeSeriesCreate(c *command.Environment, args []string) int {
 		params.Description = description
 	}
 
-	series, err := cli.Series().CreateSeries(context.Background(), params)
+	series, err := cli.Series().CreateSeries(c.Ctx(), params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error creating series: %v\n", err)
 		return 1
@@ -255,7 +254,7 @@ func executeSeriesUpdate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	series, err := cli.Series().UpdateSeries(context.Background(), id, params)
+	series, err := cli.Series().UpdateSeries(c.Ctx(), id, params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error updating series: %v\n", err)
 		return 1
@@ -317,7 +316,7 @@ func executeSeriesDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Series().DeleteSeries(context.Background(), id); err != nil {
+	if err := cli.Series().DeleteSeries(c.Ctx(), id); err != nil {
 		fmt.Fprintf(c.Err, "error deleting series: %v\n", err)
 		return 1
 	}
@@ -379,7 +378,7 @@ func executeSeriesAttach(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	book, err := cli.Series().AttachSeriesBook(context.Background(), seriesID, bookID)
+	book, err := cli.Series().AttachSeriesBook(c.Ctx(), seriesID, bookID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error attaching book: %v\n", err)
 		return 1
@@ -438,7 +437,7 @@ func executeSeriesDetach(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Series().DetachSeriesBook(context.Background(), seriesID, bookID); err != nil {
+	if err := cli.Series().DetachSeriesBook(c.Ctx(), seriesID, bookID); err != nil {
 		fmt.Fprintf(c.Err, "error detaching book: %v\n", err)
 		return 1
 	}

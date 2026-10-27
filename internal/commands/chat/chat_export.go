@@ -2,7 +2,6 @@ package chatcmd
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -33,7 +32,7 @@ func executeChatExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	data, err := cli.Conversations().ExportConversation(context.Background(), convID)
+	data, err := cli.Conversations().ExportConversation(c.Ctx(), convID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting conversation: %v\n", err)
 		return 1

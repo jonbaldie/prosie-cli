@@ -1,7 +1,6 @@
 package bookcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/client"
@@ -35,7 +34,7 @@ func executeBookShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	book, err := cli.Books().GetBook(context.Background(), id)
+	book, err := cli.Books().GetBook(c.Ctx(), id)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching book: %v\n", err)
 		return 1

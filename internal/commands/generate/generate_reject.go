@@ -1,7 +1,6 @@
 package generatecmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -29,10 +28,7 @@ func executeGenerateReject(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	ctx := c.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx := c.Ctx()
 
 	chapter, err := cli.Generation().RejectContinuation(ctx, id)
 	if err != nil {

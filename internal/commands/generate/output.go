@@ -1,19 +1,10 @@
 package generatecmd
 
 import (
-	"context"
 	"fmt"
-	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
 	"strings"
 )
-
-func generationContext(c *command.Environment) context.Context {
-	if c.Context != nil {
-		return c.Context
-	}
-	return context.Background()
-}
 
 type tokenOutput struct {
 	write  func(string)

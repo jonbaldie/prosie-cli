@@ -22,6 +22,13 @@ type Environment struct {
 	Context       context.Context
 }
 
+func (c *Environment) Ctx() context.Context {
+	if c.Context != nil {
+		return c.Context
+	}
+	return context.Background()
+}
+
 func Client(c *Environment) (*client.Client, error) {
 	cfg, err := config.Load(c.ConfigPath)
 	if err != nil {

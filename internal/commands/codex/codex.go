@@ -1,7 +1,6 @@
 package codexcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -70,7 +69,7 @@ func executeCodexList(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	entries, err := cli.Codex().ListCodexEntries(context.Background(), bookID)
+	entries, err := cli.Codex().ListCodexEntries(c.Ctx(), bookID)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error listing codex entries: %v\n", err)
 		return 1
@@ -124,7 +123,7 @@ func executeCodexShow(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	entry, err := cli.Codex().GetCodexEntry(context.Background(), id)
+	entry, err := cli.Codex().GetCodexEntry(c.Ctx(), id)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error fetching codex entry: %v\n", err)
 		return 1
@@ -197,7 +196,7 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 		Aliases:  optionalAliases(aliases),
 	}
 
-	entry, err := cli.Codex().CreateCodexEntry(context.Background(), bookID, params)
+	entry, err := cli.Codex().CreateCodexEntry(c.Ctx(), bookID, params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error creating codex entry: %v\n", err)
 		return 1
@@ -270,7 +269,7 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	entry, err := cli.Codex().UpdateCodexEntry(context.Background(), id, params)
+	entry, err := cli.Codex().UpdateCodexEntry(c.Ctx(), id, params)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error updating codex entry: %v\n", err)
 		return 1
@@ -335,7 +334,7 @@ func executeCodexDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if err := cli.Codex().DeleteCodexEntry(context.Background(), id); err != nil {
+	if err := cli.Codex().DeleteCodexEntry(c.Ctx(), id); err != nil {
 		fmt.Fprintf(c.Err, "error deleting codex entry: %v\n", err)
 		return 1
 	}

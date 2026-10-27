@@ -1,7 +1,6 @@
 package authcmd
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -24,7 +23,7 @@ func executeAuthStatus(c *command.Environment, args []string) int {
 		return command.FlagError(c, err, printAuthStatusHelp)
 	}
 
-	status, err := auth.InspectStatus(context.Background(), c.ConfigPath, c.HTTPClient)
+	status, err := auth.InspectStatus(c.Ctx(), c.ConfigPath, c.HTTPClient)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
 		return 1
