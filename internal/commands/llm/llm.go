@@ -63,10 +63,12 @@ func executeLlmShow(c *command.Environment, args []string) int {
 	}
 
 	if *jsonFlag {
-		return writeLlmJSON(c, config)
+		_ = command.WriteJSON(c, config)
+		return 0
 	}
 
-	return writeLlmOutput(c, llmConfigText(config))
+	fmt.Fprint(c.Out, llmConfigText(config))
+	return 0
 }
 
 func printLlmShowHelp(c *command.Environment) {
@@ -103,10 +105,12 @@ func executeLlmModels(c *command.Environment, args []string) int {
 	}
 
 	if *jsonFlag {
-		return writeLlmJSON(c, models)
+		_ = command.WriteJSON(c, models)
+		return 0
 	}
 
-	return writeLlmOutput(c, llmModelsText(models))
+	fmt.Fprint(c.Out, llmModelsText(models))
+	return 0
 }
 
 func printLlmModelsHelp(c *command.Environment) {
@@ -187,10 +191,12 @@ func executeLlmUpdate(c *command.Environment, args []string) int {
 	}
 
 	if *jsonFlag {
-		return writeLlmJSON(c, config)
+		_ = command.WriteJSON(c, config)
+		return 0
 	}
 
-	return writeLlmOutput(c, "Updated LLM configuration.\n"+llmConfigText(config))
+	fmt.Fprint(c.Out, "Updated LLM configuration.\n"+llmConfigText(config))
+	return 0
 }
 
 func hasLlmUpdate(params client.UpdateLlmConfigParams) bool {
@@ -231,23 +237,6 @@ func llmConfigText(config *client.LlmConfig) string {
 		keyStatus(config.HasAnthropicKey),
 		keyStatus(config.HasOpenRouterKey),
 	)
-}
-
-func writeLlmJSON(c *command.Environment, value any) int {
-	return reportLlmOutput(c, command.WriteJSON(c, value))
-}
-
-func writeLlmOutput(c *command.Environment, output string) int {
-	_, err := io.WriteString(c.Out, output)
-	return reportLlmOutput(c, err)
-}
-
-func reportLlmOutput(c *command.Environment, err error) int {
-	if err == nil {
-		return 0
-	}
-	fmt.Fprintf(c.Err, "error writing output: %v\n", err)
-	return 1
 }
 
 func keyStatus(configured bool) string {

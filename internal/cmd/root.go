@@ -43,10 +43,28 @@ func NewRootCmd() *RootCmd {
 	}
 }
 
+type outputWriter struct {
+	writer io.Writer
+	err    error
+}
+
+func (w *outputWriter) Write(p []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+	n, err := w.writer.Write(p)
+	if err == nil && n < len(p) {
+		err = io.ErrShortWrite
+	}
+	w.err = err
+	return n, err
+}
+
 // Execute routes command-line arguments and returns the process exit code.
 func (c *RootCmd) Execute(args []string) int {
-	env := &command.Environment{In: c.In, Out: c.Out, Err: c.Err, ConfigPath: c.ConfigPath, HTTPClient: c.HTTPClient, BrowserOpener: c.BrowserOpener, Context: c.Context}
-	return command.Dispatch(env, args, map[string]command.Handler{
+	output := &outputWriter{writer: c.Out}
+	env := &command.Environment{In: c.In, Out: output, Err: c.Err, ConfigPath: c.ConfigPath, HTTPClient: c.HTTPClient, BrowserOpener: c.BrowserOpener, Context: c.Context}
+	code := command.Dispatch(env, args, map[string]command.Handler{
 		"auth":      authcmd.Execute,
 		"book":      bookcmd.Execute,
 		"chapter":   chaptercmd.Execute,
@@ -59,6 +77,11 @@ func (c *RootCmd) Execute(args []string) int {
 		"--version": versioncmd.Execute, "-v": versioncmd.Execute,
 		"--json": func(env *command.Environment, _ []string) int { printHelp(env); return 0 },
 	}, printHelp, "unknown command: %s\nRun 'prosie --help' for usage.\n")
+	if code == 0 && output.err != nil {
+		fmt.Fprintf(c.Err, "error writing output: %v\n", output.err)
+		return 1
+	}
+	return code
 }
 
 func printHelp(c *command.Environment) {
