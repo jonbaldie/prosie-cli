@@ -1,6 +1,7 @@
 package seriescmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -306,31 +307,10 @@ func executeSeriesDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if !command.ConfirmDeletion(c, *yesFlag, "series", id) {
-		return 0
-	}
-
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if err := cli.Series().DeleteSeries(c.Ctx(), id); err != nil {
-		fmt.Fprintf(c.Err, "error deleting series: %v\n", err)
-		return 1
-	}
-
-	if *jsonFlag {
-		_ = command.WriteJSON(c, map[string]any{
-			"id":      id,
-			"deleted": true,
+	return command.ExecuteDelete(c, command.DeleteOptions{Resource: "series", ID: id, Yes: *yesFlag, JSON: *jsonFlag},
+		func(ctx context.Context, cli *client.Client) error {
+			return cli.Series().DeleteSeries(ctx, id)
 		})
-		return 0
-	}
-
-	fmt.Fprintf(c.Out, "Deleted series %d.\n", id)
-	return 0
 }
 
 func printSeriesDeleteHelp(c *command.Environment) {

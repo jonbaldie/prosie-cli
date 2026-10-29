@@ -1,11 +1,12 @@
 package chatcmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
 )
 
 func executeChatDelete(c *command.Environment, args []string) int {
@@ -25,35 +26,10 @@ func executeChatDelete(c *command.Environment, args []string) int {
 
 	convID := posArgs[0]
 
-	if !command.ConfirmDeletion(c, *yesFlag, "conversation", convID) {
-		return 0
-	}
-
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if err := cli.Conversations().DeleteConversation(c.Ctx(), convID); err != nil {
-		fmt.Fprintf(c.Err, "error deleting conversation: %v\n", err)
-		return 1
-	}
-
-	if *jsonFlag {
-		var idVal any = convID
-		if intVal, err := strconv.Atoi(convID); err == nil {
-			idVal = intVal
-		}
-		_ = command.WriteJSON(c, map[string]any{
-			"id":      idVal,
-			"deleted": true,
+	return command.ExecuteDelete(c, command.DeleteOptions{Resource: "conversation", ID: convID, Yes: *yesFlag, JSON: *jsonFlag},
+		func(ctx context.Context, cli *client.Client) error {
+			return cli.Conversations().DeleteConversation(ctx, convID)
 		})
-		return 0
-	}
-
-	fmt.Fprintf(c.Out, "Deleted conversation %s.\n", convID)
-	return 0
 }
 
 func printChatDeleteHelp(c *command.Environment) {
