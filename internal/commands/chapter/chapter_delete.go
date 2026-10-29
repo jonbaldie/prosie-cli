@@ -1,11 +1,12 @@
 package chaptercmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
-	"strconv"
 )
 
 func executeChapterDelete(c *command.Environment, args []string) int {
@@ -25,35 +26,10 @@ func executeChapterDelete(c *command.Environment, args []string) int {
 
 	id := posArgs[0]
 
-	if !command.ConfirmDeletion(c, *yesFlag, "chapter", id) {
-		return 0
-	}
-
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if err := cli.Chapters().DeleteChapter(c.Ctx(), id); err != nil {
-		fmt.Fprintf(c.Err, "error deleting chapter: %v\n", err)
-		return 1
-	}
-
-	if *jsonFlag {
-		var idVal any = id
-		if intVal, err := strconv.Atoi(id); err == nil {
-			idVal = intVal
-		}
-		_ = command.WriteJSON(c, map[string]any{
-			"id":      idVal,
-			"deleted": true,
+	return command.ExecuteDelete(c, command.DeleteOptions{Resource: "chapter", ID: id, Yes: *yesFlag, JSON: *jsonFlag},
+		func(ctx context.Context, cli *client.Client) error {
+			return cli.Chapters().DeleteChapter(ctx, id)
 		})
-		return 0
-	}
-
-	fmt.Fprintf(c.Out, "Deleted chapter %s.\n", id)
-	return 0
 }
 
 func printChapterDeleteHelp(c *command.Environment) {

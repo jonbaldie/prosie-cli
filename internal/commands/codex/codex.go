@@ -1,6 +1,7 @@
 package codexcmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -338,31 +339,10 @@ func executeCodexDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if !command.ConfirmDeletion(c, *yesFlag, "codex entry", id) {
-		return 0
-	}
-
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if err := cli.Codex().DeleteCodexEntry(c.Ctx(), id); err != nil {
-		fmt.Fprintf(c.Err, "error deleting codex entry: %v\n", err)
-		return 1
-	}
-
-	if *jsonFlag {
-		_ = command.WriteJSON(c, map[string]any{
-			"id":      id,
-			"deleted": true,
+	return command.ExecuteDelete(c, command.DeleteOptions{Resource: "codex entry", ID: id, Yes: *yesFlag, JSON: *jsonFlag},
+		func(ctx context.Context, cli *client.Client) error {
+			return cli.Codex().DeleteCodexEntry(ctx, id)
 		})
-		return 0
-	}
-
-	fmt.Fprintf(c.Out, "Deleted codex entry %d.\n", id)
-	return 0
 }
 
 func printCodexDeleteHelp(c *command.Environment) {

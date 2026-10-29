@@ -1,8 +1,10 @@
 package bookcmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
 	"strconv"
@@ -29,31 +31,10 @@ func executeBookDelete(c *command.Environment, args []string) int {
 		return 1
 	}
 
-	if !command.ConfirmDeletion(c, *yesFlag, "book", id) {
-		return 0
-	}
-
-	cli, err := command.Client(c)
-	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
-	}
-
-	if err := cli.Books().DeleteBook(c.Ctx(), id); err != nil {
-		fmt.Fprintf(c.Err, "error deleting book: %v\n", err)
-		return 1
-	}
-
-	if *jsonFlag {
-		_ = command.WriteJSON(c, map[string]any{
-			"id":      id,
-			"deleted": true,
+	return command.ExecuteDelete(c, command.DeleteOptions{Resource: "book", ID: id, Yes: *yesFlag, JSON: *jsonFlag},
+		func(ctx context.Context, cli *client.Client) error {
+			return cli.Books().DeleteBook(ctx, id)
 		})
-		return 0
-	}
-
-	fmt.Fprintf(c.Out, "Deleted book %d.\n", id)
-	return 0
 }
 
 func printBookDeleteHelp(c *command.Environment) {
