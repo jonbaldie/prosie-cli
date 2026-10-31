@@ -25,7 +25,7 @@ type continueRequest struct {
 // parseContinueArgs parses flags for `generate continue`. A non-nil error
 // is a flag-level error to be handled via command.FlagError; a non-empty
 // message is a user-facing validation failure with a fixed exit code of 1.
-func parseContinueArgs(args []string) (continueRequest, string, error) {
+func parseContinueArgs(args []string, jsonDefault bool) (continueRequest, string, error) {
 	fs := flag.NewFlagSet("continue", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
@@ -33,7 +33,7 @@ func parseContinueArgs(args []string) (continueRequest, string, error) {
 	noPersistFlag := fs.Bool("no-persist", false, "Do not save changes to chapter")
 	streamFlag := fs.Bool("stream", true, "Stream tokens in real time")
 	noStreamFlag := fs.Bool("no-stream", false, "Disable token streaming")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format (disables streaming)")
+	jsonFlag := fs.Bool("json", jsonDefault, "Output in JSON format (disables streaming)")
 	instructionFlag := fs.String("instruction", "", "Steer the continuation with a final prompt")
 	wordsFlag := fs.Int("words", 0, "Target length in words (soft hint)")
 	linesFlag := fs.Int("lines", 0, "Hard cap on generated lines")
@@ -72,7 +72,7 @@ func validateLengthFlags(visited map[string]bool, words, lines int) string {
 }
 
 func executeGenerateContinue(c *command.Environment, args []string) int {
-	req, msg, err := parseContinueArgs(args)
+	req, msg, err := parseContinueArgs(args, c.JSON)
 	if err != nil {
 		return command.FlagError(c, err, printGenerateContinueHelp)
 	}

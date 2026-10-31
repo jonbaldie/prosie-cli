@@ -9,10 +9,10 @@ import (
 	"github.com/jonbaldie/prosie-cli/internal/config"
 	"io"
 	"net/http"
-	"strings"
 )
 
 type Environment struct {
+	JSON          bool
 	In            io.Reader
 	Out           io.Writer
 	Err           io.Writer
@@ -52,13 +52,4 @@ func WriteJSON(c *Environment, v any) error {
 	data = append(data, '\n')
 	_, err = c.Out.Write(data)
 	return err
-}
-
-func HasJSONFlag(args []string) bool {
-	for _, arg := range args {
-		if arg == "--json" || strings.HasPrefix(arg, "--json=") {
-			return true
-		}
-	}
-	return false
 }

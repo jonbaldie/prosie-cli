@@ -53,7 +53,7 @@ func executeSeriesList(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie series list [flags]"}); err != nil {
 		return command.FlagError(c, err, printSeriesListHelp)
@@ -96,7 +96,7 @@ func executeSeriesShow(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("show", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie series show <id> [flags]", Missing: "series ID is required",
@@ -151,7 +151,7 @@ func executeSeriesCreate(c *command.Environment, args []string) int {
 	title := fs.String("title", "", "Series title")
 	name := fs.String("name", "", "Series name (alias for title)")
 	description := fs.String("description", "", "Series description and premise")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie series create --title <title> [flags]"}); err != nil {
 		return command.FlagError(c, err, printSeriesCreateHelp)
@@ -219,7 +219,7 @@ func executeSeriesUpdate(c *command.Environment, args []string) int {
 	title := fs.String("title", "", "Series title")
 	name := fs.String("name", "", "Series name (alias for title)")
 	description := fs.String("description", "", "Series description")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie series update <id> [flags]", Missing: "series ID is required",
@@ -292,7 +292,7 @@ func executeSeriesDelete(c *command.Environment, args []string) int {
 
 	yesFlag := fs.Bool("yes", false, "Skip confirmation prompt")
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie series delete <id> [flags]", Missing: "series ID is required",
@@ -331,7 +331,7 @@ func executeSeriesAttach(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("attach", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 2, Max: 2, Usage: "prosie series attach <series-id> <book-id> [flags]", Missing: "series ID and book ID are required",
@@ -390,7 +390,7 @@ func executeSeriesDetach(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("detach", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 2, Max: 2, Usage: "prosie series detach <series-id> <book-id> [flags]", Missing: "series ID and book ID are required",

@@ -75,7 +75,6 @@ func (c *RootCmd) Execute(args []string) int {
 		"series":    seriescmd.Execute,
 		"version":   versioncmd.Execute,
 		"--version": versioncmd.Execute, "-v": versioncmd.Execute,
-		"--json": func(env *command.Environment, _ []string) int { printHelp(env); return 0 },
 	}, printHelp, "unknown command: %s\nRun 'prosie --help' for usage.\n")
 	if code == 0 && output.err != nil {
 		fmt.Fprintf(c.Err, "error writing output: %v\n", output.err)

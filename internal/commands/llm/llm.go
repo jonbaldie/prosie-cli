@@ -43,7 +43,7 @@ Use "prosie llm <command> --help" for more information about a command.
 func executeLlmShow(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("show", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm show [flags]", RedactUnexpected: true}); err != nil {
 		return command.FlagError(c, err, printLlmShowHelp)
@@ -85,7 +85,7 @@ Flags:
 func executeLlmModels(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("models", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm models [flags]", RedactUnexpected: true}); err != nil {
 		return command.FlagError(c, err, printLlmModelsHelp)
@@ -158,7 +158,7 @@ func executeLlmUpdate(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 	provider := fs.String("provider", "", "Preferred LLM provider")
 	model := fs.String("model", "", "Preferred LLM model")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie llm update [flags]", RedactUnexpected: true}); err != nil {
 		return command.FlagError(c, err, printLlmUpdateHelp)

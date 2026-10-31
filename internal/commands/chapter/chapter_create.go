@@ -14,7 +14,7 @@ func executeChapterCreate(c *command.Environment, args []string) int {
 	fs.SetOutput(io.Discard)
 
 	input := newChapterInput(fs, "Initial chapter prose content")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie chapter create <book-id> [flags]", Missing: "book ID is required",

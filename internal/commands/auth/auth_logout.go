@@ -14,7 +14,7 @@ func executeAuthLogout(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("logout", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if err := fs.Parse(args); err != nil {
 		return command.FlagError(c, err, printAuthLogoutHelp)

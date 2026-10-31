@@ -19,7 +19,7 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 	lore := fs.String("lore", "", "Lore and worldbuilding details")
 	characters := fs.String("characters", "", "Characters description")
 	targetWords := fs.Int("target-words", 0, "Target word count")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie book update <id> [flags]", Missing: "book ID is required",

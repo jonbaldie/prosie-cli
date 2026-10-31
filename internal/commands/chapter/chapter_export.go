@@ -15,7 +15,7 @@ func executeChapterExport(c *command.Environment, args []string) int {
 	output := fs.String("output", "", "Write output to a file instead of stdout")
 	fs.StringVar(output, "o", "", "Write output to a file instead of stdout (shorthand)")
 	format := fs.String("format", "markdown", "Export format (markdown, docx)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie chapter export <id> [flags]", Missing: "chapter ID is required",

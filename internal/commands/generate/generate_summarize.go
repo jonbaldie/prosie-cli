@@ -12,7 +12,7 @@ func executeGenerateSummarize(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("summarize", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 	persistFlag := fs.Bool("persist", true, "Save generated summary to chapter")
 	noPersistFlag := fs.Bool("no-persist", false, "Do not save changes to chapter")
 
