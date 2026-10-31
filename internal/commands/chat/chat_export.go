@@ -15,7 +15,7 @@ func executeChatExport(c *command.Environment, args []string) int {
 
 	output := fs.String("output", "", "Write export JSON to a file instead of stdout")
 	fs.StringVar(output, "o", "", "Write export JSON to a file instead of stdout (shorthand)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie chat export <conversation-id> [flags]", Missing: "conversation ID is required",

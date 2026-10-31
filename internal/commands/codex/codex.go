@@ -49,7 +49,7 @@ func executeCodexList(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("list", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie codex list <book-id> [flags]", Missing: "book ID is required",
@@ -103,7 +103,7 @@ func executeCodexShow(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("show", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie codex show <id> [flags]", Missing: "codex entry ID is required",
@@ -164,7 +164,7 @@ func executeCodexCreate(c *command.Environment, args []string) int {
 	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	order := fs.Int("order", 0, "Display order (0 or greater)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie codex create <book-id> [flags]", Missing: "book ID is required",
@@ -249,7 +249,7 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 	content := fs.String("content", "", "Entry content (alias for --details; --details wins)")
 	aliases := fs.String("aliases", "", "Alternative names and aliases")
 	order := fs.Int("order", 0, "Display order (0 or greater)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie codex update <id> [flags]", Missing: "codex entry ID is required",
@@ -324,7 +324,7 @@ func executeCodexDelete(c *command.Environment, args []string) int {
 
 	yesFlag := fs.Bool("yes", false, "Skip confirmation prompt")
 	fs.BoolVar(yesFlag, "y", false, "Skip confirmation prompt (shorthand)")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie codex delete <id> [flags]", Missing: "codex entry ID is required",

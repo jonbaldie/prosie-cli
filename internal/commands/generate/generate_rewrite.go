@@ -22,7 +22,7 @@ func executeGenerateRewrite(c *command.Environment, args []string) int {
 	actionFlag := fs.String("action", "", "Preset rewrite action key: show, tighten, voice, or user-<id>")
 	persistFlag := fs.Bool("persist", false, "Save rewritten prose to chapter")
 	streamFlag := fs.Bool("stream", false, "Stream rewrite tokens in real time")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie generate rewrite <chapter-id> [flags]", Missing: "chapter ID is required",

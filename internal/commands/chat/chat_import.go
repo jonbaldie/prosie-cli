@@ -11,7 +11,7 @@ func executeChatImport(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("import", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 2, Max: 2, Usage: "prosie chat import <book-id> <file.json> [flags]", Missing: "book ID and file path are required",

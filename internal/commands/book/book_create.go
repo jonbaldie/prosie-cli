@@ -18,7 +18,7 @@ func executeBookCreate(c *command.Environment, args []string) int {
 	lore := fs.String("lore", "", "Lore and worldbuilding details")
 	characters := fs.String("characters", "", "Characters description")
 	targetWords := fs.Int("target-words", 0, "Target word count")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie book create --title <title> [flags]"}); err != nil {
 		return command.FlagError(c, err, printBookCreateHelp)

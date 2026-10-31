@@ -16,7 +16,7 @@ func executeChatStream(c *command.Environment, args []string) int {
 	convFlag := fs.String("conversation", "", "Existing conversation ID to continue")
 	fs.StringVar(convFlag, "c", "", "Existing conversation ID to continue (shorthand)")
 	titleFlag := fs.String("title", "", "Title for newly created conversation")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: -1, Usage: "prosie chat stream <book-id> <message> [flags]"})
 	if err != nil {

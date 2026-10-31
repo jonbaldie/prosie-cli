@@ -19,7 +19,7 @@ func executeAuthLogin(c *command.Environment, args []string) int {
 	tokenFlag := fs.String("token", "", "Authenticate with a personal access token")
 	noBrowserFlag := fs.Bool("no-browser", false, "Do not open the web browser automatically")
 	scopesFlag := fs.String("scopes", "read write generate", "Requested token scopes")
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if err := fs.Parse(args); err != nil {
 		return command.FlagError(c, err, printAuthLoginHelp)

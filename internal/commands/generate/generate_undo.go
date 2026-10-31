@@ -11,7 +11,7 @@ func executeGenerateUndo(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("undo", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
 		Min: 1, Max: 1, Usage: "prosie generate undo <chapter-id> [flags]", Missing: "chapter ID is required",

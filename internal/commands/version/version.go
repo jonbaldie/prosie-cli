@@ -12,7 +12,7 @@ import (
 func Execute(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("version", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	jsonFlag := fs.Bool("json", false, "Output in JSON format")
+	jsonFlag := fs.Bool("json", c.JSON, "Output in JSON format")
 
 	if _, err := command.ParseFlagsAndArgs(fs, args, command.Args{Max: 0, Usage: "prosie version [flags]"}); err != nil {
 		return command.FlagError(c, err, printVersionHelp)
