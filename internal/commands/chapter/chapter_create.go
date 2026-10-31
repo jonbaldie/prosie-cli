@@ -13,10 +13,7 @@ func executeChapterCreate(c *command.Environment, args []string) int {
 	fs := flag.NewFlagSet("create", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 
-	title := fs.String("title", "", "Chapter title (sent as name)")
-	content := fs.String("content", "", "Initial chapter prose content")
-	summary := fs.String("summary", "", "Chapter summary")
-	filePath := fs.String("file", "", "Path to file containing chapter prose ('-' for standard input)")
+	input := newChapterInput(fs, "Initial chapter prose content")
 	jsonFlag := fs.Bool("json", false, "Output in JSON format")
 
 	posArgs, err := command.ParseFlagsAndArgs(fs, args, command.Args{
@@ -28,7 +25,7 @@ func executeChapterCreate(c *command.Environment, args []string) int {
 
 	bookID := posArgs[0]
 
-	params, err := command.ChapterInput(c, fs, title, content, summary, filePath)
+	params, err := input.params(c, fs)
 	if err != nil {
 		fmt.Fprintln(c.Err, err)
 		return 1
@@ -62,10 +59,13 @@ Usage:
   prosie chapter create <book-id> [flags]
 
 Flags:
+      --character string Chapter character
       --content string   Initial chapter prose content
       --file string      Path to file containing chapter prose ('-' for standard input)
   -h, --help             Show help for command
       --json             Format output as JSON
+      --order int        Chapter order
+      --pov string       Chapter point of view
       --summary string   Chapter summary
       --title string     Chapter title (sent as name)
 
