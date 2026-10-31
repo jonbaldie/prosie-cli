@@ -54,19 +54,23 @@ func (c *Chapter) normalize() {
 
 // CreateChapterParams is the request body for creating a new chapter.
 type CreateChapterParams struct {
-	Name    *string `json:"name,omitempty"`
-	Content *string `json:"content,omitempty"`
-	Summary *string `json:"summary,omitempty"`
-	Order   *int    `json:"order,omitempty"`
+	Name            *string `json:"name,omitempty"`
+	Content         *string `json:"content,omitempty"`
+	Summary         *string `json:"summary,omitempty"`
+	Order           *int    `json:"order,omitempty"`
+	CustomPOV       *string `json:"custom_pov,omitempty"`
+	CustomCharacter *string `json:"custom_character,omitempty"`
 }
 
 // UpdateChapterParams is the request body for updating an existing chapter.
 // Nil fields are omitted, so the server keeps their current values.
 type UpdateChapterParams struct {
-	Name    *string `json:"name,omitempty"`
-	Content *string `json:"content,omitempty"`
-	Summary *string `json:"summary,omitempty"`
-	Order   *int    `json:"order,omitempty"`
+	Name            *string `json:"name,omitempty"`
+	Content         *string `json:"content,omitempty"`
+	Summary         *string `json:"summary,omitempty"`
+	Order           *int    `json:"order,omitempty"`
+	CustomPOV       *string `json:"custom_pov,omitempty"`
+	CustomCharacter *string `json:"custom_character,omitempty"`
 }
 
 // ListChapters fetches all chapters in a book.
