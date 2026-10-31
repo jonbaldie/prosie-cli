@@ -10,6 +10,60 @@ import (
 	"testing"
 )
 
+func TestLeadingJSONCommandFamilies(t *testing.T) {
+	t.Setenv("PROSIE_API_URL", "https://example.test")
+	t.Setenv("PROSIE_API_TOKEN", "test-token")
+	for _, tc := range []struct {
+		name, path, response, field, want string
+		args                              []string
+		list                              bool
+	}{
+		{"book", "/api/stories/1", `{"data":{"id":1,"title":"The Starlight Gate"}}`, "title", "The Starlight Gate", []string{"--json", "book", "show", "1"}, false},
+		{"chapter", "/api/scenes/101", `{"data":{"id":101,"name":"Chapter 1","content":"Prose"}}`, "name", "Chapter 1", []string{"--json", "chapter", "show", "101"}, false},
+		{"codex", "/api/codex-entries/10", `{"data":{"id":10,"name":"Marcus Vance","category":"character","content":"Chief pilot"}}`, "name", "Marcus Vance", []string{"--json", "codex", "show", "10"}, false},
+		{"llm", "/api/llm-config", `{"data":{"provider":"openrouter","model":"openai/gpt-5.6-luna","has_openrouter_key":true}}`, "model", "openai/gpt-5.6-luna", []string{"--json", "llm", "show"}, false},
+		{"series", "/api/series", `{"data":[{"id":1,"name":"The Solar Cycle","books":[{"id":10,"title":"Solar Drift"}]}]}`, "title", "The Solar Cycle", []string{"--json", "series", "list"}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			requests := 0
+			httpClient := &http.Client{Transport: deleteTransport(func(r *http.Request) (*http.Response, error) {
+				requests++
+				if tc.name == "book" && r.Method == http.MethodGet && r.URL.Path == "/api/stories/1/scenes" {
+					return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"data":[]}`))}, nil
+				}
+				if r.Method != http.MethodGet || r.URL.Path != tc.path {
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+				}
+				return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(tc.response))}, nil
+			})}
+			root, out, errOut := newTestRootCmd(filepath.Join(t.TempDir(), "config.json"), httpClient)
+			code := root.Execute(tc.args)
+			if code != 0 || errOut.Len() != 0 {
+				t.Fatalf("exit %d, stdout %q, stderr %q", code, out.String(), errOut.String())
+			}
+			var value any
+			if err := json.Unmarshal(out.Bytes(), &value); err != nil {
+				t.Fatalf("invalid JSON output %q: %v", out.String(), err)
+			}
+			if tc.list {
+				list, ok := value.([]any)
+				if !ok || len(list) != 1 {
+					t.Fatalf("unexpected JSON list: %s", out.String())
+				}
+				value = list[0]
+			}
+			object, ok := value.(map[string]any)
+			expectedRequests := 1
+			if tc.name == "book" {
+				expectedRequests = 2
+			}
+			if !ok || object[tc.field] != tc.want || requests != expectedRequests {
+				t.Fatalf("unexpected output %s or request count %d", out.String(), requests)
+			}
+		})
+	}
+}
+
 func TestLeadingJSONPreservesChatMessageAfterSeparator(t *testing.T) {
 	var received string
 	_, cfgPath, httpClient := setupTestChatEnv(t, func(w http.ResponseWriter, r *http.Request) {
