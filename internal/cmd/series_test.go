@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -595,4 +597,213 @@ func TestSeriesDetach(t *testing.T) {
 			t.Fatalf("unexpected json: %+v", res)
 		}
 	})
+}
+
+func TestSeriesListMembership(t *testing.T) {
+	for _, format := range []string{"text", "json"} {
+		t.Run(format, func(t *testing.T) {
+			requests := map[string]int{}
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				requests[r.URL.Path]++
+				w.Header().Set("Content-Type", "application/json")
+				switch r.URL.Path {
+				case "/api/series":
+					_, _ = w.Write([]byte(`{"data":[{"id":1,"name":"Explicit","story_ids":[20,99,10,20]},{"id":2,"name":"Fallback"},{"id":3,"name":"Empty"},{"id":4,"name":"Embedded books","books":[{"id":40,"title":"Inside"}]},{"id":5,"name":"Embedded stories","stories":[{"id":50,"title":"Within"}]},{"id":6,"name":"Missing","story_ids":[99]}]}`))
+				case "/api/stories":
+					_, _ = w.Write([]byte(`{"data":[{"id":20,"title":"Old","series_id":2},{"id":10,"title":"First","series_id":2},{"id":20,"title":"Last","series_id":2},{"id":60,"title":"Other","series_id":4}]}`))
+				default:
+					http.NotFound(w, r)
+				}
+			}
+			_, cfg, httpClient := setupTestSeriesEnv(t, handler)
+			cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+			args := []string{"series", "list"}
+			if format == "json" {
+				args = append(args, "--json")
+			}
+			if code := cmd.Execute(args); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, errOut.String())
+			}
+			if requests["/api/series"] != 1 || requests["/api/stories"] != 1 || len(requests) != 2 {
+				t.Fatalf("requests: %v", requests)
+			}
+			if format == "text" {
+				assertSeriesTextRows(t, out.String(), [][]string{
+					{"1", "Explicit", "Last, First, Last", "-"},
+					{"2", "Fallback", "Old, First, Last", "-"},
+					{"3", "Empty", "-", "-"},
+					{"4", "Embedded books", "Inside", "-"},
+					{"5", "Embedded stories", "Within", "-"},
+					{"6", "Missing", "Book 99", "-"},
+				})
+				return
+			}
+			var got []struct {
+				Books []struct {
+					ID    int    `json:"id"`
+					Title string `json:"title"`
+				} `json:"books"`
+				Stories []struct {
+					ID    int    `json:"id"`
+					Title string `json:"title"`
+				} `json:"stories"`
+			}
+			if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			if len(got) != 6 {
+				t.Fatalf("output: %s", out.String())
+			}
+			want := [][]string{{"Last", "First", "Last"}, {"Old", "First", "Last"}, nil, {"Inside"}, {"Within"}, nil}
+			for i, s := range got {
+				var books, stories []string
+				for _, b := range s.Books {
+					books = append(books, b.Title)
+				}
+				for _, b := range s.Stories {
+					stories = append(stories, b.Title)
+				}
+				if !reflect.DeepEqual(books, want[i]) || !reflect.DeepEqual(stories, want[i]) {
+					t.Fatalf("series %d: books %v, stories %v", i, books, stories)
+				}
+			}
+			assertNoUnloadedSeriesRelations(t, out.String())
+		})
+	}
+}
+
+func TestSeriesListBookFetchCases(t *testing.T) {
+	for _, tc := range []struct {
+		name, series, books string
+		status, requests    int
+	}{
+		{"failed", `[{"id":1,"name":"Unloaded"},{"id":2,"name":"Kept","stories":[{"id":7,"title":"Inside"}]}]`, `failure`, 500, 1},
+		{"empty books", `[{"id":1,"name":"Unloaded"},{"id":2,"name":"Kept","stories":[{"id":7,"title":"Inside"}]}]`, `{"data":[]}`, 200, 1},
+		{"all embedded", `[{"id":2,"name":"Kept","stories":[{"id":7,"title":"Inside"}]}]`, ``, 200, 0},
+		{"empty series", `[]`, ``, 200, 0},
+	} {
+		for _, format := range []string{"text", "json"} {
+			t.Run(tc.name+"/"+format, func(t *testing.T) {
+				counts := map[string]int{}
+				_, cfg, httpClient := setupTestSeriesEnv(t, func(w http.ResponseWriter, r *http.Request) {
+					counts[r.URL.Path]++
+					switch r.URL.Path {
+					case "/api/series":
+						_, _ = w.Write([]byte(`{"data":` + tc.series + `}`))
+					case "/api/stories":
+						w.WriteHeader(tc.status)
+						_, _ = w.Write([]byte(tc.books))
+					default:
+						http.NotFound(w, r)
+					}
+				})
+				cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+				args := []string{"series", "list"}
+				if format == "json" {
+					args = append(args, "--json")
+				}
+				if code := cmd.Execute(args); code != 0 || errOut.Len() != 0 {
+					t.Fatalf("exit %d, stderr %q", code, errOut.String())
+				}
+				if counts["/api/series"] != 1 || counts["/api/stories"] != tc.requests || len(counts) != 1+tc.requests {
+					t.Fatalf("requests: %v", counts)
+				}
+				if tc.name == "empty series" {
+					want := "No series found."
+					if format == "json" {
+						want = "[]"
+					}
+					if strings.TrimSpace(out.String()) != want {
+						t.Fatalf("output: %s", out.String())
+					}
+					return
+				}
+				if format == "text" {
+					want := [][]string{{"2", "Kept", "Inside", "-"}}
+					if tc.requests == 1 {
+						want = append([][]string{{"1", "Unloaded", "-", "-"}}, want...)
+					}
+					assertSeriesTextRows(t, out.String(), want)
+				}
+				if format == "json" {
+					if !strings.Contains(out.String(), "Inside") {
+						t.Fatalf("output: %s", out.String())
+					}
+					var got []map[string]json.RawMessage
+					if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+						t.Fatal(err)
+					}
+					if tc.requests == 1 {
+						if _, ok := got[0]["books"]; ok {
+							t.Fatalf("unexpected books: %s", out.String())
+						}
+						if _, ok := got[0]["stories"]; ok {
+							t.Fatalf("unexpected stories: %s", out.String())
+						}
+					}
+					assertNoUnloadedSeriesRelations(t, out.String())
+				}
+			})
+		}
+	}
+}
+
+func assertSeriesTextRows(t *testing.T, output string, want [][]string) {
+	t.Helper()
+	lines := strings.Split(strings.TrimSpace(output), "\n")
+	if len(lines) != len(want)+1 {
+		t.Fatalf("output: %q", output)
+	}
+	separator := regexp.MustCompile(` {2,}`)
+	for i, line := range lines[1:] {
+		got := separator.Split(strings.TrimSpace(line), -1)
+		if !reflect.DeepEqual(got, want[i]) {
+			t.Fatalf("row %d: got %q, want %q", i+1, got, want[i])
+		}
+	}
+}
+
+func TestSeriesShowMembership(t *testing.T) {
+	for _, tc := range []struct {
+		name, series string
+		want         []string
+	}{
+		{"explicit", `{"id":1,"name":"Shown","story_ids":[20,99,10,20]}`, []string{"Last", "First", "Last"}},
+		{"fallback", `{"id":1,"name":"Shown"}`, []string{"Old", "First", "Last"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			counts := map[string]int{}
+			_, cfg, httpClient := setupTestSeriesEnv(t, func(w http.ResponseWriter, r *http.Request) {
+				counts[r.URL.Path]++
+				switch r.URL.Path {
+				case "/api/series/1":
+					_, _ = w.Write([]byte(tc.series))
+				case "/api/stories":
+					_, _ = w.Write([]byte(`{"data":[{"id":20,"title":"Old","series_id":1},{"id":10,"title":"First","series_id":1},{"id":20,"title":"Last","series_id":1},{"id":30,"title":"Other","series_id":2}]}`))
+				case "/api/series/1/codex-entries":
+					_, _ = w.Write([]byte(`{"data":[]}`))
+				default:
+					http.NotFound(w, r)
+				}
+			})
+			cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+			if code := cmd.Execute([]string{"series", "show", "1", "--json"}); code != 0 || errOut.Len() != 0 {
+				t.Fatalf("exit %d, stderr %q", code, errOut.String())
+			}
+			var got client.Series
+			if err := json.Unmarshal(out.Bytes(), &got); err != nil {
+				t.Fatal(err)
+			}
+			var titles []string
+			for _, book := range got.Books {
+				titles = append(titles, book.Title)
+			}
+			if !reflect.DeepEqual(titles, tc.want) {
+				t.Fatalf("books: got %q, want %q", titles, tc.want)
+			}
+			if !reflect.DeepEqual(counts, map[string]int{"/api/series/1": 1, "/api/stories": 1, "/api/series/1/codex-entries": 1}) {
+				t.Fatalf("requests: %v", counts)
+			}
+		})
+	}
 }

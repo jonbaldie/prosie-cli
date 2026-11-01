@@ -128,7 +128,7 @@ func (c *SeriesCollection) GetSeries(ctx context.Context, id int) (*Series, erro
 	if len(s.Books) == 0 {
 		books, err := c.transport.Books().ListBooks(ctx)
 		if err == nil {
-			s.Books = seriesBooks(s, books)
+			s.Books = newSeriesBookIndex(books).members(s)
 		}
 	}
 
@@ -258,12 +258,42 @@ func (c *SeriesCollection) populateSeriesBooks(ctx context.Context, series []Ser
 	if err != nil || len(books) == 0 {
 		return
 	}
+	index := newSeriesBookIndex(books)
 	for i := range series {
 		if len(series[i].Books) == 0 {
-			series[i].Books = seriesBooks(series[i], books)
+			series[i].Books = index.members(series[i])
 		}
 		series[i].normalize()
 	}
+}
+
+type seriesBookIndex struct {
+	byID     map[int]Book
+	bySeries map[int][]Book
+}
+
+func newSeriesBookIndex(books []Book) seriesBookIndex {
+	index := seriesBookIndex{byID: make(map[int]Book, len(books)), bySeries: make(map[int][]Book)}
+	for _, book := range books {
+		index.byID[book.ID] = book
+		if book.SeriesID != nil {
+			index.bySeries[*book.SeriesID] = append(index.bySeries[*book.SeriesID], book)
+		}
+	}
+	return index
+}
+
+func (index seriesBookIndex) members(series Series) []Book {
+	members := series.Books
+	if len(series.StoryIDs) == 0 {
+		return append(members, index.bySeries[series.ID]...)
+	}
+	for _, id := range series.StoryIDs {
+		if book, ok := index.byID[id]; ok {
+			members = append(members, book)
+		}
+	}
+	return members
 }
 
 func needsSeriesBooks(series []Series) bool {
@@ -273,29 +303,6 @@ func needsSeriesBooks(series []Series) bool {
 		}
 	}
 	return false
-}
-
-// Explicit story IDs determine order; otherwise membership comes from each book.
-func seriesBooks(series Series, books []Book) []Book {
-	members := series.Books
-	if len(series.StoryIDs) == 0 {
-		for _, book := range books {
-			if book.SeriesID != nil && *book.SeriesID == series.ID {
-				members = append(members, book)
-			}
-		}
-		return members
-	}
-	byID := make(map[int]Book)
-	for _, book := range books {
-		byID[book.ID] = book
-	}
-	for _, id := range series.StoryIDs {
-		if book, ok := byID[id]; ok {
-			members = append(members, book)
-		}
-	}
-	return members
 }
 
 // SeriesCollection owns series operations over the shared authenticated transport.

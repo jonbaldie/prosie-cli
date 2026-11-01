@@ -360,3 +360,25 @@ func TestDetachSeriesBook(t *testing.T) {
 		t.Fatalf("DetachSeriesBook returned error: %v", err)
 	}
 }
+
+func TestSeriesMembershipSlicesAreIndependent(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/series":
+			_, _ = w.Write([]byte(`{"data":[{"id":2},{"id":2}]}`))
+		case "/api/stories":
+			_, _ = w.Write([]byte(`{"data":[{"id":1,"title":"Original","series_id":2}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	series, err := New(server.URL, "test-token", server.Client()).Series().ListSeries(context.Background())
+	if err != nil || len(series) != 2 || len(series[0].Books) != 1 || len(series[1].Books) != 1 {
+		t.Fatalf("series %v, error %v", series, err)
+	}
+	series[0].Books[0].Title = "Changed"
+	if series[1].Books[0].Title != "Original" {
+		t.Fatal("changing one result changed another result")
+	}
+}
