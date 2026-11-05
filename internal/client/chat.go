@@ -194,6 +194,24 @@ func (c *Conversations) SendChatMessage(ctx context.Context, conversationID stri
 		return nil, err
 	}
 
+	return decodeMessageResponse(bodyBytes)
+}
+
+// RetryConversation retries the latest eligible conversation turn.
+func (c *Conversations) RetryConversation(ctx context.Context, conversationID string) (*SendMessageResponse, error) {
+	conversationID = strings.TrimSpace(conversationID)
+	if conversationID == "" {
+		return nil, errors.New("conversation ID is required")
+	}
+	path := fmt.Sprintf("/api/conversations/%s/retry", url.PathEscape(conversationID))
+	bodyBytes, err := c.transport.request(ctx, http.MethodPost, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	return decodeMessageResponse(bodyBytes)
+}
+
+func decodeMessageResponse(bodyBytes []byte) (*SendMessageResponse, error) {
 	var envelope struct {
 		Data SendMessageResponse `json:"data"`
 	}

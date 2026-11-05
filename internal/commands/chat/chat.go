@@ -10,6 +10,7 @@ func Execute(c *command.Environment, args []string) int {
 		"list":   executeChatList,
 		"show":   executeChatShow,
 		"send":   executeChatSend,
+		"retry":  executeChatRetry,
 		"stream": executeChatStream,
 		"export": executeChatExport,
 		"import": executeChatImport,
@@ -28,6 +29,7 @@ Available Commands:
   list        List chat conversations for a book
   show        Show conversation history and messages
   send        Send a message to a novel chat conversation
+  retry       Retry a failed conversation turn
   stream      Stream assistant response tokens in real time
   export      Export a chat conversation to JSON
   import      Import a JSON conversation into a book
