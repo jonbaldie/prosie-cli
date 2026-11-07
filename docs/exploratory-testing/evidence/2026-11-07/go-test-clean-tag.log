@@ -1,0 +1,8 @@
+--- FAIL: TestOutputFailureStateIsPerExecution (0.00s)
+    --- FAIL: TestOutputFailureStateIsPerExecution/failed_write (0.00s)
+        output_failure_test.go:127: second execution: code=0 stdout="prosie version 0.8.0\n" stderr=""
+    --- FAIL: TestOutputFailureStateIsPerExecution/short_write (0.00s)
+        output_failure_test.go:127: second execution: code=0 stdout="prosie version 0.8.0\n" stderr=""
+FAIL
+FAIL	github.com/jonbaldie/prosie-cli/internal/cmd	0.051s
+FAIL

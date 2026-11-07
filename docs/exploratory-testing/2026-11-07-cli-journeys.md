@@ -4,7 +4,7 @@
 
 **Source:** `origin/main` at `52af84688925b3f418b6f798bf548aa4bc603a46`, also tagged `v0.8.0`.
 
-**Result:** Three journeys completed against a local fixture. A separate local-build check found one confirmed bug, [#119](https://github.com/jonbaldie/prosie-cli/issues/119). No product code was changed.
+**Result:** Three journeys completed against a local fixture. Separate build and test checks found two confirmed bugs, [#119](https://github.com/jonbaldie/prosie-cli/issues/119) and [#121](https://github.com/jonbaldie/prosie-cli/issues/121). No product code was changed.
 
 ## Setup
 
@@ -46,7 +46,9 @@ The first driver attempt stopped at a test assertion after the cancelled deletio
 
 The first cleanup port probe failed with `address already in use` after the server stopped. The probe did not set `SO_REUSEADDR`. TCP connections in `TIME_WAIT` can prevent that rebind even after the listener stops. The [error](evidence/2026-11-07/cleanup-first.log) is preserved. The corrected probe rebinds the port with `SO_REUSEADDR` after the server thread stops. The [cleanup record](evidence/2026-11-07/cleanup.txt) gives its PID and port.
 
-The first `go test ./...` run failed because its temporary test binaries were inside the clean tagged worktree. The version resolver found the surrounding `v0.8.0` tag, even for tests that expected another version. The [initial test log](evidence/2026-11-07/go-test-initial.log) records that environment interaction. After the tracked documentation index was edited, the source checkout was no longer clean and the [same test command passed](evidence/2026-11-07/go-test.log). This does not erase the initial failure and is consistent with #119.
+The first `go test ./...` run failed on the clean tagged worktree. The [initial test log](evidence/2026-11-07/go-test-initial.log) records the failures. The version-dependent script tests also failed, consistent with [#119](https://github.com/jonbaldie/prosie-cli/issues/119). After the tracked documentation index was edited, the source checkout was no longer clean and the [same test command passed](evidence/2026-11-07/go-test.log).
+
+A follow-up isolated the output failure test from the tagged binary directory. On a clean `v0.8.0` checkout, `TMPDIR` was an untagged nested Git repository. `go test ./internal/cmd -run '^TestOutputFailureStateIsPerExecution$' -count=1` still failed both subtests. The test expects `0.0.0-dev`, but the version command printed `0.8.0`. The version resolver also checks the current working directory, which was inside the tagged source checkout. The [targeted test log](evidence/2026-11-07/go-test-clean-tag.log) records the result. [Issue #121](https://github.com/jonbaldie/prosie-cli/issues/121) tracks this test failure. The earlier explanation that the test binary location alone caused it was not established.
 
 No unresolved product candidates remain from the selected journeys. Live authentication, production data, real model responses, series, codex, and `chat retry` were not tested. The fixture does not prove backend conformance. No usability recommendation is made from the fixture-only pass.
 
