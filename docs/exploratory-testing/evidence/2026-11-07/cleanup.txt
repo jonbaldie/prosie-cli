@@ -1,0 +1,4 @@
+driver_pid=3416257
+fixture_port=44189
+server_thread_alive=False
+port_rebind=success

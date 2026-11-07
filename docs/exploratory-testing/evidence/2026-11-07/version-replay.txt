@@ -1,0 +1,13 @@
+source tag:
+v0.8.0
+source tracked status:
+run 1 from unrelated tagged repository:
+prosie version 9.9.9
+run 2 from unrelated tagged repository:
+prosie version 9.9.9
+run same binary from source directory:
+prosie version 9.9.9
+remove only synthetic tag:
+Deleted tag 'v9.9.9' (was 25327b7)
+same binary in untagged repository:
+prosie version 0.0.0-dev
