@@ -15,3 +15,4 @@ This directory contains developer documentation, release procedures, and testing
   - [2026-10-10 CLI Journeys](exploratory-testing/2026-10-10-cli-journeys.md): Book and chat import, prose generation and stream failures, and codex and series checks against a local fixture.
   - [2026-10-17 CLI Journeys](exploratory-testing/2026-10-17-cli-journeys.md): Authoring, generation conflicts, and chat login checks, including the non-positive book target bug.
   - [2026-10-24 CLI Journeys](exploratory-testing/2026-10-24-cli-journeys.md): Sign-in, document backup, and chat checks, including DOCX data loss in JSON exports.
+  - [2026-11-07 CLI Journeys](exploratory-testing/2026-11-07-cli-journeys.md): Sign-in, backup, chat, and local version checks.

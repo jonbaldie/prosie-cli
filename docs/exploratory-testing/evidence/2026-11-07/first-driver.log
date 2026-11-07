@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/ubuntu/Code/pstack/jonbaldie/prosie-cli-explore-20261107/docs/exploratory-testing/evidence/2026-11-07/run.py", line 186, in <module>
+    main()
+    ~~~~^^
+  File "/home/ubuntu/Code/pstack/jonbaldie/prosie-cli-explore-20261107/docs/exploratory-testing/evidence/2026-11-07/run.py", line 170, in main
+    assert int(book_id) in fixture.state["books"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

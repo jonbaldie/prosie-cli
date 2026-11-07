@@ -1,0 +1,29 @@
+?   	github.com/jonbaldie/prosie-cli	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/auth	0.094s
+ok  	github.com/jonbaldie/prosie-cli/internal/client	0.343s
+--- FAIL: TestOutputFailureStateIsPerExecution (0.00s)
+    --- FAIL: TestOutputFailureStateIsPerExecution/failed_write (0.00s)
+        output_failure_test.go:127: second execution: code=0 stdout="prosie version 0.8.0\n" stderr=""
+    --- FAIL: TestOutputFailureStateIsPerExecution/short_write (0.00s)
+        output_failure_test.go:127: second execution: code=0 stdout="prosie version 0.8.0\n" stderr=""
+FAIL
+FAIL	github.com/jonbaldie/prosie-cli/internal/cmd	2.605s
+ok  	github.com/jonbaldie/prosie-cli/internal/command	0.025s
+?   	github.com/jonbaldie/prosie-cli/internal/commands/auth	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/book	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/chapter	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/commands/chat	0.040s
+?   	github.com/jonbaldie/prosie-cli/internal/commands/codex	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/generate	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/llm	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/series	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/version	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/config	0.031s
+?   	github.com/jonbaldie/prosie-cli/internal/filewrite	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/version	[no test files]
+--- FAIL: TestLocalBuildsUseExactTagByDefault (23.86s)
+    build_test.go:285: /home/ubuntu/Code/pstack/jonbaldie/prosie-cli-explore-20261107/.scratch/tmp/TestLocalBuildsUseExactTagByDefault2734008785/002/prosie --version output = "prosie version 0.8.0\n", want "prosie version 0.4.0\n"
+    build_test.go:285: /home/ubuntu/Code/pstack/jonbaldie/prosie-cli-explore-20261107/.scratch/tmp/TestLocalBuildsUseExactTagByDefault2734008785/002/prosie --version output = "prosie version 0.8.0\n", want "prosie version 0.0.0-dev\n"
+FAIL
+FAIL	github.com/jonbaldie/prosie-cli/scripts	131.992s
+FAIL

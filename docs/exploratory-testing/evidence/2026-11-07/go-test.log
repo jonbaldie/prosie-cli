@@ -1,0 +1,18 @@
+?   	github.com/jonbaldie/prosie-cli	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/auth	0.055s
+ok  	github.com/jonbaldie/prosie-cli/internal/client	(cached)
+ok  	github.com/jonbaldie/prosie-cli/internal/cmd	2.335s
+ok  	github.com/jonbaldie/prosie-cli/internal/command	0.035s
+?   	github.com/jonbaldie/prosie-cli/internal/commands/auth	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/book	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/chapter	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/commands/chat	(cached)
+?   	github.com/jonbaldie/prosie-cli/internal/commands/codex	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/generate	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/llm	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/series	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/commands/version	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/internal/config	0.022s
+?   	github.com/jonbaldie/prosie-cli/internal/filewrite	[no test files]
+?   	github.com/jonbaldie/prosie-cli/internal/version	[no test files]
+ok  	github.com/jonbaldie/prosie-cli/scripts	26.808s
