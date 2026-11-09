@@ -1,0 +1,31 @@
+# Release flows: bounded models
+
+Inventory S21, T01, T02, T03. These models are not proofs of shell, Go, or GitHub execution.
+
+## S21: process version
+
+`Version.tla` maps `internal/version/version.go` init to Start, Exhausted and Done. `repositoryDirs` is represented by possible ordered deduplicated candidate sequences, including failed directory queries. `exactTagVersion` maps to Status, TagSuccess and TagFailure. Status distinguishes clean, dirty and command failure. Tag failure combines describe failure and malformed output because both advance to the next candidate. A linked value bypasses all candidates; otherwise fallback remains until a valid tag is accepted. The selected class is latched for the process. Values are symbolic.
+
+`CleanTag` says a tag is accepted only after a clean successful status check. The actual Go helper test uses a stub git command, including dirty and failed status. The `accept-dirty-version` source mutant removes the dirty check, while the model mutant routes dirty status to tag lookup. The helper test does not test package initialization or directory collection.
+
+## T01: local release
+
+`Release.tla` maps version choice, mkdir, cleanup, mktemp, build, copy license, optional README, package, remove scratch and checksums to distinct actions. `SourceInputs` retains equivalence classes for the consulted inputs: a nonempty argument wins over the environment, a nonempty environment wins over git, and otherwise nonempty status stdout selects fallback. Empty status stdout allows a nonempty describe result even if status failed; an empty describe result selects fallback. Unconsulted inputs and pure string normalization do not affect the selected source. The choice is latched. The scratch shell test exercises these priorities, including status failure with empty stdout; it does not run a real build.
+
+Five targets are bounded by the script. Scratch values describe directory, binary, license and README progress, including partial output on failure; a value for a later stage includes the earlier successful stages. README absent and successfully copied are coalesced because this model does not inspect archive contents. Archive IDs 1–5 are completed target archives, 6 is a Windows archive created elsewhere by a relative destination, and 7 is a partial archive. Successful scratch removal deletes archive 6 only in the under-scratch class. Checksum completion and partial checksum output are retained in the terminal scratch class. Failure can also leave scratch or partially remove it; a failed cleanup can retain or remove the old archive. These classes coalesce bytes, not rollback. A failed first build counts as a build attempt for `CleanBeforeBuild`. A final `cat` failure after completed checksums and failures in initial version discovery are not separately modeled.
+
+The bounded destination classes are absolute, relative with the Windows zip destination directory absent, and relative with it present either under or outside scratch. In the absent class Windows packaging cannot succeed; in the other relative classes it can create archive 6. All may fail. Other details of paths, archive contents and filesystem effects are not modeled. In particular these classes do not assert that every relative path fails.
+
+`CleanBeforeBuild` checks that old release archives are removed before a build starts. The actual shell check runs in scratch with a stub Go compiler that observes the directory and fails; the paired shell/model mutant omits cleanup. `LocalChart.cfg` selects the failed-status/empty-stdout tag case and absolute destination, not the whole input space. It is not a constraint on the default model.
+
+## T02 and T03: workflow observations
+
+ReleaseStart, ReleaseJob, ReleaseJobFail, ReleaseCancel, ReleaseJoin, ReleaseStep and ReleaseFail model five independently progressing jobs. A job passes checkout, setup, the single YAML build/package step, and upload. Build/package is one scheduler-visible macrostep: a failure or cancellation can retain partial local output and cannot advance to upload. An upload failure or cancellation can retain partial remote upload; completed uploads remain represented by successful jobs. Job terminal classes retain the stage and partial result where relevant. They coalesce the internal shell lines; T01 and the workflow source describe their order.
+
+The release job waits for all five jobs to finish and proceeds only if all succeeded. It then checks out, downloads, makes checksums, and publishes. Terminal classes distinguish failures and partial download, checksum and publication; action failure does not imply a remote rollback. Successful publication is also distinct. Matrix cancellation is permitted only after a matrix failure, under the explicit external assumption that GitHub's default matrix fail-fast applies; the model does not require cancellation to win a race. It does not model separate external workflow cancellation. CI uses checkout, setup, tests, credential self-test and build in order, with failure skipping later ordinary steps. No liveness, artifact-content or server-side atomicity claim is made.
+
+`JoinBeforePublish` checks the model's all-five-success condition before release steps. The matched scratch YAML defect removes `needs: build`; the source-contract checker rejects it, and the paired model defect permits an early release. This is configuration/source-contract evidence, **not** proof of actual GitHub scheduler execution. CI ordering is also checked only as source text. GitHub scheduling and default step/dependency semantics are external assumptions. The source checker is intentionally structural, not a YAML interpreter.
+
+## Replay and limits
+
+From the repository root run `python3 verification/state-machines/verify.py release`; add `--self-test` for source and model defects and a final baseline. Read every model result with /statechart. Baseline configs have no state pruning. The common runner and checker are trusted infrastructure. Finite version/path/byte classes and a scheduler-level macrostep are abstractions; the unmodeled final cat and version-discovery errors above are missing control flow, not claims of impossibility. No global liveness or server proof is claimed.

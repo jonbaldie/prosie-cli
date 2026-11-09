@@ -1,0 +1,14 @@
+{
+  "name": "credential-store",
+  "machines": ["S18"],
+  "skill": "verify-config-save",
+  "delegate": ["python3", "verification/config-save/verify.py"],
+  "success": "PASS. Read this TLA+ result with /statechart.",
+  "models": [{
+    "spec": "../../config-save/ConfigSave.tla",
+    "config": "../../config-save/ConfigSave.cfg",
+    "chart_config": "../../config-save/SingleSave.cfg",
+    "view": "view.mjs",
+    "invariants": ["PublishedWhole", "PrivateCredentials", "PublishedAfterSyncAndClose", "FailedSaveDoesNotPublish"]
+  }]
+}

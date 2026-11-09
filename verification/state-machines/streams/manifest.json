@@ -1,0 +1,100 @@
+{
+  "name": "streams",
+  "machines": [
+    "S14",
+    "S15"
+  ],
+  "models": [
+    {
+      "spec": "Frame.tla",
+      "config": "Frame.cfg",
+      "invariants": [
+        "FlushAtEOF"
+      ]
+    },
+    {
+      "spec": "Result.tla",
+      "config": "Result.cfg",
+      "invariants": [
+        "ErrorRetained",
+        "ReturnPrecedence"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/client",
+        "-run",
+        "^TestFormalStreamsFrame$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalStreamsFrame"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/client",
+        "-run",
+        "^TestFormalStreamsResult$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalStreamsResult"
+    }
+  ],
+  "mutants": [
+    {
+      "name": "lose-final-frame",
+      "check": 0,
+      "code": {
+        "path": "internal/client/stream.go",
+        "old": "if err == io.EOF {\n\t\t\tframe.dispatch(consume)\n\t\t\treturn nil\n\t\t}",
+        "new": "if err == io.EOF {\n\t\t\treturn nil\n\t\t}"
+      },
+      "failure": "--- FAIL: TestFormalStreamsFrame",
+      "model": {
+        "spec": "Frame.tla",
+        "old": "delivered' = Append(delivered, <<event, data>>)\n       /\\ event'",
+        "new": "delivered' = delivered\n       /\\ event'",
+        "invariant": "FlushAtEOF"
+      }
+    },
+    {
+      "name": "done-clears-error",
+      "check": 1,
+      "code": {
+        "path": "internal/client/stream.go",
+        "old": "s.done = &result",
+        "new": "s.done = &result\n\t\t\ts.err = nil"
+      },
+      "failure": "--- FAIL: TestFormalStreamsResult",
+      "model": {
+        "spec": "Result.tla",
+        "old": "/\\ UNCHANGED <<phase, seenError, retainedError, callbacks, readOutcome, cancelled, result>>",
+        "new": "/\\ retainedError' = FALSE /\\ UNCHANGED <<phase, seenError, callbacks, readOutcome, cancelled, result>>",
+        "invariant": "ErrorRetained"
+      }
+    },
+    {
+      "name": "read-before-context",
+      "check": 1,
+      "code": {
+        "path": "internal/client/stream.go",
+        "old": "if ctxErr := ctx.Err(); ctxErr != nil {\n\t\treturn nil, ctxErr\n\t}\n\tif err != nil {\n\t\treturn nil, err\n\t}",
+        "new": "if err != nil {\n\t\treturn nil, err\n\t}\n\tif ctxErr := ctx.Err(); ctxErr != nil {\n\t\treturn nil, ctxErr\n\t}"
+      },
+      "failure": "--- FAIL: TestFormalStreamsResult",
+      "model": {
+        "spec": "Result.tla",
+        "old": "IF cancelled THEN \"context\" ELSE IF readOutcome = \"readError\" THEN \"readError\"",
+        "new": "IF readOutcome = \"readError\" THEN \"readError\" ELSE IF cancelled THEN \"context\"",
+        "invariant": "ReturnPrecedence"
+      }
+    }
+  ]
+}

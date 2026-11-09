@@ -1,0 +1,9 @@
+{
+  "S01": "cli", "S02": "cli", "S03": "cli", "S04": "auth", "S05": "auth",
+  "S06": "cli", "S07": "cli", "S08": "transfers", "S09": "transfers",
+  "S10": "chat", "S11": "chat", "S12": "generation", "S13": "generation",
+  "S14": "streams", "S15": "streams", "S16": "http", "S17": "http",
+  "S18": "credential-store", "S19": "file-storage", "S20": "file-storage",
+  "S21": "release", "T01": "release", "T02": "release", "T03": "release",
+  "T04": "verification", "T05": "verification", "A01": "agent-templates", "A02": "agent-templates"
+}

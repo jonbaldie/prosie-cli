@@ -1,0 +1,103 @@
+{
+  "name": "auth",
+  "machines": [
+    "S04",
+    "S05"
+  ],
+  "models": [
+    {
+      "spec": "Auth.tla",
+      "config": "Auth.cfg",
+      "invariants": [
+        "VerifiedBeforeTokenSave",
+        "DeniedNotIssued",
+        "EnvironmentSelected",
+        "NoRequestAfterEntryCancel"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/auth",
+        "-run",
+        "^TestFormalAuth",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalAuth"
+    },
+    {
+      "command": ["go", "test", "./internal/cmd", "-run", "^TestFormalAuthMalformedConfigStopsLoginRequests$", "-count=1", "-v"],
+      "success": "--- PASS: TestFormalAuthMalformedConfigStopsLoginRequests"
+    }
+  ],
+  "mutants": [
+    {
+      "name": "save-rejected-token",
+      "check": 0,
+      "code": {
+        "path": "internal/auth/auth.go",
+        "old": "\tuser, err := cli.GetUser(ctx)\n\tif err != nil {\n\t\treturn nil, fmt.Errorf(\"token verification failed: %w\", err)",
+        "new": "\tuser, err := cli.GetUser(ctx)\n\tif err != nil {\n\t\t_ = config.Save(cfgPath, &config.Config{Token: token, ApiURL: baseURL})\n\t\treturn nil, fmt.Errorf(\"token verification failed: %w\", err)"
+      },
+      "failure": "--- FAIL: TestFormalAuthRejectedTokenDoesNotSave",
+      "model": {
+        "spec": "Auth.tla",
+        "old": "/\\ verified' = (phase' = \"verified\")\n               /\\ UNCHANGED <<flow, saved, denied, polls, clock, interval, cancelled, envToken, fileToken, source, browser, entryCancelled>>",
+        "new": "/\\ verified' = (phase' = \"verified\")\n               /\\ saved' = (phase' = \"rejected\")\n               /\\ UNCHANGED <<flow, denied, polls, clock, interval, cancelled, envToken, fileToken, source, browser, entryCancelled>>",
+        "invariant": "VerifiedBeforeTokenSave"
+      }
+    },
+    {
+      "name": "ignore-denial",
+      "check": 0,
+      "code": {
+        "path": "internal/auth/device.go",
+        "old": "case \"access_denied\":\n\t\treturn nil, 0, ErrAccessDenied",
+        "new": "case \"access_denied\":\n\t\treturn nil, 0, nil"
+      },
+      "failure": "--- FAIL: TestFormalAuthDeniedStopsPolling",
+      "model": {
+        "spec": "Auth.tla",
+        "old": "/\\ denied' = (phase' = \"denied\")",
+        "new": "/\\ denied' = (phase' = \"pending\")",
+        "invariant": "DeniedNotIssued"
+      }
+    },
+    {
+      "name": "ignore-environment-token",
+      "check": 0,
+      "code": {
+        "path": "internal/config/config.go",
+        "old": "if env := os.Getenv(\"PROSIE_API_TOKEN\"); env != \"\" {",
+        "new": "if env := os.Getenv(\"PROSIE_API_TOKEN\"); env != \"\" && false {"
+      },
+      "failure": "--- FAIL: TestFormalAuthLogoutRetainsEnvironmentToken",
+      "model": {
+        "spec": "Auth.tla",
+        "old": "IF envToken THEN \"environment\" ELSE IF fileToken \\in {\"valid\", \"invalid\"} THEN \"config\" ELSE \"none\"",
+        "new": "IF fileToken \\in {\"valid\", \"invalid\"} THEN \"config\" ELSE \"none\"",
+        "invariant": "EnvironmentSelected"
+      }
+    },
+    {
+      "name": "skip-entry-cancellation",
+      "check": 0,
+      "code": {
+        "path": "internal/auth/device.go",
+        "old": "\t\tselect {\n\t\tcase <-ctx.Done():\n\t\t\treturn nil, ctx.Err()\n\t\tdefault:\n\t\t}",
+        "new": "\t\t// Defect: proceed even if the caller already cancelled."
+      },
+      "failure": "--- FAIL: TestFormalAuthCancelledBeforePolling",
+      "model": {
+        "spec": "Auth.tla",
+        "old": "IF clock > 6 THEN \"expired\" ELSE IF cancelled THEN \"cancelled\" ELSE \"request\"",
+        "new": "IF clock > 6 THEN \"expired\" ELSE \"request\"",
+        "invariant": "NoRequestAfterEntryCancel"
+      }
+    }
+  ]
+}

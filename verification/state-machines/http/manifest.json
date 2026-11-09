@@ -1,0 +1,86 @@
+{
+  "name": "http",
+  "machines": [
+    "S16",
+    "S17"
+  ],
+  "models": [
+    {
+      "spec": "HTTP.tla",
+      "config": "HTTP.cfg",
+      "invariants": [
+        "BodyClosed",
+        "BookSurvives"
+      ]
+    },
+    {
+      "spec": "Flows.tla",
+      "config": "Flows.cfg",
+      "invariants": ["StreamRejectClosed"]
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/client",
+        "-run",
+        "^TestFormalHTTP",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalHTTP"
+    }
+  ],
+  "mutants": [
+    {
+      "name": "leak-response",
+      "check": 0,
+      "code": {
+        "path": "internal/client/response.go",
+        "old": "\tdefer resp.Body.Close()\n\tif err := CheckResponse(resp); err != nil {",
+        "new": "\t// Body close omitted.\n\tif err := CheckResponse(resp); err != nil {"
+      },
+      "failure": "--- FAIL: TestFormalHTTPResponseClosed",
+      "model": {
+        "spec": "HTTP.tla",
+        "old": "/\\ phase = \"owned\" /\\ phase' = \"returned\" /\\ closed' = TRUE",
+        "new": "/\\ phase = \"owned\" /\\ phase' = \"returned\" /\\ closed' = FALSE",
+        "invariant": "BodyClosed"
+      }
+    },
+    {
+      "name": "leak-rejected-stream",
+      "check": 0,
+      "code": {
+        "path": "internal/client/generate.go",
+        "old": "\t\tresp.Body.Close()\n\t\treturn nil, err\n",
+        "new": "\t\t// Body close omitted.\n\t\treturn nil, err\n"
+      },
+      "failure": "--- FAIL: TestFormalHTTPStreamOwnership",
+      "model": {
+        "spec": "Flows.tla",
+        "old": "/\\ closed' = TRUE /\\ owner' = \"none\" /\\ read' \\in {\"error-body\", \"error-body-failed\"}",
+        "new": "/\\ closed' = FALSE /\\ owner' = \"none\" /\\ read' \\in {\"error-body\", \"error-body-failed\"}",
+        "invariant": "StreamRejectClosed"
+      }
+    },
+    {
+      "name": "discard-book-on-secondary-failure",
+      "check": 0,
+      "code": {
+        "path": "internal/client/books.go",
+        "old": "\t\tbook.Chapters = c.bookChapters(ctx, id)\n",
+        "new": "\t\tbook.Chapters = c.bookChapters(ctx, id)\n\t\tif book.Chapters == nil { return nil, fmt.Errorf(\"secondary failed\") }\n"
+      },
+      "failure": "--- FAIL: TestFormalHTTPHydrationFailure",
+      "model": {
+        "spec": "HTTP.tla",
+        "old": "/\\ result' = \"book\"\n                /\\ UNCHANGED <<response, closed>>",
+        "new": "/\\ result' = IF secondary' = \"unavailable\" THEN \"error\" ELSE \"book\"\n                /\\ UNCHANGED <<response, closed>>",
+        "invariant": "BookSurvives"
+      }
+    }
+  ]
+}

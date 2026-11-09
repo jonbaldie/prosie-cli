@@ -1,0 +1,14 @@
+{
+ "name":"chat",
+ "machines":["S10","S11"],
+ "models":[{"spec":"Chat.tla","config":"Chat.cfg","invariants":["RetainCreated","JSONSuppressesDeltas"]}],
+ "checks":[
+  {"command":["go","test","./internal/client","-run","^TestFormalChatRetainsCreatedConversation$","-count=1","-v"],"success":"--- PASS: TestFormalChatRetainsCreatedConversation"},
+  {"command":["go","test","./internal/cmd","-run","^TestFormalChatStreamOutput$","-count=1","-v"],"success":"--- PASS: TestFormalChatStreamOutput"}
+ ],
+ "mutants":[
+  {"name":"lose-created-flag","check":0,"code":{"path":"internal/client/chat.go","old":"result.Created = true","new":"result.Created = false"},"failure":"--- FAIL: TestFormalChatRetainsCreatedConversation","model":{"spec":"Chat.tla","old":"created' = TRUE /\\ id' = returnedID'","new":"created' = FALSE /\\ id' = returnedID'","invariant":"RetainCreated"}},
+  {"name":"lose-conversation-id","check":0,"code":{"path":"internal/client/chat.go","old":"result.ConversationID = strconv.Itoa(conv.ID)","new":"result.ConversationID = strconv.Itoa(conv.ID - conv.ID)"},"failure":"--- FAIL: TestFormalChatRetainsCreatedConversation","model":{"spec":"Chat.tla","old":"created' = TRUE /\\ id' = returnedID'","new":"created' = TRUE /\\ id' = \"0\"","invariant":"RetainCreated"}},
+  {"name":"json-delta-leak","check":1,"code":{"path":"internal/commands/chat/chat_stream.go","old":"onToken = func(token string) {}","new":"onToken = func(token string) { fmt.Fprint(c.Out, token) }"},"failure":"--- FAIL: TestFormalChatStreamOutput","model":{"spec":"Chat.tla","old":"deltaPrinted' = IF mode = \"stream-text\" /\\ ~writeFailed /\\ ok THEN TRUE ELSE deltaPrinted\n              /\\ output' = IF mode = \"stream-text\" /\\ ~writeFailed THEN Append(output, IF ok THEN t ELSE \"partial\") ELSE output","new":"deltaPrinted' = IF mode \\in {\"stream-text\", \"stream-json\"} /\\ ~writeFailed /\\ ok THEN TRUE ELSE deltaPrinted\n              /\\ output' = IF mode \\in {\"stream-text\", \"stream-json\"} /\\ ~writeFailed THEN Append(output, IF ok THEN t ELSE \"partial\") ELSE output","invariant":"JSONSuppressesDeltas"}}
+ ]
+}

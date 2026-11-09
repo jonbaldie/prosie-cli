@@ -1,0 +1,25 @@
+{
+  "name": "release",
+  "machines": ["S21", "T01", "T02", "T03"],
+  "models": [{"spec":"Release.tla", "config":"Release.cfg", "invariants":["CleanBeforeBuild", "JoinBeforePublish"]}, {"spec":"Version.tla", "config":"Version.cfg", "invariants":["CleanTag"]}],
+  "checks": [
+    {"command":["python3","verification/state-machines/release/check.py"], "success":"PASS_RELEASE_CHECK"},
+    {"command":["go","test","./internal/version","-run","^TestFormalReleaseExactTag$","-count=1","-v"], "success":"--- PASS: TestFormalReleaseExactTag"}
+  ],
+  "mutants": [{
+    "name":"keep-old-archives", "check":0,
+    "code":{"path":"scripts/build-release.sh", "old":"rm -f \"${DIST_DIR}\"/prosie_* \"${DIST_DIR}\"/checksums.txt", "new":"true # skip old artifact cleanup"},
+    "failure":"FAIL_RELEASE_CHECK:",
+    "model":{"spec":"Release.tla", "old":"oldArchive' = FALSE", "new":"oldArchive' = TRUE", "invariant":"CleanBeforeBuild"}
+  }, {
+    "name":"missing-build-dependency", "check":0,
+    "code":{"path":".github/workflows/release.yml", "old":"    needs: build\n", "new":"    # no build dependency\n"},
+    "failure":"FAIL_RELEASE_CHECK:",
+    "model":{"spec":"Release.tla", "old":"ReleaseJoin == /\\ mode = \"release\" /\\ phase = \"jobs\" /\\ \\A i \\in 1..5: jobs[i] \\in {\"success\", \"failed\", \"failed-build-partial\", \"failed-upload\", \"failed-upload-partial\", \"cancelled\", \"cancelled-build-partial\", \"cancelled-upload\", \"cancelled-upload-partial\"}\n /\\ phase' = (IF (\\A i \\in 1..5: jobs[i] = \"success\") THEN \"checkout\" ELSE \"done\")", "new":"ReleaseJoin == /\\ mode = \"release\" /\\ phase = \"jobs\"\n /\\ phase' = \"checkout\"", "invariant":"JoinBeforePublish"}
+  }, {
+    "name":"accept-dirty-version", "check":1,
+    "code":{"path":"internal/version/version.go", "old":"if err != nil || len(status) != 0 {", "new":"if err != nil { _ = status;"},
+    "failure":"--- FAIL: TestFormalReleaseExactTag",
+    "model":{"spec":"Version.tla", "old":"IF status' = \"clean\" THEN", "new":"IF status' # \"failed\" THEN", "invariant":"CleanTag"}
+  }]
+}

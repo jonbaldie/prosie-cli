@@ -1,0 +1,32 @@
+{
+  "name": "cli",
+  "machines": ["S01", "S02", "S03", "S06", "S07"],
+  "models": [{"spec": "Cli.tla", "config": "Cli.cfg", "invariants": ["DeletionRequiresApproval"]}, {"spec": "Output.tla", "config": "Output.cfg", "invariants": ["NoWriteAfterFailure"]}, {"spec": "Dispatch.tla", "config": "Dispatch.cfg", "invariants": ["ParentCopyIsolation"]}, {"spec": "Arguments.tla", "config": "Arguments.cfg", "invariants": ["ScannerRetention"]}, {"spec": "Content.tla", "config": "Content.cfg", "invariants": ["NoConflictConsumption"]}],
+  "checks": [{"command": ["go", "test", "./internal/command", "-run", "^TestFormalCli", "-count=1", "-v"], "success": "--- PASS: TestFormalCliDeletionApproval"}, {"command": ["go", "test", "./internal/cmd", "-run", "^TestFormalCliOutput", "-count=1", "-v"], "success": "--- PASS: TestFormalCliOutputLatch"}, {"command": ["go", "test", "./internal/command", "-run", "^TestFormalDispatchCopyIsolation$", "-count=1", "-v"], "success": "--- PASS: TestFormalDispatchCopyIsolation"}, {"command": ["go", "test", "./internal/cmd", "-run", "^TestFormalDispatchRootExecutions$", "-count=1", "-v"], "success": "--- PASS: TestFormalDispatchRootExecutions"}, {"command": ["go", "test", "./internal/command", "-run", "^TestFormalArguments", "-count=1", "-v"], "success": "--- PASS: TestFormalArgumentsValueConsumption"}, {"command": ["go", "test", "./internal/command", "-run", "^TestFormalContentS07", "-count=1", "-v"], "success": "--- PASS: TestFormalContentS07Conflict"}, {"command": ["go", "test", "./internal/commands/generate", "-run", "^TestFormalContentS07", "-count=1", "-v"], "success": "--- PASS: TestFormalContentS07Rewrite"}],
+  "mutants": [{
+    "name": "delete-without-confirmation", "check": 0,
+    "code": {"path": "internal/command/delete.go", "old": "if !ConfirmDeletion(c, opts.Yes, opts.Resource, opts.ID) {", "new": "if false && !ConfirmDeletion(c, opts.Yes, opts.Resource, opts.ID) {"},
+    "failure": "--- FAIL: TestFormalCliDeletionApproval",
+    "model": {"spec": "Cli.tla", "old": "/\\ phase = \"client\" /\\ approved\n          /\\ deleted'", "new": "/\\ phase \\in {\"start\", \"client\"}\n          /\\ deleted'", "invariant": "DeletionRequiresApproval"}
+  }, {
+    "name": "write-after-output-failure", "check": 1,
+    "code": {"path": "internal/cmd/root.go", "old": "if w.err != nil {\n\t\treturn 0, w.err\n\t}", "new": "if false && w.err != nil {\n\t\treturn 0, w.err\n\t}"},
+    "failure": "--- FAIL: TestFormalCliOutputLatch",
+    "model": {"spec": "Output.tla", "old": "THEN /\\ UNCHANGED <<latched, writes, afterFailure>>", "new": "THEN /\\ latched' = \"none\" /\\ writes' = writes + 1 /\\ afterFailure' = TRUE", "invariant": "NoWriteAfterFailure"}
+  }, {
+    "name": "dispatch-mutates-parent-json", "check": 2,
+    "code": {"path": "internal/command/dispatch.go", "old": "\t\tenv.JSON = true\n\t\targs = args[1:]", "new": "\t\tenv.JSON = true\n\t\tc.JSON = true\n\t\targs = args[1:]"},
+    "failure": "--- FAIL: TestFormalDispatchCopyIsolation",
+    "model": {"spec": "Dispatch.tla", "old": "/\\ mode' = TRUE\n               /\\ args' = Tail(args)\n               /\\ UNCHANGED <<phase, invocation, level, parent, snapshot, inherited,", "new": "/\\ mode' = TRUE /\\ parent' = TRUE\n               /\\ args' = Tail(args)\n               /\\ UNCHANGED <<phase, invocation, level, snapshot, inherited,", "invariant": "ParentCopyIsolation"}
+  }, {
+    "name": "arguments-value-not-consumed", "check": 4,
+    "code": {"path": "internal/command/args.go", "old": "\t\ti++\n\t\tflagArgs = append(flagArgs, args[i])", "new": "\t\ti += 0\n\t\tflagArgs = append(flagArgs, args[i])"},
+    "failure": "--- FAIL: TestFormalArgumentsValueConsumption",
+    "model": {"spec": "Arguments.tla", "old": "/\\ flags' = flags \\o <<t, input[i+1]>> /\\ i' = i+2", "new": "/\\ flags' = flags \\o <<t, t>> /\\ i' = i+1", "invariant": "ScannerRetention"}
+  }, {
+    "name": "content-conflict-reads-stdin", "check": 5,
+    "code": {"path": "internal/command/content.go", "old": "if inline != \"\" {", "new": "if false && inline != \"\" {"},
+    "failure": "--- FAIL: TestFormalContentS07Conflict",
+    "model": {"spec": "Content.tla", "old": "ELSE IF inline # \"empty\"", "new": "ELSE IF FALSE", "invariant": "NoConflictConsumption"}
+  }]
+}
