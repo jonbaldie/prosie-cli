@@ -1,0 +1,11 @@
+{
+  "name":"generation",
+  "machines":["S12","S13"],
+  "models":[{"spec":"Generation.tla","config":"Generation.cfg","invariants":["FreshCancel","NoEmptyNewline","JSONDisablesStreaming"]}],
+  "checks":[{"command":["go","test","./internal/commands/generate","-run","^TestFormalGeneration","-count=1","-v"],"success":"--- PASS: TestFormalGenerationCancellation"}],
+  "mutants":[
+    {"name":"cancel-with-dead-context","check":0,"code":{"path":"internal/commands/generate/generate_continue.go","old":"context.WithTimeout(context.Background(), 5*time.Second)","new":"context.WithTimeout(ctx, 5*time.Second)"},"failure":"--- FAIL: TestFormalGenerationCancellation","model":{"spec":"Generation.tla","old":"fresh' = TRUE /\\ attempted' = TRUE","new":"fresh' = FALSE /\\ attempted' = TRUE","invariant":"FreshCancel"}},
+    {"name":"json-streams","check":0,"code":{"path":"internal/commands/generate/generate_continue.go","old":"return stream && !noStream && !jsonOutput","new":"return stream && !noStream"},"failure":"--- FAIL: TestFormalGenerationJSONMode","model":{"spec":"Generation.tla","old":"streamFlag /\\ ~json /\\ (kind # \"continue\" \\/ ~noStream)","new":"streamFlag /\\ (kind # \"continue\" \\/ ~noStream)","invariant":"JSONDisablesStreaming"}},
+    {"name":"newline-without-token","check":0,"code":{"path":"internal/commands/generate/output.go","old":" && last != \"\" && !strings.HasSuffix(last, \"\\n\")","new":" && !strings.HasSuffix(last, \"\\n\")"},"failure":"--- FAIL: TestFormalGenerationOutput","model":{"spec":"Generation.tla","old":"/\\ last = \"text\")","new":"/\\ last \\in {\"none\", \"empty\", \"text\"})","invariant":"NoEmptyNewline"}}
+  ]
+}

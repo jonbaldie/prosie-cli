@@ -1,0 +1,29 @@
+{
+  "name": "file-storage",
+  "machines": ["S19", "S20"],
+  "models": [
+    {"spec": "Links.tla", "config": "Links.cfg", "invariants": ["RelativeTarget"]},
+    {"spec": "Replace.tla", "config": "Replace.cfg", "invariants": ["PreserveMode", "PublishedAfterSuccess"]}
+  ],
+  "checks": [
+    {"command": ["go", "test", "./internal/config", "-run", "^TestFormalStorageRelativeLink$", "-count=1", "-v"], "success": "--- PASS: TestFormalStorageRelativeLink"},
+    {"command": ["go", "test", "./internal/filewrite", "-run", "^TestFormalStorageReplaceMode$", "-count=1", "-v"], "success": "--- PASS: TestFormalStorageReplaceMode"},
+    {"command": ["go", "test", "./internal/config", "-run", "^TestFormalStorageLinkBudget$", "-count=1", "-v"], "success": "--- PASS: TestFormalStorageLinkBudget"},
+    {"command": ["go", "test", "./internal/filewrite", "-run", "^TestFormalStorage(LinkBudget|RenameFailureCleansTemp)$", "-count=1", "-v"], "success": "--- PASS: TestFormalStorageRenameFailureCleansTemp"},
+    {"command": ["go", "test", "./internal/cmd", "-run", "^TestFailedExportKeepsPreviousFile$", "-count=1", "-v"], "success": "--- PASS: TestFailedExportKeepsPreviousFile"}
+  ],
+  "mutants": [
+    {"name": "relative-link-from-root", "check": 0,
+     "code": {"path": "internal/config/config.go", "old": "link = filepath.Join(filepath.Dir(path), link)", "new": "link = filepath.Join(\"/\", link)"},
+     "failure": "--- FAIL: TestFormalStorageRelativeLink",
+     "model": {"spec": "Links.tla", "old": "kind = \"relative\" -> \"dir/target\"", "new": "kind = \"relative\" -> \"root/target\"", "invariant": "RelativeTarget"}},
+    {"name": "discard-existing-mode", "check": 1,
+     "code": {"path": "internal/filewrite/replace.go", "old": "mode = info.Mode().Perm()", "new": "mode = 0600"},
+     "failure": "--- FAIL: TestFormalStorageReplaceMode",
+     "model": {"spec": "Replace.tla", "old": "IF kind = \"regular\" THEN mode ELSE requestedMode", "new": "IF kind = \"regular\" THEN 384 ELSE requestedMode", "invariant": "PreserveMode"}},
+    {"name": "publish-despite-write-or-close-error", "check": 4,
+     "code": {"path": "internal/filewrite/replace.go", "old": "if err := errors.Join(writeErr, closeErr); err != nil {\n\t\treturn err\n\t}", "new": "_ = errors.Join(writeErr, closeErr)"},
+     "failure": "--- FAIL: TestFailedExportKeepsPreviousFile",
+     "model": {"spec": "Replace.tla", "old": "phase' = IF failed' THEN \"cleanup\" ELSE \"rename\"", "new": "phase' = \"rename\"", "invariant": "PublishedAfterSuccess"}}
+  ]
+}

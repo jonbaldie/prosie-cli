@@ -1,0 +1,26 @@
+{
+  "name": "verification",
+  "machines": ["T04", "T05"],
+  "models": [{"spec": "Checker.tla", "config": "Checker.cfg", "invariants": ["CacheValid", "MutantFailed", "MarkerRequired"]}],
+  "checks": [{"command": ["python3", "verification/state-machines/verification/check.py"], "success": "PASS_FORMAL_CHECKER"}, {"command": ["python3", "verification/state-machines/verification/check.py", "--marker-first"], "success": "PASS_FORMAL_CHECKER"}],
+  "mutants": [
+    {
+      "name": "accept-corrupt-cache", "check": 0,
+      "code": {"path": "verification/config-save/verify.py", "old": "    if hashlib.sha256(jar.read_bytes()).hexdigest() != TOOL_SHA256:\n", "new": "    if False and hashlib.sha256(jar.read_bytes()).hexdigest() != TOOL_SHA256:\n"},
+      "failure": "FAIL_FORMAL_CHECKER",
+      "model": {"spec": "Checker.tla", "old": "IF cache = \"good\" THEN", "new": "IF cache # \"missing\" THEN", "invariant": "CacheValid"}
+    },
+    {
+      "name": "accept-successful-mutant", "check": 0,
+      "code": {"path": "verification/config-save/verify.py", "old": "elif result.returncode == 0 or failure not in result.stdout:", "new": "elif result.returncode == 0 and failure not in result.stdout:"},
+      "failure": "FAIL_FORMAL_CHECKER",
+      "model": {"spec": "Checker.tla", "old": "mutantAccepted' = (testExit' = \"nonzero\" /\\ marker')", "new": "mutantAccepted' = (testExit' = \"nonzero\" \\/ marker')", "invariant": "MutantFailed"}
+    },
+    {
+      "name": "accept-unmarked-failure", "check": 1,
+      "code": {"path": "verification/config-save/verify.py", "old": "elif result.returncode == 0 or failure not in result.stdout:", "new": "elif result.returncode == 0 and failure not in result.stdout:"},
+      "failure": "FAIL_FORMAL_CHECKER: mutant_missing_marker",
+      "model": {"spec": "Checker.tla", "old": "mutantAccepted' = (testExit' = \"nonzero\" /\\ marker')", "new": "mutantAccepted' = (testExit' = \"nonzero\" \\/ marker')", "invariant": "MarkerRequired"}
+    }
+  ]
+}

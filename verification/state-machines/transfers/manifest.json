@@ -1,0 +1,153 @@
+{
+  "name": "transfers",
+  "machines": [
+    "S08",
+    "S09"
+  ],
+  "models": [
+    {
+      "spec": "Upload.tla",
+      "config": "Upload.cfg",
+      "invariants": [
+        "NoBadRequest",
+        "FileClosed"
+      ]
+    },
+    {
+      "spec": "Export.tla",
+      "config": "Export.cfg",
+      "invariants": [
+        "SuccessNeedsPublication",
+        "FileRaw"
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/client",
+        "-run",
+        "^TestFormalTransfersUpload$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalTransfersUpload"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/cmd",
+        "-run",
+        "^TestFormalTransfersExport$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalTransfersExport"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/cmd",
+        "-run",
+        "^TestFormalTransfersRouting$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalTransfersRouting"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/cmd",
+        "-run",
+        "^TestFormalTransfersOwnership$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalTransfersOwnership"
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./internal/cmd",
+        "-run",
+        "^TestFormalTransfersFetchAndReport$",
+        "-count=1",
+        "-v"
+      ],
+      "success": "--- PASS: TestFormalTransfersFetchAndReport"
+    }
+  ],
+  "mutants": [
+    {
+      "name": "send-incomplete-upload",
+      "check": 0,
+      "code": {
+        "path": "internal/client/upload.go",
+        "old": "return nil, \"\", fmt.Errorf(\"failed to copy file data: %w\", err)",
+        "new": "return body, writer.FormDataContentType(), nil"
+      },
+      "failure": "--- FAIL: TestFormalTransfersUpload",
+      "model": {
+        "spec": "Upload.tla",
+        "old": "CopyError == /\\ phase = \"copy\" /\\ phase' = \"cleanup\" /\\ consumed' = TRUE\n             /\\ UNCHANGED <<source, owner, inputOK, request, result>>",
+        "new": "CopyError == /\\ phase = \"copy\" /\\ phase' = \"cleanup\" /\\ consumed' = TRUE /\\ request' = TRUE\n             /\\ UNCHANGED <<source, owner, inputOK, result>>",
+        "invariant": "NoBadRequest"
+      }
+    },
+    {
+      "name": "successful-failed-export",
+      "check": 1,
+      "code": {
+        "path": "internal/command/export.go",
+        "old": "fmt.Fprintf(c.Err, \"error writing to file: %v\\n\", err)\n\t\treturn 1",
+        "new": "fmt.Fprintf(c.Err, \"error writing to file: %v\\n\", err)\n\t\treturn 0"
+      },
+      "failure": "--- FAIL: TestFormalTransfersExport",
+      "model": {
+        "spec": "Export.tla",
+        "old": "WriteError == /\\ phase = \"write\" /\\ phase' = \"failed\" /\\ UNCHANGED <<kind, destination, json, data, published, success, output>>",
+        "new": "WriteError == /\\ phase = \"write\" /\\ phase' = \"done\" /\\ success' = TRUE /\\ UNCHANGED <<kind, destination, json, data, published, output>>",
+        "invariant": "SuccessNeedsPublication"
+      }
+    },
+    {
+      "name": "parse-file-as-json",
+      "check": 2,
+      "code": {
+        "path": "internal/commands/chat/chat_export.go",
+        "old": "if *output != \"\" {",
+        "new": "if *output != \"\" && !*jsonFlag {"
+      },
+      "failure": "--- FAIL: TestFormalTransfersRouting",
+      "model": {
+        "spec": "Export.tla",
+        "old": "IF destination = \"file\" THEN \"write\" ELSE \"render\"",
+        "new": "IF destination = \"file\" /\\ ~json THEN \"write\" ELSE \"render\"",
+        "invariant": "FileRaw"
+      }
+    },
+    {
+      "name": "leave-upload-file-open",
+      "check": 3,
+      "code": {
+        "path": "internal/command/upload.go",
+        "old": "func() { _ = file.Close() }",
+        "new": "func() {}"
+      },
+      "failure": "--- FAIL: TestFormalTransfersOwnership",
+      "model": {
+        "spec": "Upload.tla",
+        "old": "owner' = IF owner = \"open\" THEN \"closed\" ELSE owner",
+        "new": "owner' = owner",
+        "invariant": "FileClosed"
+      }
+    }
+  ]
+}

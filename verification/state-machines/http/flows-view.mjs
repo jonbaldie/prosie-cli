@@ -1,0 +1,10 @@
+export const title = 'Own each response and retain primary resources';
+export function state(v) {
+  if (v.mode === 'stream' && v.result === 'status-error' && !v.closed) return 'BUG: Rejected stream body left open';
+  if (v.phase === 'returned') return ({success:'Request complete',book:'Primary book retained',series:'Series retained with available relations','marshal-error':'Request encoding failed','build-error':'Request construction failed','transport-error':'Transport failed','context-error':'Caller context ended','status-error':'HTTP status rejected; body closed','read-error':'Response read failed','decode-error':'Response decoding failed','primary-error':'Primary resource lookup failed','stream-error':'Stream failed; body closed'})[v.result];
+  return ({start:'Choose an HTTP or relation flow',marshal:'Encode the request',build:'Build the request',transport:'Send the request',status:'Check response status',read:'Read the response body',decode:'Decode the response',caller:'Stream body belongs to the caller',primary:'Fetch the primary resource',relations:'Inspect retained relations',chapters:'Resolve available chapters',books:'Resolve series books',codex:'Resolve series codex',later:'A later request retains the original timeout'})[v.phase];
+}
+export function step(action, from, to) {
+  if (action === 'Reject') return to.closed ? 'reject the status and close the body' : 'reject the status but omit the body close';
+  return ({Choose:'choose a flow',Marshal:'encode the request',Build:'construct the request',Transport:'send the request',Reject:'reject the status and close the body',Accept:'accept the status',Read:'read and close the body',Decode:'decode the result',CallerClose:'finish the stream and close the body',Primary:'fetch the primary resource',Relations:'inspect retained relations',Chapters:'resolve chapters if available',Books:'resolve books if available',Codex:'resolve codex if available',LaterRequest:'observe a later request timeout',Done:'finish'})[action] || action;
+}
