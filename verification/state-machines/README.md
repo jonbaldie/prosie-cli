@@ -1,6 +1,6 @@
 # State-machine verification
 
-This directory models the 28 recorded protocols: 21 runtime families, five tooling flows, and two agent templates. There is one owning project-local skill per subsystem. Repeated endpoint wrappers use shared protocols; they are not separate local machines. The source inventory was made at `3dd1171b29bd4dccc8c4e995438f658f18b818b1`.
+This directory models 26 recorded protocols: 21 runtime families and five tooling flows. There is one owning project-local skill per subsystem. Repeated endpoint wrappers use shared protocols; they are not separate local machines. The source inventory was made at `3dd1171b29bd4dccc8c4e995438f658f18b818b1`.
 
 ## Run
 
@@ -16,11 +16,9 @@ Use a subsystem name instead of `all` for a focused change. The first command ch
 
 Prerequisites: Python 3, Go, Java 11 or later, and curl. Full self-tests require Linux or macOS for POSIX file and shell checks. The runner selects Go 1.26.3 and reuses the SHA-256-pinned TLC release 1.7.4 downloader from `verification/config-save/verify.py`. Initial tool downloads require network access. Checked commands have a five-minute timeout. These are development tools, not CLI runtime dependencies.
 
-## Known finding: wizard copy failure
+## Removed agent templates
 
-The current wizard can lose a saved key after a suppressed grep-copy error. In the controlled replay, both saved defaults are displayed, the second copy exits 2 without bytes, and the script succeeds with only the secret key left in the env file. This is a reproduced response to an injected tool failure, not a live incident. Product code is unchanged.
-
-The wizard baseline explicitly assumes successful copies. The separate `WizardIOFault.cfg` checks the unchanged `DefaultPreserved` rule without that assumption and finds a counterexample. The normal agent-template command requires both the actual-source replay marker and that exact model violation. Command success means the expected checks ran; it does not mean this defect is fixed. See [the replay and assumptions](agent-templates/README.md).
+The vendored `mattpocock/skills` install and its template verification were removed. Protocols A01 and A02 are no longer in the active coverage map. The wizard copy-loss finding in [issue #126](https://github.com/jonbaldie/prosie-cli/issues/126) applied to the removed template, not the CLI runtime. This removal does not fix the upstream wizard.
 
 ## Ownership and skills
 
@@ -39,7 +37,6 @@ The wizard baseline explicitly assumes successful copies. The separate `WizardIO
 | Link traversal and export publication | S19, S20 | `verify-file-storage` | [file-storage](file-storage/README.md) |
 | Version, release and CI | S21, T01, T02, T03 | `verify-release-flows` | [release](release/README.md) |
 | Verification tools | T04, T05 | `verify-checker-flows` | [verification](verification/README.md) |
-| Executable human-step templates | A01, A02 | `verify-agent-template-flows` | [agent-templates](agent-templates/README.md) |
 
 The private credential model remains the original two-writer protocol. Its runner is delegated, not replaced. Other models cover their documented bounded calls and event classes. Separate model passes do not establish a composed proof of the whole CLI.
 
