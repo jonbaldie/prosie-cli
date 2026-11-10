@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/jonbaldie/prosie-cli/internal/version"
 )
 
 type outputFunc func([]byte) (int, error)
@@ -99,6 +101,10 @@ func TestOutputFailuresPreserveHandlerErrors(t *testing.T) {
 }
 
 func TestOutputFailureStateIsPerExecution(t *testing.T) {
+	previousVersion := version.Version
+	version.Version = "1.2.3-test"
+	t.Cleanup(func() { version.Version = previousVersion })
+
 	for _, tc := range []struct {
 		name string
 		err  error
@@ -123,7 +129,7 @@ func TestOutputFailureStateIsPerExecution(t *testing.T) {
 			fail = false
 			errOut.Reset()
 			code = root.Execute([]string{"version"})
-			if code != 0 || out.String() != "prosie version 0.0.0-dev\n" || errOut.Len() != 0 {
+			if code != 0 || out.String() != "prosie version 1.2.3-test\n" || errOut.Len() != 0 {
 				t.Fatalf("second execution: code=%d stdout=%q stderr=%q", code, out.String(), errOut.String())
 			}
 		})
