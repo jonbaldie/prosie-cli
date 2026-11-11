@@ -35,6 +35,7 @@ func parseContinueArgs(args []string, jsonDefault bool) (continueRequest, string
 	noStreamFlag := fs.Bool("no-stream", false, "Disable token streaming")
 	jsonFlag := fs.Bool("json", jsonDefault, "Output in JSON format (disables streaming)")
 	instructionFlag := fs.String("instruction", "", "Steer the continuation with a final prompt")
+	lengthFlag := fs.String("length", "", "Length choice (w followed by words, or a line count)")
 	wordsFlag := fs.Int("words", 0, "Target length in words (soft hint)")
 	linesFlag := fs.Int("lines", 0, "Hard cap on generated lines")
 
@@ -53,6 +54,7 @@ func parseContinueArgs(args []string, jsonDefault bool) (continueRequest, string
 		params: client.ContinueParams{
 			Persist:     *persistFlag && !*noPersistFlag,
 			Instruction: *instructionFlag,
+			Length:      *lengthFlag,
 			WordTarget:  *wordsFlag,
 			LineLimit:   *linesFlag,
 		},
@@ -120,6 +122,7 @@ Flags:
   -h, --help                 Show help for command
       --instruction string   Steer the continuation with a final prompt
                              (e.g. "Write the closing scene; resolve every thread")
+      --length string        Length choice (w followed by words, or a line count)
       --words int            Target length in words (soft hint to the model)
       --lines int            Hard cap on generated lines
       --no-persist           Do not save generated prose to chapter

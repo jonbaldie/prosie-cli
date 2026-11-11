@@ -91,6 +91,10 @@ generated lines. Note that the book premise and the current chapter's summary
 are not currently part of the continuation prompt, so put final-scene
 constraints in `--instruction` rather than in chapter metadata.
 
+`--length w900` sets a soft target of 900 words; `--length 12` sets a
+12-line limit. When `--words` or `--lines` is also set, the API uses those
+flags in preference to `--length`.
+
 ## Generation conflicts
 
 If another session changes a chapter during generation, the API can reject the save. The command exits with code 1 and writes the error and unsaved generated text to standard error. JSON and non-streaming commands leave standard output empty. Streaming commands may already have printed provisional tokens; those tokens do not confirm a save. Copy any text you want to keep before retrying.

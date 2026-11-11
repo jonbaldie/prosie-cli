@@ -63,6 +63,7 @@ type SummaryResult struct {
 type ContinueParams struct {
 	Persist     bool
 	Instruction string
+	Length      string
 	WordTarget  int
 	LineLimit   int
 }
@@ -73,6 +74,9 @@ func (p ContinueParams) body() map[string]any {
 	}
 	if p.Instruction != "" {
 		body["instruction"] = p.Instruction
+	}
+	if p.Length != "" {
+		body["length"] = p.Length
 	}
 	if p.WordTarget > 0 {
 		body["word_target"] = p.WordTarget
