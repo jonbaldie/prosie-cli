@@ -4,7 +4,7 @@
   "models": [{"spec":"Release.tla", "config":"Release.cfg", "invariants":["CleanBeforeBuild", "JoinBeforePublish"]}, {"spec":"Version.tla", "config":"Version.cfg", "invariants":["CleanTag"]}],
   "checks": [
     {"command":["python3","verification/state-machines/release/check.py"], "success":"PASS_RELEASE_CHECK"},
-    {"command":["go","test","./internal/version","-run","^TestFormalReleaseExactTag$","-count=1","-v"], "success":"--- PASS: TestFormalReleaseExactTag"}
+    {"command":["go","test","./internal/version","-run","^TestReleaseVersionFromBuildInfo$","-count=1","-v"], "success":"--- PASS: TestReleaseVersionFromBuildInfo"}
   ],
   "mutants": [{
     "name":"keep-old-archives", "check":0,
@@ -18,8 +18,8 @@
     "model":{"spec":"Release.tla", "old":"ReleaseJoin == /\\ mode = \"release\" /\\ phase = \"jobs\" /\\ \\A i \\in 1..5: jobs[i] \\in {\"success\", \"failed\", \"failed-build-partial\", \"failed-upload\", \"failed-upload-partial\", \"cancelled\", \"cancelled-build-partial\", \"cancelled-upload\", \"cancelled-upload-partial\"}\n /\\ phase' = (IF (\\A i \\in 1..5: jobs[i] = \"success\") THEN \"checkout\" ELSE \"done\")", "new":"ReleaseJoin == /\\ mode = \"release\" /\\ phase = \"jobs\"\n /\\ phase' = \"checkout\"", "invariant":"JoinBeforePublish"}
   }, {
     "name":"accept-dirty-version", "check":1,
-    "code":{"path":"internal/version/version.go", "old":"if err != nil || len(status) != 0 {", "new":"if err != nil { _ = status;"},
-    "failure":"--- FAIL: TestFormalReleaseExactTag",
-    "model":{"spec":"Version.tla", "old":"IF status' = \"clean\" THEN", "new":"IF status' # \"failed\" THEN", "invariant":"CleanTag"}
+    "code":{"path":"internal/version/version.go", "old":"\\.(0|[1-9][0-9]*)$`)", "new":"\\.(0|[1-9][0-9]*)(\\+dirty)?$`)"},
+    "failure":"--- FAIL: TestReleaseVersionFromBuildInfo",
+    "model":{"spec":"Version.tla", "old":"IF main' = \"release\" THEN", "new":"IF main' \\in {\"release\", \"dirty\"} THEN", "invariant":"CleanTag"}
   }]
 }

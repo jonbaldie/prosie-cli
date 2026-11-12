@@ -166,11 +166,25 @@ func TestLocalBuildsUseExactTagByDefault(t *testing.T) {
 	if output, err := buildCmd.CombinedOutput(); err != nil {
 		t.Fatalf("plain tagged build failed: %v\nOutput: %s", err, string(output))
 	}
-	assertVersionOutput(t, binPath, projectDir, "prosie version 0.4.0\n")
-
 	untaggedProject := newGitProject(t, repoRoot, "")
-	assertVersionOutput(t, binPath, untaggedProject, "prosie version 0.0.0-dev\n")
-	assertVersionOutputWithEnv(t, binPath, t.TempDir(), "prosie version 0.0.0-dev\n", "PATH=")
+	unrelatedTaggedProject := newGitProject(t, repoRoot, "v9.9.9")
+
+	// The version comes from the build, not from the place where the binary runs.
+	assertVersionOutput(t, binPath, projectDir, "prosie version 0.4.0\n")
+	assertVersionOutput(t, binPath, untaggedProject, "prosie version 0.4.0\n")
+	assertVersionOutput(t, binPath, unrelatedTaggedProject, "prosie version 0.4.0\n")
+	assertVersionOutputWithEnv(t, binPath, t.TempDir(), "prosie version 0.4.0\n", "PATH=")
+
+	// An untagged build reports the fallback, also next to or inside a clean
+	// repository at an unrelated exact tag (issue #119).
+	untaggedBinPath := filepath.Join(unrelatedTaggedProject, "prosie")
+	untaggedBuildCmd := exec.Command("go", "build", "-o", untaggedBinPath, ".")
+	untaggedBuildCmd.Dir = untaggedProject
+	if output, err := untaggedBuildCmd.CombinedOutput(); err != nil {
+		t.Fatalf("plain untagged build failed: %v\nOutput: %s", err, string(output))
+	}
+	assertVersionOutput(t, untaggedBinPath, unrelatedTaggedProject, "prosie version 0.0.0-dev\n")
+	assertVersionOutput(t, untaggedBinPath, t.TempDir(), "prosie version 0.0.0-dev\n")
 
 	distDir := t.TempDir()
 	releaseCmd := exec.Command(filepath.Join(projectDir, "scripts", "build-release.sh"))

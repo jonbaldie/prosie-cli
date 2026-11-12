@@ -1,16 +1,20 @@
 package version
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
+	"regexp"
+	"runtime/debug"
 )
 
 const fallbackVersion = "0.0.0-dev"
 
-// Version is set by a release linker flag or by an exact Git tag for a local build.
+// Version is set by a release linker flag. If no linker flag sets it, it
+// comes from the build information that Go embeds at build time. The run-time
+// environment (working directory, executable location, PATH) has no effect.
 var Version string
+
+// releaseTag matches an exact release version, such as v1.2.3. It does not
+// match pseudo-versions, pre-releases, "+dirty" builds, or "(devel)".
+var releaseTag = regexp.MustCompile(`^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
 
 func init() {
 	if Version != "" {
@@ -18,52 +22,21 @@ func init() {
 	}
 
 	Version = fallbackVersion
-	for _, dir := range repositoryDirs() {
-		if version, ok := exactTagVersion(dir); ok {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		if version, ok := releaseVersion(info.Main.Version); ok {
 			Version = version
-			return
 		}
 	}
 }
 
-func repositoryDirs() []string {
-	dirs := make([]string, 0, 2)
-	if executable, err := os.Executable(); err == nil {
-		dirs = append(dirs, filepath.Dir(executable))
-	}
-	if dir, err := os.Getwd(); err == nil {
-		dirs = append(dirs, dir)
-	}
-
-	unique := dirs[:0]
-	for _, dir := range dirs {
-		alreadyIncluded := false
-		for _, included := range unique {
-			if dir == included {
-				alreadyIncluded = true
-				break
-			}
-		}
-		if !alreadyIncluded {
-			unique = append(unique, dir)
-		}
-	}
-	return unique
-}
-
-func exactTagVersion(dir string) (string, bool) {
-	status, err := exec.Command("git", "-C", dir, "status", "--porcelain", "--untracked-files=no").Output()
-	if err != nil || len(status) != 0 {
+// releaseVersion maps the main module version that `go build` stamps from Git
+// to a release version without the "v" prefix. Go stamps a tag only when the
+// checkout has no tracked or untracked changes. Go stamps tags v2.0.0 and
+// higher only if the module path has a /vN suffix, so those builds report the
+// fallback.
+func releaseVersion(mainVersion string) (string, bool) {
+	if !releaseTag.MatchString(mainVersion) {
 		return "", false
 	}
-
-	tag, err := exec.Command("git", "-C", dir, "describe", "--exact-match", "--tags", "--match", "v[0-9]*", "HEAD").Output()
-	if err != nil {
-		return "", false
-	}
-	value := strings.TrimSpace(string(tag))
-	if !strings.HasPrefix(value, "v") || len(value) == 1 {
-		return "", false
-	}
-	return strings.TrimPrefix(value, "v"), true
+	return mainVersion[1:], true
 }

@@ -20,7 +20,7 @@ Download pre-built static binaries from [GitHub Releases](https://github.com/jon
 
 ### Local Builds
 
-A local build from a checkout with no tracked changes at an exact `v` release tag reports that tag's version. A build without an exact release tag, or without Git, reports `0.0.0-dev`. The local release script uses the same fallback when it cannot find a tag. Pass a version to `scripts/build-release.sh` to set one explicitly.
+A plain `go build` from a checkout with no changes, tracked or untracked, at an exact `v` release tag reports that tag's version. Go records this version in the binary at build time, so the binary reports the same version in all directories. A build without an exact release tag, a build with changes, a build without Git, `go run`, and `go build -buildvcs=false` report `0.0.0-dev`. The local release script uses the same fallback when it cannot find a tag. Pass a version to `scripts/build-release.sh` to set one explicitly.
 
 ## Authentication
 
