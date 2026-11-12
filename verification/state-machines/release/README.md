@@ -4,9 +4,9 @@ Inventory S21, T01, T02, T03. These models are not proofs of shell, Go, or GitHu
 
 ## S21: process version
 
-`Version.tla` maps `internal/version/version.go` init to Start, Exhausted and Done. `repositoryDirs` is represented by possible ordered deduplicated candidate sequences, including failed directory queries. `exactTagVersion` maps to Status, TagSuccess and TagFailure. Status distinguishes clean, dirty and command failure. Tag failure combines describe failure and malformed output because both advance to the next candidate. A linked value bypasses all candidates; otherwise fallback remains until a valid tag is accepted. The selected class is latched for the process. Values are symbolic.
+`Version.tla` maps `internal/version/version.go` init to Start, BuildInfo and Done. A linked value bypasses build information. Otherwise the value is the fallback, and BuildInfo reads the main module version that `go build` embedded. The model groups that version in classes: exact release, pseudo-version, dirty, `(devel)`, and absent build information. Only the exact release class selects the tag. `releaseVersion` maps to this class choice. The selected class is latched for the process. Values are symbolic. The model has no working directory, executable location or `git` command, because init does not read them (issue #119).
 
-`CleanTag` says a tag is accepted only after a clean successful status check. The actual Go helper test uses a stub git command, including dirty and failed status. The `accept-dirty-version` source mutant removes the dirty check, while the model mutant routes dirty status to tag lookup. The helper test does not test package initialization or directory collection.
+`CleanTag` says a tag is accepted only from an exact release build version. `TestReleaseVersionFromBuildInfo` checks `releaseVersion` with exact, pseudo, dirty, pre-release, `(devel)`, empty and malformed versions. The `accept-dirty-version` source mutant lets the release pattern accept a `+dirty` suffix, while the model mutant routes the dirty class to the tag. The helper test does not test package initialization. `TestLocalBuildsUseExactTagByDefault` in `scripts/build_test.go` builds real binaries and checks that the version does not change with the run location.
 
 ## T01: local release
 
