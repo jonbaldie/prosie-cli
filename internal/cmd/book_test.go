@@ -982,7 +982,7 @@ func TestBookListResponseShapes(t *testing.T) {
 	}
 }
 
-func TestBookShowZeroIDAndEmptyChapters(t *testing.T) {
+func TestBookShowZeroID(t *testing.T) {
 	_, cfg, httpClient := setupTestBookEnv(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/stories/1" {
 			_, _ = w.Write([]byte(`{"data":{"id":0,"title":"Draft"}}`))
