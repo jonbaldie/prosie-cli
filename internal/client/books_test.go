@@ -476,3 +476,21 @@ func TestImportDocx_UnnamedStream(t *testing.T) {
 		t.Fatalf("expected bearer token, got %q", gotAuth)
 	}
 }
+
+func TestGetBookKeepsEmptyChapterList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/stories/1" {
+			_, _ = w.Write([]byte(`{"data":{"id":1}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	}))
+	defer server.Close()
+	book, err := New(server.URL, "token", server.Client()).Books().GetBook(context.Background(), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if book.Chapters == nil || len(book.Chapters) != 0 {
+		t.Fatalf("chapters = %#v", book.Chapters)
+	}
+}
