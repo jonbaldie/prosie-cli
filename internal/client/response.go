@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
+	"strings"
 )
 
 // request reads a JSON endpoint response and owns the response body lifetime.
@@ -79,14 +81,61 @@ func responseData(body []byte) ([]byte, error) {
 	return body, nil
 }
 
+// resourceFields reports whether the object has a field defined by the resource.
+// Unknown fields remain allowed, so new API fields do not break older clients.
+func resourceFields(t reflect.Type, object map[string]json.RawMessage) bool {
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	}
+	if t.Kind() != reflect.Struct {
+		return false
+	}
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		if field.Anonymous && resourceFields(field.Type, object) {
+			return true
+		}
+		if fieldMatches(field, object) {
+			return true
+		}
+	}
+	return false
+}
+
+func fieldMatches(field reflect.StructField, object map[string]json.RawMessage) bool {
+	if field.PkgPath != "" {
+		return false
+	}
+	name := strings.Split(field.Tag.Get("json"), ",")[0]
+	if name == "-" {
+		return false
+	}
+	if name == "" {
+		name = field.Name
+	}
+	for key := range object {
+		if strings.EqualFold(key, name) {
+			return true
+		}
+	}
+	return false
+}
+
 func decodeResource[T any](body []byte) (T, error) {
 	var value T
 	data, err := responseData(body)
 	if err != nil {
 		return value, err
 	}
+	var object map[string]json.RawMessage
 	if len(data) == 0 || data[0] != '{' {
 		return value, fmt.Errorf("expected a resource object")
+	}
+	if err := json.Unmarshal(data, &object); err != nil {
+		return value, fmt.Errorf("invalid resource: %w", err)
+	}
+	if !resourceFields(reflect.TypeOf(value), object) {
+		return value, fmt.Errorf("resource has no recognized fields")
 	}
 	if err := json.Unmarshal(data, &value); err != nil {
 		return value, fmt.Errorf("invalid resource: %w", err)
@@ -105,14 +154,17 @@ func decodeList[T any](body []byte) ([]T, error) {
 	if len(data) == 0 || data[0] != '[' {
 		return nil, fmt.Errorf("expected a resource list")
 	}
-	var values []T
-	if err := json.Unmarshal(data, &values); err != nil {
+	var items []json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
 		return nil, fmt.Errorf("invalid resource list: %w", err)
 	}
-	for i := range values {
-		if normalizer, ok := any(&values[i]).(interface{ normalize() }); ok {
-			normalizer.normalize()
+	values := make([]T, 0, len(items))
+	for i, item := range items {
+		value, err := decodeResource[T](item)
+		if err != nil {
+			return nil, fmt.Errorf("invalid resource at index %d: %w", i, err)
 		}
+		values = append(values, value)
 	}
 	return values, nil
 }

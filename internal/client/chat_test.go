@@ -530,7 +530,7 @@ func TestConversationIDsAreEscaped(t *testing.T) {
 			_, _ = w.Write([]byte(`{"data":[]}`))
 			return
 		}
-		_, _ = w.Write([]byte(`{"data":{"id":1}}`))
+		_, _ = w.Write([]byte(`{"data":{"id":1,"model":"example"}}`))
 	}))
 	defer server.Close()
 
