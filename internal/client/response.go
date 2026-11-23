@@ -113,8 +113,8 @@ func fieldMatches(field reflect.StructField, object map[string]json.RawMessage) 
 	if name == "" {
 		name = field.Name
 	}
-	for key := range object {
-		if strings.EqualFold(key, name) {
+	for key, value := range object {
+		if strings.EqualFold(key, name) && !bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
 			return true
 		}
 	}

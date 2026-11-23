@@ -1008,6 +1008,7 @@ func TestBookShowResponseShapes(t *testing.T) {
 		{"envelope", `{"data":{"id":0,"title":"Draft"}}`, `"title": "Draft"`, 0},
 		{"empty resource", `{"data":{}}`, "decode", 1},
 		{"unrelated object", `{"error":"bad"}`, "decode", 1},
+		{"null field", `{"data":{"id":null}}`, "decode", 1},
 		{"null resource", `{"data":null}`, "decode", 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
