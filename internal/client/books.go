@@ -91,18 +91,9 @@ func (c *BookCollection) ListBooks(ctx context.Context) ([]Book, error) {
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []Book `json:"data"`
-	}
-	var books []Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		books = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &books); err != nil {
+	books, err := decodeList[Book](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode books response: %w", err)
-	}
-
-	for i := range books {
-		books[i].normalize()
 	}
 
 	return books, nil
@@ -116,7 +107,7 @@ func (c *BookCollection) GetBook(ctx context.Context, id int) (*Book, error) {
 		return nil, err
 	}
 
-	book, err := decodeBook(bodyBytes)
+	book, err := decodeResource[Book](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode book response: %w", err)
 	}
@@ -136,7 +127,7 @@ func (c *BookCollection) CreateBook(ctx context.Context, params CreateBookParams
 		return nil, err
 	}
 
-	book, err := decodeBook(bodyBytes)
+	book, err := decodeResource[Book](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode create book response: %w", err)
 	}
@@ -153,7 +144,7 @@ func (c *BookCollection) UpdateBook(ctx context.Context, id int, params UpdateBo
 		return nil, err
 	}
 
-	book, err := decodeBook(bodyBytes)
+	book, err := decodeResource[Book](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode update book response: %w", err)
 	}
@@ -176,7 +167,7 @@ func (c *BookCollection) DuplicateBook(ctx context.Context, id int) (*Book, erro
 		return nil, err
 	}
 
-	book, err := decodeBook(bodyBytes)
+	book, err := decodeResource[Book](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode duplicate book response: %w", err)
 	}
@@ -207,38 +198,20 @@ func (c *BookCollection) ImportDocx(ctx context.Context, file UploadFile, title 
 		return nil, err
 	}
 
-	var result struct {
-		Data   Book      `json:"data"`
-		Scenes []Chapter `json:"scenes"`
-	}
-
-	if err := json.Unmarshal(bodyBytes, &result); err == nil && result.Data.ID != 0 {
-		book := result.Data
-		if len(result.Scenes) > 0 && len(book.Chapters) == 0 {
-			book.Chapters = result.Scenes
-		}
-		book.normalize()
-		return &book, nil
-	}
-
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &book); err != nil {
+	book, err := decodeResource[Book](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode import response: %w", err)
 	}
-	book.normalize()
+	var extra struct {
+		Scenes []Chapter `json:"scenes"`
+	}
+	if err := json.Unmarshal(bodyBytes, &extra); err != nil {
+		return nil, fmt.Errorf("failed to decode import response: %w", err)
+	}
+	if len(extra.Scenes) > 0 && len(book.Chapters) == 0 {
+		book.Chapters = extra.Scenes
+	}
 	return &book, nil
-}
-
-func decodeBook(data []byte) (Book, error) {
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
-		return envelope.Data, nil
-	}
-	var resource Book
-	err := json.Unmarshal(data, &resource)
-	return resource, err
 }
 
 // bookChapters supplies chapters for servers that omit them from a book response.
@@ -258,16 +231,7 @@ func (c *BookCollection) bookChapters(ctx context.Context, id int) []Chapter {
 		return nil
 	}
 	data, _ := io.ReadAll(resp.Body)
-	var envelope struct {
-		Data []Chapter `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && len(envelope.Data) > 0 {
-		return envelope.Data
-	}
-	var chapters []Chapter
-	if json.Unmarshal(data, &chapters) != nil {
-		return nil
-	}
+	chapters, _ := decodeList[Chapter](data)
 	return chapters
 }
 

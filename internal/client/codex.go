@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -98,18 +97,9 @@ func (c *CodexCollection) ListCodexEntries(ctx context.Context, bookID int) ([]C
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []CodexEntry `json:"data"`
-	}
-	var entries []CodexEntry
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		entries = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &entries); err != nil {
+	entries, err := decodeList[CodexEntry](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode codex entries response: %w", err)
-	}
-
-	for i := range entries {
-		entries[i].normalize()
 	}
 
 	return entries, nil
@@ -123,18 +113,9 @@ func (c *CodexCollection) ListSeriesCodexEntries(ctx context.Context, seriesID i
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []CodexEntry `json:"data"`
-	}
-	var entries []CodexEntry
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		entries = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &entries); err != nil {
+	entries, err := decodeList[CodexEntry](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode series codex entries response: %w", err)
-	}
-
-	for i := range entries {
-		entries[i].normalize()
 	}
 
 	return entries, nil
@@ -149,7 +130,7 @@ func (c *CodexCollection) GetCodexEntry(ctx context.Context, id int) (*CodexEntr
 	}
 
 	var entry CodexEntry
-	entry, err = decodeCodexEntry(bodyBytes)
+	entry, err = decodeResource[CodexEntry](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode codex entry response: %w", err)
 	}
@@ -167,7 +148,7 @@ func (c *CodexCollection) CreateCodexEntry(ctx context.Context, bookID int, para
 	}
 
 	var entry CodexEntry
-	entry, err = decodeCodexEntry(bodyBytes)
+	entry, err = decodeResource[CodexEntry](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode create codex entry response: %w", err)
 	}
@@ -185,7 +166,7 @@ func (c *CodexCollection) UpdateCodexEntry(ctx context.Context, id int, params U
 	}
 
 	var entry CodexEntry
-	entry, err = decodeCodexEntry(bodyBytes)
+	entry, err = decodeResource[CodexEntry](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode update codex entry response: %w", err)
 	}
@@ -198,18 +179,6 @@ func (c *CodexCollection) UpdateCodexEntry(ctx context.Context, id int, params U
 func (c *CodexCollection) DeleteCodexEntry(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/api/codex-entries/%d", id)
 	return c.transport.execute(ctx, http.MethodDelete, path, nil)
-}
-
-func decodeCodexEntry(data []byte) (CodexEntry, error) {
-	var envelope struct {
-		Data CodexEntry `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
-		return envelope.Data, nil
-	}
-	var resource CodexEntry
-	err := json.Unmarshal(data, &resource)
-	return resource, err
 }
 
 // CodexCollection owns codex operations over the shared authenticated transport.

@@ -948,3 +948,89 @@ func TestBookCreateRejectsNonPositiveTargetWords(t *testing.T) {
 		}
 	})
 }
+
+func TestBookListResponseShapes(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, output string
+		code               int
+	}{
+		{"envelope", `{"data":[{"title":"One"}]}`, "One", 0},
+		{"bare", `[{"title":"Two"}]`, "Two", 0},
+		{"normalized", `{"data":[{"story_so_far":"A premise"}]}`, `"premise": "A premise"`, 0},
+		{"unrelated", `{"data":[{"error":"bad"}]}`, "decode", 1},
+		{"empty", `{"data":[]}`, `[]`, 0},
+		{"null", `{"data":null}`, "decode", 1},
+		{"wrong shape", `{"data":{}}`, "decode", 1},
+		{"invalid JSON", `{"data":[`, "decode", 1},
+		{"null item", `{"data":[null]}`, "decode", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, cfg, httpClient := setupTestBookEnv(t, func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(tc.body)) })
+			cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+			code := cmd.Execute([]string{"book", "list", "--json"})
+			if code != tc.code {
+				t.Fatalf("exit = %d, stderr = %s", code, errOut.String())
+			}
+			text := out.String()
+			if code != 0 {
+				text = errOut.String()
+			}
+			if !strings.Contains(text, tc.output) {
+				t.Fatalf("output = %q", text)
+			}
+		})
+	}
+}
+
+func TestBookShowZeroID(t *testing.T) {
+	_, cfg, httpClient := setupTestBookEnv(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/stories/1" {
+			_, _ = w.Write([]byte(`{"data":{"id":0,"title":"Draft"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"data":[]}`))
+	})
+	cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+	if code := cmd.Execute([]string{"book", "show", "1", "--json"}); code != 0 {
+		t.Fatalf("exit = %d, stderr = %s", code, errOut.String())
+	}
+	if !strings.Contains(out.String(), `"title": "Draft"`) {
+		t.Fatalf("output = %q", out.String())
+	}
+}
+
+func TestBookShowResponseShapes(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, output string
+		code               int
+	}{
+		{"bare", `{"id":0,"title":"Draft"}`, `"title": "Draft"`, 0},
+		{"envelope", `{"data":{"id":0,"title":"Draft"}}`, `"title": "Draft"`, 0},
+		{"empty resource", `{"data":{}}`, "decode", 1},
+		{"unrelated object", `{"error":"bad"}`, "decode", 1},
+		{"null field", `{"data":{"id":null}}`, "decode", 1},
+		{"null resource", `{"data":null}`, "decode", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, cfg, httpClient := setupTestBookEnv(t, func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/scenes") {
+					_, _ = w.Write([]byte(`{"data":[]}`))
+					return
+				}
+				_, _ = w.Write([]byte(tc.body))
+			})
+			cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+			code := cmd.Execute([]string{"book", "show", "1", "--json"})
+			if code != tc.code {
+				t.Fatalf("exit = %d, stderr = %s", code, errOut.String())
+			}
+			text := out.String()
+			if code != 0 {
+				text = errOut.String()
+			}
+			if !strings.Contains(text, tc.output) {
+				t.Fatalf("output = %q", text)
+			}
+		})
+	}
+}

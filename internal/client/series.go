@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -90,18 +89,9 @@ func (c *SeriesCollection) ListSeries(ctx context.Context) ([]Series, error) {
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []Series `json:"data"`
-	}
-	var seriesList []Series
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		seriesList = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &seriesList); err != nil {
+	seriesList, err := decodeList[Series](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode series response: %w", err)
-	}
-
-	for i := range seriesList {
-		seriesList[i].normalize()
 	}
 
 	c.populateSeriesBooks(ctx, seriesList)
@@ -118,7 +108,7 @@ func (c *SeriesCollection) GetSeries(ctx context.Context, id int) (*Series, erro
 	}
 
 	var s Series
-	s, err = decodeSeries(bodyBytes)
+	s, err = decodeResource[Series](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode series response: %w", err)
 	}
@@ -165,7 +155,7 @@ func (c *SeriesCollection) CreateSeries(ctx context.Context, params CreateSeries
 	}
 
 	var s Series
-	s, err = decodeSeries(bodyBytes)
+	s, err = decodeResource[Series](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode create series response: %w", err)
 	}
@@ -195,7 +185,7 @@ func (c *SeriesCollection) UpdateSeries(ctx context.Context, id int, params Upda
 	}
 
 	var s Series
-	s, err = decodeSeries(bodyBytes)
+	s, err = decodeResource[Series](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode update series response: %w", err)
 	}
@@ -218,13 +208,8 @@ func (c *SeriesCollection) AttachSeriesBook(ctx context.Context, seriesID, bookI
 		return nil, err
 	}
 
-	var envelope struct {
-		Data Book `json:"data"`
-	}
-	var book Book
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		book = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &book); err != nil {
+	book, err := decodeResource[Book](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode attach book response: %w", err)
 	}
 
@@ -236,18 +221,6 @@ func (c *SeriesCollection) AttachSeriesBook(ctx context.Context, seriesID, bookI
 func (c *SeriesCollection) DetachSeriesBook(ctx context.Context, seriesID, bookID int) error {
 	path := fmt.Sprintf("/api/series/%d/stories/%d", seriesID, bookID)
 	return c.transport.execute(ctx, http.MethodDelete, path, nil)
-}
-
-func decodeSeries(data []byte) (Series, error) {
-	var envelope struct {
-		Data Series `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
-		return envelope.Data, nil
-	}
-	var resource Series
-	err := json.Unmarshal(data, &resource)
-	return resource, err
 }
 
 func (c *SeriesCollection) populateSeriesBooks(ctx context.Context, series []Series) {
