@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -70,13 +69,8 @@ func (c *Conversations) ListConversations(ctx context.Context, bookID string) ([
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []Conversation `json:"data"`
-	}
-	var conversations []Conversation
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		conversations = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &conversations); err != nil {
+	conversations, err := decodeList[Conversation](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode conversations response: %w", err)
 	}
 
@@ -96,7 +90,7 @@ func (c *Conversations) GetConversation(ctx context.Context, id string) (*Conver
 		return nil, err
 	}
 
-	conversation, err := decodeConversation(bodyBytes)
+	conversation, err := decodeResource[Conversation](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode conversation response: %w", err)
 	}
@@ -122,7 +116,7 @@ func (c *Conversations) CreateConversation(ctx context.Context, bookID string, t
 		return nil, err
 	}
 
-	conversation, err := decodeConversation(bodyBytes)
+	conversation, err := decodeResource[Conversation](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode create conversation response: %w", err)
 	}
@@ -169,7 +163,7 @@ func (c *Conversations) ImportConversation(ctx context.Context, bookID string, f
 		return nil, err
 	}
 
-	conversation, err := decodeConversation(bodyBytes)
+	conversation, err := decodeResource[Conversation](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode import response: %w", err)
 	}
@@ -212,13 +206,8 @@ func (c *Conversations) RetryConversation(ctx context.Context, conversationID st
 }
 
 func decodeMessageResponse(bodyBytes []byte) (*SendMessageResponse, error) {
-	var envelope struct {
-		Data SendMessageResponse `json:"data"`
-	}
-	var sendResp SendMessageResponse
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && (envelope.Data.Message != nil || envelope.Data.Model != "") {
-		sendResp = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &sendResp); err != nil {
+	sendResp, err := decodeResource[SendMessageResponse](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode message response: %w", err)
 	}
 
@@ -293,15 +282,3 @@ type Conversations struct{ transport *Client }
 
 // Conversations returns the conversations module for this client.
 func (c *Client) Conversations() *Conversations { return &Conversations{transport: c} }
-
-func decodeConversation(data []byte) (Conversation, error) {
-	var envelope struct {
-		Data Conversation `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
-		return envelope.Data, nil
-	}
-	var conversation Conversation
-	err := json.Unmarshal(data, &conversation)
-	return conversation, err
-}

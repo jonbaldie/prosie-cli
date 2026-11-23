@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -81,18 +80,9 @@ func (c *ChapterCollection) ListChapters(ctx context.Context, bookID string) ([]
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []Chapter `json:"data"`
-	}
-	var chapters []Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		chapters = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapters); err != nil {
+	chapters, err := decodeList[Chapter](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode chapters response: %w", err)
-	}
-
-	for i := range chapters {
-		chapters[i].normalize()
 	}
 
 	return chapters, nil
@@ -106,7 +96,8 @@ func (c *ChapterCollection) GetChapter(ctx context.Context, id string) (*Chapter
 		return nil, err
 	}
 
-	chapter, err := decodeChapter(bodyBytes)
+	var chapter Chapter
+	chapter, err = decodeResource[Chapter](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode chapter response: %w", err)
 	}
@@ -123,7 +114,8 @@ func (c *ChapterCollection) CreateChapter(ctx context.Context, bookID string, pa
 		return nil, err
 	}
 
-	chapter, err := decodeChapter(bodyBytes)
+	var chapter Chapter
+	chapter, err = decodeResource[Chapter](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode create chapter response: %w", err)
 	}
@@ -140,7 +132,8 @@ func (c *ChapterCollection) UpdateChapter(ctx context.Context, id string, params
 		return nil, err
 	}
 
-	chapter, err := decodeChapter(bodyBytes)
+	var chapter Chapter
+	chapter, err = decodeResource[Chapter](bodyBytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode update chapter response: %w", err)
 	}
@@ -171,18 +164,9 @@ func (c *ChapterCollection) ReorderChapters(ctx context.Context, bookID string, 
 		return nil, err
 	}
 
-	var envelope struct {
-		Data []Chapter `json:"data"`
-	}
-	var chapters []Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data != nil {
-		chapters = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapters); err != nil {
+	chapters, err := decodeList[Chapter](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode reorder chapters response: %w", err)
-	}
-
-	for i := range chapters {
-		chapters[i].normalize()
 	}
 
 	return chapters, nil
@@ -201,18 +185,6 @@ func (c *ChapterCollection) ExportChapter(ctx context.Context, id string, format
 	}
 	path := fmt.Sprintf("/api/scenes/%s/export?format=%s", url.PathEscape(id), url.QueryEscape(format))
 	return c.transport.request(ctx, http.MethodGet, path, nil)
-}
-
-func decodeChapter(data []byte) (Chapter, error) {
-	var envelope struct {
-		Data Chapter `json:"data"`
-	}
-	if err := json.Unmarshal(data, &envelope); err == nil && envelope.Data.ID != 0 {
-		return envelope.Data, nil
-	}
-	var resource Chapter
-	err := json.Unmarshal(data, &resource)
-	return resource, err
 }
 
 // ChapterCollection owns chapters operations over the shared authenticated transport.

@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -97,22 +96,10 @@ func (c *Generation) Continue(ctx context.Context, chapterID string, params Cont
 		return nil, err
 	}
 
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+	result, err := decodeResource[ContinueResult](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
-	var result ContinueResult
-	if dataBytes, ok := raw["data"]; ok {
-		if err := json.Unmarshal(dataBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode continue data: %w", err)
-		}
-	} else {
-		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode continue response: %w", err)
-		}
-	}
-
 	return &result, nil
 }
 
@@ -159,13 +146,8 @@ func (c *Generation) postForChapter(ctx context.Context, path, action string) (*
 		return nil, err
 	}
 
-	var envelope struct {
-		Data Chapter `json:"data"`
-	}
-	var chapter Chapter
-	if err := json.Unmarshal(bodyBytes, &envelope); err == nil && envelope.Data.ID != 0 {
-		chapter = envelope.Data
-	} else if err := json.Unmarshal(bodyBytes, &chapter); err != nil {
+	chapter, err := decodeResource[Chapter](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode %s response: %w", action, err)
 	}
 
@@ -181,22 +163,10 @@ func (c *Generation) Rewrite(ctx context.Context, chapterID string, params Rewri
 		return nil, err
 	}
 
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+	result, err := decodeResource[RewriteResult](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
-	var result RewriteResult
-	if dataBytes, ok := raw["data"]; ok {
-		if err := json.Unmarshal(dataBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode rewrite data: %w", err)
-		}
-	} else {
-		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode rewrite response: %w", err)
-		}
-	}
-
 	return &result, nil
 }
 
@@ -233,22 +203,10 @@ func (c *Generation) Summarize(ctx context.Context, chapterID string, params Sum
 		return nil, err
 	}
 
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+	result, err := decodeResource[SummaryResult](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-
-	var result SummaryResult
-	if dataBytes, ok := raw["data"]; ok {
-		if err := json.Unmarshal(dataBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode summary data: %w", err)
-		}
-	} else {
-		if err := json.Unmarshal(bodyBytes, &result); err != nil {
-			return nil, fmt.Errorf("failed to decode summary response: %w", err)
-		}
-	}
-
 	return &result, nil
 }
 

@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 )
@@ -48,17 +47,11 @@ func (c *LlmCollection) GetModels(ctx context.Context) (*LlmModels, error) {
 		return nil, err
 	}
 
-	var envelope struct {
-		Data *LlmModels `json:"data"`
-	}
-	if err := json.Unmarshal(bodyBytes, &envelope); err != nil {
+	result, err := decodeResource[LlmModels](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode LLM models response: %w", err)
 	}
-	if envelope.Data == nil {
-		return nil, fmt.Errorf("failed to decode LLM models response: missing data")
-	}
-
-	return envelope.Data, nil
+	return &result, nil
 }
 
 // UpdateConfig changes only the supplied LLM settings.
@@ -72,16 +65,11 @@ func (c *LlmCollection) UpdateConfig(ctx context.Context, params UpdateLlmConfig
 }
 
 func decodeLlmConfig(bodyBytes []byte) (*LlmConfig, error) {
-	var envelope struct {
-		Data *LlmConfig `json:"data"`
-	}
-	if err := json.Unmarshal(bodyBytes, &envelope); err != nil {
+	result, err := decodeResource[LlmConfig](bodyBytes)
+	if err != nil {
 		return nil, fmt.Errorf("failed to decode LLM config response: %w", err)
 	}
-	if envelope.Data == nil {
-		return nil, fmt.Errorf("failed to decode LLM config response: missing data")
-	}
-	return envelope.Data, nil
+	return &result, nil
 }
 
 // LlmCollection owns LLM configuration operations over the authenticated transport.
