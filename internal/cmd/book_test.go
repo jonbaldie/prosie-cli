@@ -998,3 +998,38 @@ func TestBookShowZeroIDAndEmptyChapters(t *testing.T) {
 		t.Fatalf("output = %q", out.String())
 	}
 }
+
+func TestBookShowResponseShapes(t *testing.T) {
+	for _, tc := range []struct {
+		name, body, output string
+		code               int
+	}{
+		{"bare", `{"id":0,"title":"Draft"}`, `"title": "Draft"`, 0},
+		{"envelope", `{"data":{"id":0,"title":"Draft"}}`, `"title": "Draft"`, 0},
+		{"empty resource", `{"data":{}}`, "decode", 1},
+		{"unrelated object", `{"error":"bad"}`, "decode", 1},
+		{"null resource", `{"data":null}`, "decode", 1},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, cfg, httpClient := setupTestBookEnv(t, func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/scenes") {
+					_, _ = w.Write([]byte(`{"data":[]}`))
+					return
+				}
+				_, _ = w.Write([]byte(tc.body))
+			})
+			cmd, out, errOut := newTestRootCmd(cfg, httpClient)
+			code := cmd.Execute([]string{"book", "show", "1", "--json"})
+			if code != tc.code {
+				t.Fatalf("exit = %d, stderr = %s", code, errOut.String())
+			}
+			text := out.String()
+			if code != 0 {
+				text = errOut.String()
+			}
+			if !strings.Contains(text, tc.output) {
+				t.Fatalf("output = %q", text)
+			}
+		})
+	}
+}
