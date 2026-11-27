@@ -181,6 +181,11 @@ func writeAndPublish(tmp tempFile, path string, data []byte) error {
 }
 
 // Clear removes the configuration file from disk.
+//
+// If path is a symbolic link, Clear removes the link target. The link stays
+// a link, so a later Save through the link creates the target again. A
+// missing target is not an error. A symbolic link loop returns an error,
+// using the same rule as Save.
 func Clear(path string) error {
 	if path == "" {
 		var err error
@@ -190,7 +195,11 @@ func Clear(path string) error {
 		}
 	}
 
-	err := os.Remove(path)
+	target, err := resolveLinks(path)
+	if err != nil {
+		return err
+	}
+	err = os.Remove(target)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
