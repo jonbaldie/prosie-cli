@@ -30,19 +30,25 @@ func executeBookExport(c *command.Environment, args []string) int {
 		return 1
 	}
 
+	formatValue, err := command.NormalizeExportFormat(*format)
+	if err != nil {
+		fmt.Fprintln(c.Err, err)
+		return 1
+	}
+
 	cli, err := command.Client(c)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
 		return 1
 	}
 
-	data, err := cli.Books().ExportStory(c.Ctx(), id, *format)
+	data, err := cli.Books().ExportStory(c.Ctx(), id, formatValue)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting book: %v\n", err)
 		return 1
 	}
 
-	return command.ExportProse(c, fmt.Sprintf("book %d", id), id, *output, *format, data, *jsonFlag)
+	return command.ExportProse(c, fmt.Sprintf("book %d", id), id, *output, formatValue, data, *jsonFlag)
 }
 
 func printBookExportHelp(c *command.Environment) {

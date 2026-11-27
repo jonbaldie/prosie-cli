@@ -721,7 +721,7 @@ func TestBookExport(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid format reports API error", func(t *testing.T) {
+	t.Run("invalid format is rejected before the request", func(t *testing.T) {
 		cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 		code := cmd.Execute([]string{"book", "export", "5", "--format", "pdf"})
 		if code != 1 {
@@ -730,7 +730,7 @@ func TestBookExport(t *testing.T) {
 		if out.Len() != 0 {
 			t.Fatalf("expected empty stdout, got: %s", out.String())
 		}
-		if !strings.Contains(errOut.String(), "error exporting book") {
+		if errOut.String() != "error: invalid --format \"pdf\": must be markdown or docx\n" {
 			t.Fatalf("unexpected stderr: %s", errOut.String())
 		}
 	})

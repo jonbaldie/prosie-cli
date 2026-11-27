@@ -26,13 +26,19 @@ func executeChapterExport(c *command.Environment, args []string) int {
 
 	id := posArgs[0]
 
+	formatValue, err := command.NormalizeExportFormat(*format)
+	if err != nil {
+		fmt.Fprintln(c.Err, err)
+		return 1
+	}
+
 	cli, err := command.Client(c)
 	if err != nil {
 		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
 		return 1
 	}
 
-	data, err := cli.Chapters().ExportChapter(c.Ctx(), id, *format)
+	data, err := cli.Chapters().ExportChapter(c.Ctx(), id, formatValue)
 	if err != nil {
 		fmt.Fprintf(c.Err, "error exporting chapter: %v\n", err)
 		return 1
@@ -43,7 +49,7 @@ func executeChapterExport(c *command.Environment, args []string) int {
 		idVal = intVal
 	}
 
-	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), idVal, *output, *format, data, *jsonFlag)
+	return command.ExportProse(c, fmt.Sprintf("chapter %s", id), idVal, *output, formatValue, data, *jsonFlag)
 }
 
 func printChapterExportHelp(c *command.Environment) {
