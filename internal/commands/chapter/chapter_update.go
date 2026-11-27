@@ -71,7 +71,7 @@ Flags:
       --file string      Path to file containing chapter prose ('-' for standard input)
   -h, --help             Show help for command
       --json             Format output as JSON
-      --order int        Chapter order
+      --order int        Chapter order (0 or greater)
       --pov string       Chapter point of view
       --summary string   Chapter summary
       --title string     Chapter title (sent as name)

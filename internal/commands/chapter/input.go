@@ -2,6 +2,7 @@ package chaptercmd
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/command"
@@ -21,7 +22,7 @@ func newChapterInput(fs *flag.FlagSet, contentHelp string) chapterInput {
 		filePath:  fs.String("file", "", "Path to file containing chapter prose ('-' for standard input)"),
 		pov:       fs.String("pov", "", "Chapter point of view"),
 		character: fs.String("character", "", "Chapter character"),
-		order:     fs.Int("order", 0, "Chapter order"),
+		order:     fs.Int("order", 0, "Chapter order (0 or greater)"),
 	}
 }
 
@@ -29,6 +30,9 @@ func (input chapterInput) params(c *command.Environment, fs *flag.FlagSet) (clie
 	params, err := command.ChapterInput(c, fs, input.title, input.content, input.summary, input.filePath)
 	if err != nil {
 		return params, err
+	}
+	if *input.order < 0 {
+		return params, fmt.Errorf("error: --order must be greater than or equal to 0")
 	}
 	visited := command.VisitedFlags(fs)
 	params.CustomPOV = command.Provided(visited, "pov", input.pov)
