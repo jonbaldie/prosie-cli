@@ -112,6 +112,9 @@ func TestChapterMetadataHelp(t *testing.T) {
 			if code != 0 || errOut.Len() != 0 {
 				t.Fatalf("exit = %d, stderr = %q", code, errOut.String())
 			}
+			if !strings.Contains(out.String(), "Chapter order (0 or greater)") {
+				t.Errorf("help does not describe the order minimum: %s", out.String())
+			}
 			for _, flag := range []string{"--pov", "--character", "--order"} {
 				if !strings.Contains(out.String(), flag) {
 					t.Errorf("help does not include %s: %s", flag, out.String())
