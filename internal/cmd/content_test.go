@@ -55,6 +55,12 @@ func TestChapterContentPresence(t *testing.T) {
 				cmd, _, errOut := newTestRootCmd(cfgPath, httpClient)
 				cmd.In = strings.NewReader(tc.input)
 				args := append([]string{"chapter", action, "1", "--json"}, tc.flags...)
+				if action == "update" && !tc.present {
+					if code := cmd.Execute(args); code != 1 || !strings.Contains(errOut.String(), "at least one field flag") || body != nil {
+						t.Fatalf("code=%d stderr=%q body=%#v; want 1, at least one field flag, no request", code, errOut.String(), body)
+					}
+					return
+				}
 				if code := cmd.Execute(args); code != 0 || errOut.Len() != 0 {
 					t.Fatalf("code=%d stderr=%q", code, errOut.String())
 				}
