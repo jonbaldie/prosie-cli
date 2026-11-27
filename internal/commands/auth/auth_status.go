@@ -25,8 +25,7 @@ func executeAuthStatus(c *command.Environment, args []string) int {
 
 	status, err := auth.InspectStatus(c.Ctx(), c.ConfigPath, c.HTTPClient)
 	if err != nil {
-		fmt.Fprintf(c.Err, "authentication error: %v\n", err)
-		return 1
+		return authStatusError(c, status, err, *jsonFlag)
 	}
 
 	if !status.Authenticated {
@@ -49,6 +48,14 @@ func executeAuthStatus(c *command.Environment, args []string) int {
 		fmt.Fprintf(c.Out, "Token scopes: %s\n", strings.Join(status.Scopes, ", "))
 	}
 	return 0
+}
+
+func authStatusError(c *command.Environment, status *auth.StatusResult, err error, jsonOut bool) int {
+	if jsonOut && status != nil {
+		_ = command.WriteJSON(c, status)
+	}
+	fmt.Fprintf(c.Err, "authentication error: %v\n", err)
+	return 1
 }
 
 func printAuthStatusHelp(c *command.Environment) {
