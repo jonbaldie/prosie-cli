@@ -12,7 +12,7 @@ messgo:
 	messgo . text quality-gates/messgo-ruleset.xml --ignore-tests
 
 mutago:
-	mutago --coverage --exec-timeout=300 --min-msi=80 --quiet --no-diffs ./...
+	mutago --coverage --exec-timeout=300 --min-covered-msi=80 --quiet --no-diffs ./...
 
 release-local:
 	./scripts/build-release.sh
