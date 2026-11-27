@@ -44,14 +44,23 @@ func TestBookNormalize(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			premise, sofar := tc.book.Premise, tc.book.StorySoFar
 			tc.book.normalize()
-			if premise != nil && tc.book.StorySoFar == nil {
-				t.Fatalf("normalize lost story so far: %+v", tc.book)
-			}
-			if sofar != nil && tc.book.Premise == nil {
-				t.Fatalf("normalize lost premise: %+v", tc.book)
-			}
-			if premise != nil && *premise != "" && tc.book.Premise == nil {
-				t.Fatalf("normalize dropped premise value")
+			switch {
+			case premise == nil && sofar == nil:
+				if tc.book.Premise != nil || tc.book.StorySoFar != nil {
+					t.Fatalf("normalize: both fields must stay nil: %+v", tc.book)
+				}
+			case premise != nil && sofar == nil:
+				if *tc.book.Premise != *premise || *tc.book.StorySoFar != *premise {
+					t.Fatalf("normalize: premise=%v story=%v, want both %q", tc.book.Premise, tc.book.StorySoFar, *premise)
+				}
+			case sofar != nil && premise == nil:
+				if *tc.book.Premise != *sofar || *tc.book.StorySoFar != *sofar {
+					t.Fatalf("normalize: premise=%v story=%v, want both %q", tc.book.Premise, tc.book.StorySoFar, *sofar)
+				}
+			default:
+				if *tc.book.Premise != *premise || *tc.book.StorySoFar != *sofar {
+					t.Fatalf("normalize: both fields must stay unchanged: %+v", tc.book)
+				}
 			}
 		})
 	}

@@ -39,17 +39,19 @@ func TestSeriesNormalizeTitles(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := tc.s
 			s.normalize()
-			if tc.s.Name != "" || tc.s.Title != "" {
-				if tc.s.Name == "" {
-					if s.Title != tc.s.Title {
-						t.Fatalf("normalize: title %q, want %q", s.Title, tc.s.Title)
-					}
-				}
-				if tc.s.Title == "" {
-					if s.Name != tc.s.Name {
-						t.Fatalf("normalize: name %q, want %q", s.Name, tc.s.Name)
-					}
-				}
+			wantTitle := tc.s.Title
+			if wantTitle == "" {
+				wantTitle = tc.s.Name
+			}
+			wantName := tc.s.Name
+			if wantName == "" {
+				wantName = wantTitle
+			}
+			if s.Title != wantTitle {
+				t.Fatalf("normalize: title %q, want %q", s.Title, wantTitle)
+			}
+			if s.Name != wantName {
+				t.Fatalf("normalize: name %q, want %q", s.Name, wantName)
 			}
 		})
 	}

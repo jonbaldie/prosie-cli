@@ -43,23 +43,36 @@ func TestCodexNormalize(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			e := tc.e
 			e.normalize()
-			if tc.e.Type != "" && e.Type != tc.e.Type {
-				t.Fatalf("normalize: type %q, want %q", e.Type, tc.e.Type)
+			wantType := tc.e.Type
+			if wantType == "" {
+				wantType = tc.e.Category
 			}
-			if tc.e.Category != "" && e.Category != tc.e.Category {
-				t.Fatalf("normalize: category %q, want %q", e.Category, tc.e.Category)
+			if wantType == "" {
+				wantType = "lore"
 			}
-			if tc.e.Type == "" && tc.e.Category == "" && e.Type != "lore" {
-				t.Fatalf("normalize: default type %q, want lore", e.Type)
+			wantCategory := tc.e.Category
+			if wantCategory == "" {
+				wantCategory = wantType
 			}
-			if tc.e.Category == "" && e.Category == "" && tc.e.Type == "" && e.Category != "lore" {
-				t.Fatalf("normalize: default category %q, want lore", e.Category)
+			if e.Type != wantType {
+				t.Fatalf("normalize: type %q, want %q", e.Type, wantType)
 			}
-			if tc.e.Details != "" && e.Details != tc.e.Details {
-				t.Fatalf("normalize: details %q, want %q", e.Details, tc.e.Details)
+			if e.Category != wantCategory {
+				t.Fatalf("normalize: category %q, want %q", e.Category, wantCategory)
 			}
-			if tc.e.Content != "" && e.Content != tc.e.Content {
-				t.Fatalf("normalize: content %q, want %q", e.Content, tc.e.Content)
+			wantDetails := tc.e.Details
+			if wantDetails == "" {
+				wantDetails = tc.e.Content
+			}
+			wantContent := tc.e.Content
+			if wantContent == "" {
+				wantContent = wantDetails
+			}
+			if e.Details != wantDetails {
+				t.Fatalf("normalize: details %q, want %q", e.Details, wantDetails)
+			}
+			if e.Content != wantContent {
+				t.Fatalf("normalize: content %q, want %q", e.Content, wantContent)
 			}
 		})
 	}
