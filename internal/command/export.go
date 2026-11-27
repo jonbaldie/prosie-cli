@@ -8,6 +8,16 @@ import (
 	"github.com/jonbaldie/prosie-cli/internal/filewrite"
 )
 
+// NormalizeExportFormat accepts markdown or docx without case.
+// It returns the lower-case value. An empty value is invalid.
+func NormalizeExportFormat(format string) (string, error) {
+	normalized := strings.ToLower(format)
+	if normalized == "markdown" || normalized == "docx" {
+		return normalized, nil
+	}
+	return "", fmt.Errorf("error: invalid --format %q: must be markdown or docx", format)
+}
+
 func WriteExportFile(c *Environment, label string, id any, output string, data []byte, jsonOutput bool) int {
 	if err := filewrite.Replace(output, data, 0644); err != nil {
 		fmt.Fprintf(c.Err, "error writing to file: %v\n", err)
