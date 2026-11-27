@@ -3,6 +3,7 @@ package chaptercmd
 import (
 	"flag"
 	"fmt"
+	"github.com/jonbaldie/prosie-cli/internal/client"
 	"github.com/jonbaldie/prosie-cli/internal/command"
 	"io"
 )
@@ -28,6 +29,10 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 		fmt.Fprintln(c.Err, err)
 		return 1
 	}
+	if !hasChapterUpdate(params) {
+		fmt.Fprintln(c.Err, "error: at least one field flag is required: --title, --content, --file, --summary, --pov, --character, --order")
+		return 1
+	}
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -48,6 +53,10 @@ func executeChapterUpdate(c *command.Environment, args []string) int {
 
 	fmt.Fprintf(c.Out, "Updated chapter %d (%q).\n", chapter.ID, chapter.Display().Title)
 	return 0
+}
+
+func hasChapterUpdate(params client.UpdateChapterParams) bool {
+	return params.Name != nil || params.Content != nil || params.Summary != nil || params.Order != nil || params.CustomPOV != nil || params.CustomCharacter != nil
 }
 
 func printChapterUpdateHelp(c *command.Environment) {

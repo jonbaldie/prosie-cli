@@ -248,6 +248,10 @@ func executeSeriesUpdate(c *command.Environment, args []string) int {
 		params.Name = name
 	}
 	params.Description = command.Provided(visited, "description", description)
+	if !hasSeriesUpdate(params) {
+		fmt.Fprintln(c.Err, "error: at least one field flag is required: --title, --name, --description")
+		return 1
+	}
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -268,6 +272,10 @@ func executeSeriesUpdate(c *command.Environment, args []string) int {
 
 	fmt.Fprintf(c.Out, "Updated series %d (%q).\n", series.ID, series.Display().Title)
 	return 0
+}
+
+func hasSeriesUpdate(params client.UpdateSeriesParams) bool {
+	return params.Title != nil || params.Name != nil || params.Description != nil
 }
 
 func printSeriesUpdateHelp(c *command.Environment) {

@@ -67,6 +67,12 @@ func TestChapterMetadataRequests(t *testing.T) {
 					cmd, out, errOut := newTestRootCmd(cfgPath, httpClient)
 					args := append([]string{"chapter", command.name, command.id}, tc.flags...)
 					code := cmd.Execute(append(args, "--json"))
+					if command.name == "update" && tc.name == "omitted" {
+						if code != 1 || !strings.Contains(errOut.String(), "at least one field flag") || requests.Load() != 0 {
+							t.Fatalf("exit = %d, stderr = %q, requests = %d; want 1, at least one field flag, 0", code, errOut.String(), requests.Load())
+						}
+						return
+					}
 					if code != 0 || errOut.Len() != 0 {
 						t.Fatalf("exit = %d, stderr = %q; want 0 and empty stderr", code, errOut.String())
 					}

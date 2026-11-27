@@ -42,6 +42,10 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 		Characters:      command.Provided(visited, "characters", characters),
 		TargetWordCount: command.Provided(visited, "target-words", targetWords),
 	}
+	if !hasBookUpdate(params) {
+		fmt.Fprintln(c.Err, "error: at least one field flag is required: --title, --premise, --lore, --characters, --target-words")
+		return 1
+	}
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -62,6 +66,10 @@ func executeBookUpdate(c *command.Environment, args []string) int {
 
 	fmt.Fprintf(c.Out, "Updated book %d (%q).\n", book.ID, book.Title)
 	return 0
+}
+
+func hasBookUpdate(params client.UpdateBookParams) bool {
+	return params.Title != nil || params.StorySoFar != nil || params.Lore != nil || params.Characters != nil || params.TargetWordCount != nil
 }
 
 func printBookUpdateHelp(c *command.Environment) {

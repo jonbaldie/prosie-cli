@@ -276,6 +276,10 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 		Aliases:  command.Provided(visited, "aliases", aliases),
 		Order:    command.Provided(visited, "order", order),
 	}
+	if !hasCodexUpdate(params) {
+		fmt.Fprintln(c.Err, "error: at least one field flag is required: --name, --type, --category, --details, --content, --aliases, --order")
+		return 1
+	}
 
 	cli, err := command.Client(c)
 	if err != nil {
@@ -296,6 +300,10 @@ func executeCodexUpdate(c *command.Environment, args []string) int {
 
 	fmt.Fprintf(c.Out, "Updated codex entry %d (%q).\n", entry.ID, entry.Name)
 	return 0
+}
+
+func hasCodexUpdate(params client.UpdateCodexParams) bool {
+	return params.Name != nil || params.Category != nil || params.Content != nil || params.Aliases != nil || params.Order != nil
 }
 
 func printCodexUpdateHelp(c *command.Environment) {
